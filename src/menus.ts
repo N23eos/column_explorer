@@ -69,9 +69,8 @@ export function showFileMenu(view: ColumnExplorerView, e: MouseEvent, f: TAbstra
 	if (multi) {
 		const paths = [...view.multiSel];
 		menu.addItem(i => i.setTitle(t("moveTo")).setIcon("folder-input")
-			.onClick(() => new FolderSuggestModal(app, async (target) => {
-				await moveFiles(app, paths, target);
-				view.clearMulti();
+			.onClick(() => new FolderSuggestModal(app, (target) => {
+				void moveFiles(app, paths, target).then(() => view.clearMulti());
 			}).open()));
 		menu.addItem(i => i.setTitle(t("duplicateN", { n: paths.length })).setIcon("copy")
 			.onClick(async () => {
@@ -123,7 +122,9 @@ export function showFileMenu(view: ColumnExplorerView, e: MouseEvent, f: TAbstra
 		.onClick(() => view.deleteMany([f.path])));
 	menu.addSeparator();
 	menu.addItem(i => i.setTitle(t("copyPath")).setIcon("clipboard-copy")
-		.onClick(() => { navigator.clipboard.writeText(f.path); new Notice(t("pathCopied")); }));
+		.onClick(() => {
+			void navigator.clipboard.writeText(f.path).then(() => new Notice(t("pathCopied")));
+		}));
 
 	// Стандартное меню Obsidian: пункты ядра и других плагинов
 	app.workspace.trigger("file-menu", menu, f, "file-explorer-context-menu", view.leaf);
@@ -134,11 +135,11 @@ export function showFileMenu(view: ColumnExplorerView, e: MouseEvent, f: TAbstra
 export function showFolderBackgroundMenu(view: ColumnExplorerView, e: MouseEvent, folder: TFolder) {
 	const menu = new Menu();
 	menu.addItem(i => i.setTitle(t("newNote")).setIcon("file-plus")
-		.onClick(() => view.createNote(folder)));
+		.onClick(() => void view.createNote(folder)));
 	menu.addItem(i => i.setTitle(t("newFolder")).setIcon("folder-plus")
-		.onClick(() => view.createFolder(folder)));
+		.onClick(() => void view.createFolder(folder)));
 	menu.addItem(i => i.setTitle(t("newCanvas")).setIcon("layout-dashboard")
-		.onClick(() => view.createNote(folder, "canvas", "{}")));
+		.onClick(() => void view.createNote(folder, "canvas", "{}")));
 	menu.showAtMouseEvent(e);
 }
 

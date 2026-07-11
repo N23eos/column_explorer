@@ -298,7 +298,7 @@ export class ColumnExplorerView extends ItemView {
 		// Вправо прокручиваем только когда набор колонок изменился (открыли новую);
 		// при клике внутри тех же колонок скролл остаётся на месте
 		const sameColumns = this.columnsKey() === prevKey;
-		requestAnimationFrame(() => {
+		window.requestAnimationFrame(() => {
 			this.columnsEl.scrollLeft = sameColumns ? prevScrollLeft : this.columnsEl.scrollWidth;
 		});
 	}
@@ -441,7 +441,7 @@ export class ColumnExplorerView extends ItemView {
 
 		this.renamingPath = f.path;
 		const isMdFile = f instanceof TFile && f.extension === "md";
-		const original = isMdFile ? (f as TFile).basename : f.name;
+		const original = f instanceof TFile && f.extension === "md" ? f.basename : f.name;
 
 		const input = createEl("input", { type: "text", cls: "column-explorer-rename-input", value: original });
 		titleEl.replaceWith(input);
@@ -458,7 +458,7 @@ export class ColumnExplorerView extends ItemView {
 				try {
 					await this.app.fileManager.renameFile(f, normalizePath(dir + finalName));
 				} catch (err) {
-					new Notice(t("renameFailed") + err);
+					new Notice(t("renameFailed") + String(err));
 				}
 			}
 			this.render();

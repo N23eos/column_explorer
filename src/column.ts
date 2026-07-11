@@ -25,12 +25,12 @@ export function renderColumn(view: ColumnExplorerView, container: HTMLElement, f
 		attr: { "aria-label": viewMode === "list" ? t("viewAsGrid") : t("viewAsList") },
 	});
 	setIcon(toggle, viewMode === "list" ? "layout-grid" : "list");
-	toggle.addEventListener("click", async () => {
+	toggle.addEventListener("click", () => {
 		view.plugin.settings.columnViewModes = {
 			...view.plugin.settings.columnViewModes,
 			[folder.path]: viewMode === "list" ? "grid" : "list",
 		};
-		await view.plugin.saveSettings();
+		void view.plugin.saveSettings();
 		view.render();
 	});
 
@@ -93,7 +93,7 @@ export function renderColumnList(view: ColumnExplorerView, list: HTMLElement, fo
 		return;
 	}
 
-	const frag = document.createDocumentFragment();
+	const frag = createFragment();
 	for (const child of children) frag.appendChild(buildItem(view, child, depth));
 	list.appendChild(frag);
 }
@@ -151,11 +151,11 @@ function addResizeHandle(view: ColumnExplorerView, col: HTMLElement) {
 			view.applyColumnWidth();
 		};
 		const onUp = () => {
-			document.removeEventListener("mousemove", onMove);
-			document.removeEventListener("mouseup", onUp);
+			activeDocument.removeEventListener("mousemove", onMove);
+			activeDocument.removeEventListener("mouseup", onUp);
 			void view.plugin.saveSettings();
 		};
-		document.addEventListener("mousemove", onMove);
-		document.addEventListener("mouseup", onUp);
+		activeDocument.addEventListener("mousemove", onMove);
+		activeDocument.addEventListener("mouseup", onUp);
 	});
 }

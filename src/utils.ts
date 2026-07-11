@@ -40,9 +40,8 @@ export function isImageFile(f: TFile): boolean {
 }
 
 export function iconFor(f: TAbstractFile): string {
-	if (f instanceof TFolder) return "folder";
-	const file = f as TFile;
-	switch (file.extension) {
+	if (!(f instanceof TFile)) return "folder";
+	switch (f.extension) {
 		case "md": return "file-text";
 		case "canvas": return "layout-dashboard";
 		case "pdf": return "file-type";

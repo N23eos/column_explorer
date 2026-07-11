@@ -49,10 +49,10 @@ export function setupColumnDnd(view: ColumnExplorerView, listEl: HTMLElement, co
 		// не ломала перемещение внутри колонок.
 		try {
 			const dragManager = (app as unknown as { dragManager?: DragManagerLike }).dragManager;
-			if (dragManager && paths.length === 1) {
+			if (dragManager && paths.length === 1 && (f instanceof TFile || f instanceof TFolder)) {
 				const dragData = f instanceof TFile
 					? dragManager.dragFile(e, f)
-					: dragManager.dragFolder(e, f as TFolder);
+					: dragManager.dragFolder(e, f);
 				dragManager.onDragStart(e, dragData);
 			}
 		} catch { /* ignore */ }
@@ -70,7 +70,7 @@ export function setupColumnDnd(view: ColumnExplorerView, listEl: HTMLElement, co
 		if (!listEl.contains(e.relatedTarget as Node | null)) setHighlight(null);
 	});
 
-	listEl.addEventListener("drop", async (e: DragEvent) => {
+	listEl.addEventListener("drop", (e: DragEvent) => {
 		e.preventDefault();
 		e.stopPropagation();
 		const dropFolder = folderForItem(app, itemUnderEvent(listEl, e)) ?? columnFolder;
@@ -78,9 +78,12 @@ export function setupColumnDnd(view: ColumnExplorerView, listEl: HTMLElement, co
 		const raw = e.dataTransfer?.getData("text/plain");
 		if (!raw) return;
 		let paths: string[];
-		try { paths = JSON.parse(raw); } catch { paths = [raw]; }
-		if (!Array.isArray(paths)) paths = [String(paths)];
-		await moveFiles(app, paths, dropFolder);
-		view.clearMulti();
+		try {
+			const parsed: unknown = JSON.parse(raw);
+			paths = Array.isArray(parsed) ? parsed.map(String) : [raw];
+		} catch {
+			paths = [raw];
+		}
+		void moveFiles(app, paths, dropFolder).then(() => view.clearMulti());
 	});
 }

@@ -84,7 +84,7 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 			.addToggle(tg => tg.setValue(s.confirmDelete).onChange(async (v) => { s.confirmDelete = v; await save(); }));
 
 		new Setting(containerEl).setName(t("setColWidth")).setDesc(t("setColWidthDesc"))
-			.addSlider(sl => sl.setLimits(MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH, 10).setDynamicTooltip()
+			.addSlider(sl => sl.setLimits(MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH, 10)
 				.setValue(s.columnWidth)
 				.onChange(async (v) => { s.columnWidth = v; await save(); }));
 

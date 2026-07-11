@@ -1,3 +1,4 @@
+import { getLanguage } from "obsidian";
 import { formatTemplate } from "./pure";
 
 const STRINGS: Record<string, Record<string, string>> = {
@@ -72,7 +73,7 @@ const STRINGS: Record<string, Record<string, string>> = {
 };
 
 export function t(key: string, vars?: Record<string, string | number>): string {
-	const lang = window.localStorage.getItem("language") ?? "en";
+	const lang = getLanguage();
 	const s = (STRINGS[lang] ?? STRINGS.en)[key] ?? STRINGS.en[key] ?? key;
 	return vars ? formatTemplate(s, vars) : s;
 }
