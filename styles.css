@@ -222,3 +222,87 @@
 	border-radius: var(--radius-s);
 	object-fit: contain;
 }
+
+/* ---- v1.2 additions ---- */
+
+.column-explorer-breadcrumbs {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	padding: 3px 10px;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-muted);
+	border-bottom: 1px solid var(--background-modifier-border);
+	white-space: nowrap;
+	overflow-x: auto;
+	flex-shrink: 0;
+	scrollbar-width: none;
+}
+
+.column-explorer-breadcrumbs::-webkit-scrollbar {
+	display: none;
+}
+
+.column-explorer-crumb {
+	cursor: var(--cursor);
+	border-radius: var(--radius-s);
+	padding: 1px 4px;
+}
+
+.column-explorer-crumb:not(.is-current):hover {
+	background-color: var(--background-modifier-hover);
+	color: var(--text-normal);
+}
+
+.column-explorer-crumb.is-current {
+	color: var(--text-normal);
+	font-weight: var(--font-semibold);
+	cursor: default;
+}
+
+.column-explorer-crumb-sep {
+	color: var(--text-faint);
+}
+
+.column-explorer-column {
+	position: relative;
+}
+
+.column-explorer-resize-handle {
+	position: absolute;
+	top: 0;
+	right: -3px;
+	width: 6px;
+	height: 100%;
+	cursor: col-resize;
+	z-index: 10;
+}
+
+.column-explorer-resize-handle:hover {
+	background: linear-gradient(to right, transparent 2px, var(--interactive-accent) 2px, var(--interactive-accent) 4px, transparent 4px);
+}
+
+.column-explorer-preview-md {
+	width: 100%;
+	text-align: left;
+	font-size: var(--font-ui-small);
+	color: var(--text-muted);
+	border-top: 1px solid var(--background-modifier-border);
+	padding-top: 8px;
+	max-height: 45%;
+	overflow-y: auto;
+	word-break: break-word;
+}
+
+.column-explorer-preview-md :is(h1, h2, h3, h4, h5, h6) {
+	font-size: var(--font-ui-medium);
+	margin: 0.4em 0 0.2em;
+}
+
+.column-explorer-preview {
+	overflow-y: auto;
+}
+
+.column-explorer-columns:focus-visible {
+	box-shadow: inset 0 0 0 2px var(--background-modifier-border-focus);
+}

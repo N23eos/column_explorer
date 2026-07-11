@@ -1,1 +1,1245 @@
-"use strict";var __defProp=Object.defineProperty;var __getOwnPropDesc=Object.getOwnPropertyDescriptor;var __getOwnPropNames=Object.getOwnPropertyNames;var __hasOwnProp=Object.prototype.hasOwnProperty;var __export=(target,all)=>{for(var name in all)__defProp(target,name,{get:all[name],enumerable:true})};var __copyProps=(to,from,except,desc)=>{if(from&&typeof from==="object"||typeof from==="function"){for(let key of __getOwnPropNames(from))if(!__hasOwnProp.call(to,key)&&key!==except)__defProp(to,key,{get:()=>from[key],enumerable:!(desc=__getOwnPropDesc(from,key))||desc.enumerable})}return to};var __toCommonJS=mod=>__copyProps(__defProp({},"__esModule",{value:true}),mod);var main_exports={};__export(main_exports,{ColumnExplorerView:()=>ColumnExplorerView,VIEW_TYPE_COLUMNS:()=>VIEW_TYPE_COLUMNS,default:()=>ColumnExplorerPlugin});module.exports=__toCommonJS(main_exports);var import_obsidian=require("obsidian");var VIEW_TYPE_COLUMNS="column-explorer-view";var STRINGS={en:{newNote:"New note",newFolder:"New folder",reveal:"Reveal active file",collapse:"Collapse to root",search:"Filter files\u2026",sort:"Sort order",empty:"Empty",noResults:"No matches",open:"Open",openNewTab:"Open in new tab",openRight:"Open to the right",duplicate:"Duplicate",rename:"Rename",delete:"Delete",deleteN:"Delete {n} items",copyPath:"Copy path",pathCopied:"Path copied",untitled:"Untitled",newFolderName:"New folder",cantMoveIntoSelf:"Cannot move a folder into itself",alreadyExists:"\u201C{name}\u201D already exists in the target folder",renameFailed:"Rename failed: ",modified:"Modified",created:"Created",sortNameAsc:"Name (A \u2192 Z)",sortNameDesc:"Name (Z \u2192 A)",sortMtimeDesc:"Modified (newest first)",sortMtimeAsc:"Modified (oldest first)",confirmDeleteTitle:"Delete",confirmDeleteOne:"Delete \u201C{name}\u201D?",confirmDeleteMany:"Delete {n} items?",confirm:"Delete",cancel:"Cancel",itemsMoved:"{n} items moved",cmdOpen:"Open column explorer",cmdReveal:"Reveal active file in columns",setFoldersFirst:"Folders first",setFoldersFirstDesc:"Always list folders above files.",setShowExt:"Show extension badges",setShowExtDesc:"Show a small badge with the file extension for non-Markdown files.",setPreview:"Show file preview column",setPreviewDesc:"Show a details column when a file is selected.",setConfirmDelete:"Confirm before deleting",setConfirmDeleteDesc:"Ask for confirmation before moving files to trash.",setColWidth:"Minimum column width",setColWidthDesc:"In pixels.",setSort:"Default sort order"},ru:{newNote:"\u041D\u043E\u0432\u0430\u044F \u0437\u0430\u043C\u0435\u0442\u043A\u0430",newFolder:"\u041D\u043E\u0432\u0430\u044F \u043F\u0430\u043F\u043A\u0430",reveal:"\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u0439 \u0444\u0430\u0439\u043B",collapse:"\u0421\u0432\u0435\u0440\u043D\u0443\u0442\u044C \u043A \u043A\u043E\u0440\u043D\u044E",search:"\u0424\u0438\u043B\u044C\u0442\u0440 \u0444\u0430\u0439\u043B\u043E\u0432\u2026",sort:"\u0421\u043E\u0440\u0442\u0438\u0440\u043E\u0432\u043A\u0430",empty:"\u041F\u0443\u0441\u0442\u043E",noResults:"\u041D\u0438\u0447\u0435\u0433\u043E \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u043E",open:"\u041E\u0442\u043A\u0440\u044B\u0442\u044C",openNewTab:"\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0432 \u043D\u043E\u0432\u043E\u0439 \u0432\u043A\u043B\u0430\u0434\u043A\u0435",openRight:"\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0441\u043F\u0440\u0430\u0432\u0430",duplicate:"\u0414\u0443\u0431\u043B\u0438\u0440\u043E\u0432\u0430\u0442\u044C",rename:"\u041F\u0435\u0440\u0435\u0438\u043C\u0435\u043D\u043E\u0432\u0430\u0442\u044C",delete:"\u0423\u0434\u0430\u043B\u0438\u0442\u044C",deleteN:"\u0423\u0434\u0430\u043B\u0438\u0442\u044C {n} \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432",copyPath:"\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u043F\u0443\u0442\u044C",pathCopied:"\u041F\u0443\u0442\u044C \u0441\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u043D",untitled:"\u0411\u0435\u0437 \u043D\u0430\u0437\u0432\u0430\u043D\u0438\u044F",newFolderName:"\u041D\u043E\u0432\u0430\u044F \u043F\u0430\u043F\u043A\u0430",cantMoveIntoSelf:"\u041D\u0435\u043B\u044C\u0437\u044F \u043F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u044C \u043F\u0430\u043F\u043A\u0443 \u0432\u043D\u0443\u0442\u0440\u044C \u0441\u0430\u043C\u043E\u0439 \u0441\u0435\u0431\u044F",alreadyExists:"\u0412 \u0446\u0435\u043B\u0435\u0432\u043E\u0439 \u043F\u0430\u043F\u043A\u0435 \u0443\u0436\u0435 \u0435\u0441\u0442\u044C \xAB{name}\xBB",renameFailed:"\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u0435\u0440\u0435\u0438\u043C\u0435\u043D\u043E\u0432\u0430\u0442\u044C: ",modified:"\u0418\u0437\u043C\u0435\u043D\u0451\u043D",created:"\u0421\u043E\u0437\u0434\u0430\u043D",sortNameAsc:"\u0418\u043C\u044F (\u0410 \u2192 \u042F)",sortNameDesc:"\u0418\u043C\u044F (\u042F \u2192 \u0410)",sortMtimeDesc:"\u0414\u0430\u0442\u0430 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F (\u0441\u043D\u0430\u0447\u0430\u043B\u0430 \u043D\u043E\u0432\u044B\u0435)",sortMtimeAsc:"\u0414\u0430\u0442\u0430 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F (\u0441\u043D\u0430\u0447\u0430\u043B\u0430 \u0441\u0442\u0430\u0440\u044B\u0435)",confirmDeleteTitle:"\u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435",confirmDeleteOne:"\u0423\u0434\u0430\u043B\u0438\u0442\u044C \xAB{name}\xBB?",confirmDeleteMany:"\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432: {n}?",confirm:"\u0423\u0434\u0430\u043B\u0438\u0442\u044C",cancel:"\u041E\u0442\u043C\u0435\u043D\u0430",itemsMoved:"\u041F\u0435\u0440\u0435\u043C\u0435\u0449\u0435\u043D\u043E \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432: {n}",cmdOpen:"\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u043E\u0432\u043E\u0434\u043D\u0438\u043A-\u043A\u043E\u043B\u043E\u043D\u043A\u0438",cmdReveal:"\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u0439 \u0444\u0430\u0439\u043B \u0432 \u043A\u043E\u043B\u043E\u043D\u043A\u0430\u0445",setFoldersFirst:"\u041F\u0430\u043F\u043A\u0438 \u0441\u0432\u0435\u0440\u0445\u0443",setFoldersFirstDesc:"\u0412\u0441\u0435\u0433\u0434\u0430 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u043F\u0430\u043F\u043A\u0438 \u0432\u044B\u0448\u0435 \u0444\u0430\u0439\u043B\u043E\u0432.",setShowExt:"\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u0440\u0430\u0441\u0448\u0438\u0440\u0435\u043D\u0438\u044F",setShowExtDesc:"\u041D\u0435\u0431\u043E\u043B\u044C\u0448\u043E\u0439 \u0431\u0435\u0439\u0434\u0436 \u0441 \u0440\u0430\u0441\u0448\u0438\u0440\u0435\u043D\u0438\u0435\u043C \u0443 \u043D\u0435-Markdown \u0444\u0430\u0439\u043B\u043E\u0432.",setPreview:"\u041A\u043E\u043B\u043E\u043D\u043A\u0430 \u043F\u0440\u0435\u0432\u044C\u044E \u0444\u0430\u0439\u043B\u0430",setPreviewDesc:"\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u043A\u043E\u043B\u043E\u043D\u043A\u0443 \u0441 \u0434\u0435\u0442\u0430\u043B\u044F\u043C\u0438 \u043F\u0440\u0438 \u0432\u044B\u0431\u043E\u0440\u0435 \u0444\u0430\u0439\u043B\u0430.",setConfirmDelete:"\u041F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0430\u0442\u044C \u0443\u0434\u0430\u043B\u0435\u043D\u0438\u0435",setConfirmDeleteDesc:"\u0421\u043F\u0440\u0430\u0448\u0438\u0432\u0430\u0442\u044C \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u0438\u0435 \u043F\u0435\u0440\u0435\u0434 \u043F\u0435\u0440\u0435\u043C\u0435\u0449\u0435\u043D\u0438\u0435\u043C \u0432 \u043A\u043E\u0440\u0437\u0438\u043D\u0443.",setColWidth:"\u041C\u0438\u043D\u0438\u043C\u0430\u043B\u044C\u043D\u0430\u044F \u0448\u0438\u0440\u0438\u043D\u0430 \u043A\u043E\u043B\u043E\u043D\u043A\u0438",setColWidthDesc:"\u0412 \u043F\u0438\u043A\u0441\u0435\u043B\u044F\u0445.",setSort:"\u0421\u043E\u0440\u0442\u0438\u0440\u043E\u0432\u043A\u0430 \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E"}};function t(key,vars){var _a,_b,_c,_d;const lang=(_a=window.localStorage.getItem("language"))!=null?_a:"en";let s=(_d=(_c=((_b=STRINGS[lang])!=null?_b:STRINGS.en)[key])!=null?_c:STRINGS.en[key])!=null?_d:key;if(vars)for(const k of Object.keys(vars))s=s.replace("{"+k+"}",String(vars[k]));return s}var DEFAULT_SETTINGS={foldersFirst:true,showExtensions:true,showPreview:true,confirmDelete:true,columnWidth:200,sortMode:"name-asc"};function naturalCompare(a,b){return a.localeCompare(b,void 0,{numeric:true,sensitivity:"base"})}function sortChildren(children,s){const mtime=f=>f instanceof import_obsidian.TFile?f.stat.mtime:0;return[...children].sort((a,b)=>{if(s.foldersFirst){const aF=a instanceof import_obsidian.TFolder,bF=b instanceof import_obsidian.TFolder;if(aF!==bF)return aF?-1:1}switch(s.sortMode){case"name-desc":return naturalCompare(b.name,a.name);case"mtime-desc":return mtime(b)-mtime(a)||naturalCompare(a.name,b.name);case"mtime-asc":return mtime(a)-mtime(b)||naturalCompare(a.name,b.name);default:return naturalCompare(a.name,b.name)}})}function displayName(f){if(f instanceof import_obsidian.TFile&&f.extension==="md")return f.basename;return f.name}function iconFor(f){if(f instanceof import_obsidian.TFolder)return"folder";const file=f;switch(file.extension){case"md":return"file-text";case"canvas":return"layout-dashboard";case"pdf":return"file-type";case"png":case"jpg":case"jpeg":case"gif":case"webp":case"svg":case"bmp":return"image";case"mp3":case"wav":case"ogg":case"flac":case"m4a":return"file-audio";case"mp4":case"mov":case"webm":case"mkv":return"file-video";default:return"file"}}function humanSize(bytes){if(bytes<1024)return bytes+" B";const units=["KB","MB","GB"];let v=bytes,i=-1;do{v/=1024;i++}while(v>=1024&&i<units.length-1);return v.toFixed(1)+" "+units[i]}var ConfirmModal=class extends import_obsidian.Modal{constructor(app,message,onConfirm){super(app);this.message=message;this.onConfirm=onConfirm}onOpen(){this.titleEl.setText(t("confirmDeleteTitle"));this.contentEl.createEl("p",{text:this.message});const row=this.contentEl.createDiv({cls:"modal-button-container"});const ok=row.createEl("button",{text:t("confirm"),cls:"mod-warning"});ok.addEventListener("click",()=>{this.close();this.onConfirm()});const cancel=row.createEl("button",{text:t("cancel")});cancel.addEventListener("click",()=>this.close())}onClose(){this.contentEl.empty()}};var ColumnExplorerView=class extends import_obsidian.ItemView{constructor(leaf,plugin){super(leaf);this.selection=[];this.multiSel=new Set;this.multiSelDepth=-1;this.shiftAnchor=null;this.filter="";this.renamingPath=null;this.queueRefresh=(0,import_obsidian.debounce)(()=>this.render(),60,true);this.plugin=plugin}getViewType(){return VIEW_TYPE_COLUMNS}getDisplayText(){return"Column Explorer"}getIcon(){return"columns-3"}getState(){return{selection:this.selection}}async setState(state,result){if((state==null?void 0:state.selection)&&Array.isArray(state.selection)){this.selection=state.selection;if(this.columnsEl)this.render()}return super.setState(state,result)}persistState(){this.app.workspace.requestSaveLayout()}async onOpen(){const container=this.contentEl;container.empty();container.addClass("column-explorer-container");const toolbar=container.createDiv({cls:"column-explorer-toolbar"});this.addToolbarButton(toolbar,"file-plus",t("newNote"),()=>this.createNote(this.currentFolder()));this.addToolbarButton(toolbar,"folder-plus",t("newFolder"),()=>this.createFolder(this.currentFolder()));this.addToolbarButton(toolbar,"locate",t("reveal"),()=>this.revealFile(this.app.workspace.getActiveFile()));this.addToolbarButton(toolbar,"arrow-up-narrow-wide",t("sort"),e=>this.showSortMenu(e));this.addToolbarButton(toolbar,"chevrons-left",t("collapse"),()=>{this.selection=[];this.clearMulti();this.render()});this.searchInput=toolbar.createEl("input",{type:"search",cls:"column-explorer-search",attr:{placeholder:t("search")}});this.registerDomEvent(this.searchInput,"input",()=>{this.filter=this.searchInput.value.toLowerCase().trim();this.render()});this.columnsEl=container.createDiv({cls:"column-explorer-columns"});this.columnsEl.tabIndex=0;this.registerDomEvent(this.columnsEl,"keydown",e=>this.onKeyDown(e));this.registerEvent(this.app.vault.on("create",()=>this.queueRefresh()));this.registerEvent(this.app.vault.on("delete",f=>{this.pruneSelection(f.path);this.queueRefresh()}));this.registerEvent(this.app.vault.on("rename",(f,oldPath)=>{this.remapSelection(oldPath,f.path);this.queueRefresh()}));this.render()}addToolbarButton(parent,icon,tooltip,onClick){const btn=parent.createDiv({cls:"clickable-icon column-explorer-toolbar-btn",attr:{"aria-label":tooltip}});(0,import_obsidian.setIcon)(btn,icon);this.registerDomEvent(btn,"click",onClick)}showSortMenu(e){const menu=new import_obsidian.Menu;const modes=["name-asc","name-desc","mtime-desc","mtime-asc"];const labels={"name-asc":t("sortNameAsc"),"name-desc":t("sortNameDesc"),"mtime-desc":t("sortMtimeDesc"),"mtime-asc":t("sortMtimeAsc")};for(const m of modes){menu.addItem(i=>i.setTitle(labels[m]).setChecked(this.plugin.settings.sortMode===m).onClick(async()=>{this.plugin.settings.sortMode=m;await this.plugin.saveSettings();this.render()}))}menu.showAtMouseEvent(e)}clearMulti(){this.multiSel.clear();this.multiSelDepth=-1;this.shiftAnchor=null}pruneSelection(deletedPath){const i=this.selection.findIndex(p=>p===deletedPath||p.startsWith(deletedPath+"/"));if(i>=0)this.selection=this.selection.slice(0,i);this.multiSel.delete(deletedPath)}remapSelection(oldPath,newPath){this.selection=this.selection.map(p=>p===oldPath?newPath:p.startsWith(oldPath+"/")?newPath+p.slice(oldPath.length):p)}currentFolder(){for(let i=this.selection.length-1;i>=0;i--){const f=this.app.vault.getAbstractFileByPath(this.selection[i]);if(f instanceof import_obsidian.TFolder)return f;if(f instanceof import_obsidian.TFile&&f.parent)return f.parent}return this.app.vault.getRoot()}render(){this.columnsEl.empty();this.columnsEl.style.setProperty("--ce-col-width",this.plugin.settings.columnWidth+"px");const validSel=[];let parent=this.app.vault.getRoot();for(const path of this.selection){const f=this.app.vault.getAbstractFileByPath(path);if(!f||f.parent!==parent)break;validSel.push(path);if(f instanceof import_obsidian.TFolder)parent=f;else break}this.selection=validSel;this.renderColumn(this.app.vault.getRoot(),0);for(let depth=0;depth<this.selection.length;depth++){const f=this.app.vault.getAbstractFileByPath(this.selection[depth]);if(f instanceof import_obsidian.TFolder){this.renderColumn(f,depth+1)}else if(f instanceof import_obsidian.TFile&&this.plugin.settings.showPreview){this.renderPreview(f)}}requestAnimationFrame(()=>{this.columnsEl.scrollLeft=this.columnsEl.scrollWidth})}renderColumn(folder,depth){const col=this.columnsEl.createDiv({cls:"column-explorer-column"});col.dataset.depth=String(depth);const header=col.createDiv({cls:"column-explorer-column-header"});header.createSpan({text:folder.isRoot()?this.app.vault.getName():folder.name});const list=col.createDiv({cls:"column-explorer-list"});this.makeDropTarget(list,folder);this.registerDomEvent(list,"contextmenu",e=>{if(e.target!==list)return;e.preventDefault();this.showFolderBackgroundMenu(e,folder)});this.registerDomEvent(list,"click",e=>{if(e.target===list){this.clearMulti();this.render()}});let children=sortChildren(folder.children,this.plugin.settings);if(this.filter){children=children.filter(c=>c instanceof import_obsidian.TFolder||displayName(c).toLowerCase().includes(this.filter))}if(children.length===0){list.createDiv({cls:"column-explorer-empty",text:this.filter?t("noResults"):t("empty")})}const frag=document.createDocumentFragment();for(const child of children)this.renderItem(frag,child,depth,children);list.appendChild(frag)}renderItem(list,f,depth,siblings){const item=createDiv({cls:"column-explorer-item"});list.appendChild(item);item.dataset.path=f.path;const selected=this.selection[depth]===f.path;if(selected)item.addClass("is-selected");if(selected&&depth<this.selection.length-1)item.addClass("is-ancestor");if(this.multiSelDepth===depth&&this.multiSel.has(f.path))item.addClass("is-multi-selected");const activeFile=this.app.workspace.getActiveFile();if(activeFile&&activeFile.path===f.path)item.addClass("is-active-file");const iconEl=item.createDiv({cls:"column-explorer-item-icon"});(0,import_obsidian.setIcon)(iconEl,iconFor(f));item.createDiv({cls:"column-explorer-item-title",text:displayName(f)});if(f instanceof import_obsidian.TFolder){const chev=item.createDiv({cls:"column-explorer-item-chevron"});(0,import_obsidian.setIcon)(chev,"chevron-right")}else if(f instanceof import_obsidian.TFile&&f.extension!=="md"&&this.plugin.settings.showExtensions){item.createDiv({cls:"column-explorer-item-ext",text:f.extension})}this.registerDomEvent(item,"click",e=>{if(this.renamingPath===f.path)return;if(e.ctrlKey||e.metaKey){this.toggleMulti(f,depth);return}if(e.shiftKey){this.rangeMulti(f,depth,siblings);return}this.clearMulti();this.selectItem(f,depth,e)});this.registerDomEvent(item,"dblclick",()=>{if(f instanceof import_obsidian.TFile)this.app.workspace.getLeaf("tab").openFile(f)});this.registerDomEvent(item,"auxclick",e=>{if(e.button===1&&f instanceof import_obsidian.TFile)this.app.workspace.getLeaf("tab").openFile(f)});this.registerDomEvent(item,"contextmenu",e=>{e.preventDefault();e.stopPropagation();this.showFileMenu(e,f,depth)});item.draggable=true;this.registerDomEvent(item,"dragstart",e=>{var _a;const paths=this.dragPayload(f,depth);(_a=e.dataTransfer)==null?void 0:_a.setData("text/plain",JSON.stringify(paths));if(e.dataTransfer)e.dataTransfer.effectAllowed="move";try{const dragManager=this.app.dragManager;if(dragManager&&paths.length===1){const dragData=f instanceof import_obsidian.TFile?dragManager.dragFile(e,f):dragManager.dragFolder(e,f);dragManager.onDragStart(e,dragData)}}catch(e2){}});if(f instanceof import_obsidian.TFolder)this.makeDropTarget(item,f)}dragPayload(f,depth){if(this.multiSelDepth===depth&&this.multiSel.has(f.path)){return[...this.multiSel]}return[f.path]}toggleMulti(f,depth){if(this.multiSelDepth!==depth)this.clearMulti();this.multiSelDepth=depth;if(this.multiSel.has(f.path))this.multiSel.delete(f.path);else this.multiSel.add(f.path);this.shiftAnchor=f.path;if(this.multiSel.size===0)this.multiSelDepth=-1;this.render()}rangeMulti(f,depth,siblings){var _a,_b;if(this.multiSelDepth!==depth){this.clearMulti();this.multiSelDepth=depth}const anchor=(_b=(_a=this.shiftAnchor)!=null?_a:this.selection[depth])!=null?_b:f.path;const ai=siblings.findIndex(s=>s.path===anchor);const bi=siblings.findIndex(s=>s.path===f.path);if(ai===-1||bi===-1){this.toggleMulti(f,depth);return}const[from,to]=ai<bi?[ai,bi]:[bi,ai];for(let i=from;i<=to;i++)this.multiSel.add(siblings[i].path);this.render()}renderPreview(file){const col=this.columnsEl.createDiv({cls:"column-explorer-column column-explorer-preview"});const inner=col.createDiv({cls:"column-explorer-preview-inner"});const imgExts=["png","jpg","jpeg","gif","webp","svg","bmp"];if(imgExts.includes(file.extension)){const img=inner.createEl("img",{cls:"column-explorer-preview-image"});img.src=this.app.vault.getResourcePath(file)}else{const big=inner.createDiv({cls:"column-explorer-preview-icon"});(0,import_obsidian.setIcon)(big,iconFor(file))}inner.createDiv({cls:"column-explorer-preview-name",text:displayName(file)});const meta=inner.createDiv({cls:"column-explorer-preview-meta"});meta.createDiv({text:file.extension.toUpperCase()+" \xB7 "+humanSize(file.stat.size)});meta.createDiv({text:t("modified")+": "+new Date(file.stat.mtime).toLocaleString()});meta.createDiv({text:t("created")+": "+new Date(file.stat.ctime).toLocaleString()});const btn=inner.createEl("button",{text:t("open"),cls:"mod-cta"});this.registerDomEvent(btn,"click",e=>{this.app.workspace.getLeaf(import_obsidian.Keymap.isModEvent(e)).openFile(file)})}selectItem(f,depth,e){this.selection=this.selection.slice(0,depth);this.selection.push(f.path);this.shiftAnchor=f.path;if(f instanceof import_obsidian.TFile){this.app.workspace.getLeaf(import_obsidian.Keymap.isModEvent(e)).openFile(f)}this.persistState();this.render()}revealFile(file){if(!file)return;if(this.filter){this.filter="";this.searchInput.value=""}const chain=[];let cur=file;while(cur&&cur.parent){chain.unshift(cur.path);cur=cur.parent}this.selection=chain;this.clearMulti();this.persistState();this.render()}makeDropTarget(el,folder){this.registerDomEvent(el,"dragover",e=>{e.preventDefault();e.stopPropagation();if(e.dataTransfer)e.dataTransfer.dropEffect="move";el.addClass("is-drop-target")});this.registerDomEvent(el,"dragleave",()=>el.removeClass("is-drop-target"));this.registerDomEvent(el,"drop",async e=>{var _a,_b;e.preventDefault();e.stopPropagation();el.removeClass("is-drop-target");const raw=(_a=e.dataTransfer)==null?void 0:_a.getData("text/plain");if(!raw)return;let paths;try{paths=JSON.parse(raw)}catch(e2){paths=[raw]}if(!Array.isArray(paths))paths=[String(paths)];let moved=0;for(const path of paths){const src=this.app.vault.getAbstractFileByPath(path);if(!src||src.path===folder.path)continue;if(folder.path.startsWith(src.path+"/")){new import_obsidian.Notice(t("cantMoveIntoSelf"));continue}if(((_b=src.parent)==null?void 0:_b.path)===folder.path)continue;const dest=(0,import_obsidian.normalizePath)((folder.isRoot()?"":folder.path+"/")+src.name);if(this.app.vault.getAbstractFileByPath(dest)){new import_obsidian.Notice(t("alreadyExists",{name:src.name}));continue}await this.app.fileManager.renameFile(src,dest);moved++}if(moved>1)new import_obsidian.Notice(t("itemsMoved",{n:moved}));this.clearMulti()})}showFileMenu(e,f,depth){const menu=new import_obsidian.Menu;const multi=this.multiSelDepth===depth&&this.multiSel.has(f.path)&&this.multiSel.size>1;if(multi){menu.addItem(i=>i.setTitle(t("deleteN",{n:this.multiSel.size})).setIcon("trash").onClick(()=>this.deleteMany([...this.multiSel])));menu.showAtMouseEvent(e);return}if(f instanceof import_obsidian.TFolder){menu.addItem(i=>i.setTitle(t("newNote")).setIcon("file-plus").onClick(()=>this.createNote(f)));menu.addItem(i=>i.setTitle(t("newFolder")).setIcon("folder-plus").onClick(()=>this.createFolder(f)));menu.addSeparator()}if(f instanceof import_obsidian.TFile){menu.addItem(i=>i.setTitle(t("openNewTab")).setIcon("file-plus-2").onClick(()=>this.app.workspace.getLeaf("tab").openFile(f)));menu.addItem(i=>i.setTitle(t("openRight")).setIcon("separator-vertical").onClick(()=>this.app.workspace.getLeaf("split").openFile(f)));menu.addSeparator();menu.addItem(i=>i.setTitle(t("duplicate")).setIcon("copy").onClick(()=>this.duplicateFile(f)))}menu.addItem(i=>i.setTitle(t("rename")).setIcon("pencil").onClick(()=>this.startRename(f,depth)));menu.addItem(i=>i.setTitle(t("delete")).setIcon("trash").onClick(()=>this.deleteMany([f.path])));menu.addSeparator();menu.addItem(i=>i.setTitle(t("copyPath")).setIcon("clipboard-copy").onClick(()=>{navigator.clipboard.writeText(f.path);new import_obsidian.Notice(t("pathCopied"))}));this.app.workspace.trigger("file-menu",menu,f,"file-explorer-context-menu",this.leaf);menu.showAtMouseEvent(e)}showFolderBackgroundMenu(e,folder){const menu=new import_obsidian.Menu;menu.addItem(i=>i.setTitle(t("newNote")).setIcon("file-plus").onClick(()=>this.createNote(folder)));menu.addItem(i=>i.setTitle(t("newFolder")).setIcon("folder-plus").onClick(()=>this.createFolder(folder)));menu.showAtMouseEvent(e)}deleteMany(paths){const doDelete=async()=>{for(const p of paths){const f=this.app.vault.getAbstractFileByPath(p);if(f)await this.app.fileManager.trashFile(f)}this.clearMulti()};if(!this.plugin.settings.confirmDelete){void doDelete();return}const first=this.app.vault.getAbstractFileByPath(paths[0]);const msg=paths.length===1?t("confirmDeleteOne",{name:first?displayName(first):paths[0]}):t("confirmDeleteMany",{n:paths.length});new ConfirmModal(this.app,msg,()=>void doDelete()).open()}async createNote(folder){const base=(folder.isRoot()?"":folder.path+"/")+t("untitled");let path=(0,import_obsidian.normalizePath)(base+".md");let n=1;while(this.app.vault.getAbstractFileByPath(path)){path=(0,import_obsidian.normalizePath)(base+" "+n+++".md")}const file=await this.app.vault.create(path,"");this.revealFile(file);await this.app.workspace.getLeaf(false).openFile(file);window.setTimeout(()=>this.startRenameByPath(file.path),100)}async createFolder(folder){const base=(folder.isRoot()?"":folder.path+"/")+t("newFolderName");let path=(0,import_obsidian.normalizePath)(base);let n=1;while(this.app.vault.getAbstractFileByPath(path)){path=(0,import_obsidian.normalizePath)(base+" "+n++)}await this.app.vault.createFolder(path);window.setTimeout(()=>this.startRenameByPath(path),100)}async duplicateFile(f){const dir=f.parent&&!f.parent.isRoot()?f.parent.path+"/":"";let n=1;let path=(0,import_obsidian.normalizePath)(dir+f.basename+" copy."+f.extension);while(this.app.vault.getAbstractFileByPath(path)){path=(0,import_obsidian.normalizePath)(dir+f.basename+" copy "+n+++"."+f.extension)}await this.app.vault.copy(f,path)}startRenameByPath(path){const f=this.app.vault.getAbstractFileByPath(path);if(!f)return;let depth=0;let cur=f.parent;while(cur&&!cur.isRoot()){depth++;cur=cur.parent}this.startRename(f,depth)}startRename(f,depth){this.render();const item=this.columnsEl.querySelector(`.column-explorer-item[data-path="${CSS.escape(f.path)}"]`);if(!item)return;const titleEl=item.querySelector(".column-explorer-item-title");if(!titleEl)return;this.renamingPath=f.path;const isMdFile=f instanceof import_obsidian.TFile&&f.extension==="md";const original=isMdFile?f.basename:f.name;const input=createEl("input",{type:"text",cls:"column-explorer-rename-input",value:original});titleEl.replaceWith(input);input.focus();const dot=input.value.lastIndexOf(".");input.setSelectionRange(0,isMdFile||dot<=0?input.value.length:dot);const finish=async commit=>{this.renamingPath=null;const newName=input.value.trim();if(commit&&newName&&newName!==original){const dir=f.parent&&!f.parent.isRoot()?f.parent.path+"/":"";const finalName=isMdFile?newName+".md":newName;try{await this.app.fileManager.renameFile(f,(0,import_obsidian.normalizePath)(dir+finalName))}catch(err){new import_obsidian.Notice(t("renameFailed")+err)}}this.render()};input.addEventListener("keydown",e=>{if(e.key==="Enter"){e.preventDefault();void finish(true)}if(e.key==="Escape"){e.preventDefault();void finish(false)}});input.addEventListener("blur",()=>void finish(true));input.addEventListener("click",e=>e.stopPropagation())}onKeyDown(e){if(this.renamingPath)return;const depth=Math.max(0,this.selection.length-1);const selectedPath=this.selection[depth];if(e.key==="ArrowUp"||e.key==="ArrowDown"){e.preventDefault();const parentFolder=this.folderAtDepth(depth);if(!parentFolder)return;const children=sortChildren(parentFolder.children,this.plugin.settings);if(children.length===0)return;let idx=children.findIndex(c=>c.path===selectedPath);idx=e.key==="ArrowDown"?Math.min(children.length-1,idx+1):Math.max(0,idx===-1?0:idx-1);const next=children[idx];this.selection=this.selection.slice(0,depth);this.selection.push(next.path);this.clearMulti();this.persistState();this.render()}else if(e.key==="ArrowLeft"){e.preventDefault();if(this.selection.length>0){this.selection.pop();this.persistState();this.render()}}else if(e.key==="ArrowRight"||e.key==="Enter"){e.preventDefault();const f=selectedPath?this.app.vault.getAbstractFileByPath(selectedPath):null;if(f instanceof import_obsidian.TFolder){const children=sortChildren(f.children,this.plugin.settings);if(children.length>0){this.selection.push(children[0].path);this.persistState();this.render()}}else if(f instanceof import_obsidian.TFile&&e.key==="Enter"){this.app.workspace.getLeaf(false).openFile(f)}}else if(e.key==="F2"){e.preventDefault();const f=selectedPath?this.app.vault.getAbstractFileByPath(selectedPath):null;if(f)this.startRename(f,depth)}else if(e.key==="Delete"||e.key==="Backspace"&&(e.metaKey||e.ctrlKey)){e.preventDefault();if(this.multiSel.size>0){this.deleteMany([...this.multiSel]);return}if(selectedPath)this.deleteMany([selectedPath])}}folderAtDepth(depth){if(depth===0)return this.app.vault.getRoot();const f=this.app.vault.getAbstractFileByPath(this.selection[depth-1]);return f instanceof import_obsidian.TFolder?f:null}};var ColumnExplorerSettingTab=class extends import_obsidian.PluginSettingTab{constructor(app,plugin){super(app,plugin);this.plugin=plugin}display(){const{containerEl}=this;containerEl.empty();const s=this.plugin.settings;const save=async()=>{var _a;await this.plugin.saveSettings();(_a=this.plugin.getView())==null?void 0:_a.render()};new import_obsidian.Setting(containerEl).setName(t("setSort")).addDropdown(d=>d.addOption("name-asc",t("sortNameAsc")).addOption("name-desc",t("sortNameDesc")).addOption("mtime-desc",t("sortMtimeDesc")).addOption("mtime-asc",t("sortMtimeAsc")).setValue(s.sortMode).onChange(async v=>{s.sortMode=v;await save()}));new import_obsidian.Setting(containerEl).setName(t("setFoldersFirst")).setDesc(t("setFoldersFirstDesc")).addToggle(tg=>tg.setValue(s.foldersFirst).onChange(async v=>{s.foldersFirst=v;await save()}));new import_obsidian.Setting(containerEl).setName(t("setShowExt")).setDesc(t("setShowExtDesc")).addToggle(tg=>tg.setValue(s.showExtensions).onChange(async v=>{s.showExtensions=v;await save()}));new import_obsidian.Setting(containerEl).setName(t("setPreview")).setDesc(t("setPreviewDesc")).addToggle(tg=>tg.setValue(s.showPreview).onChange(async v=>{s.showPreview=v;await save()}));new import_obsidian.Setting(containerEl).setName(t("setConfirmDelete")).setDesc(t("setConfirmDeleteDesc")).addToggle(tg=>tg.setValue(s.confirmDelete).onChange(async v=>{s.confirmDelete=v;await save()}));new import_obsidian.Setting(containerEl).setName(t("setColWidth")).setDesc(t("setColWidthDesc")).addSlider(sl=>sl.setLimits(140,400,10).setDynamicTooltip().setValue(s.columnWidth).onChange(async v=>{s.columnWidth=v;await save()}))}};var ColumnExplorerPlugin=class extends import_obsidian.Plugin{constructor(){super(...arguments);this.settings=DEFAULT_SETTINGS}async onload(){await this.loadSettings();this.registerView(VIEW_TYPE_COLUMNS,leaf=>new ColumnExplorerView(leaf,this));this.addSettingTab(new ColumnExplorerSettingTab(this.app,this));this.addRibbonIcon("columns-3","Column Explorer",()=>void this.activateView());this.addCommand({id:"open-view",name:t("cmdOpen"),callback:()=>void this.activateView()});this.addCommand({id:"reveal-active-file",name:t("cmdReveal"),callback:async()=>{var _a;await this.activateView();(_a=this.getView())==null?void 0:_a.revealFile(this.app.workspace.getActiveFile())}});this.registerEvent(this.app.workspace.on("active-leaf-change",()=>{var _a;(_a=this.getView())==null?void 0:_a.render()}))}async loadSettings(){this.settings=Object.assign({},DEFAULT_SETTINGS,await this.loadData())}async saveSettings(){await this.saveData(this.settings)}getView(){const leaf=this.app.workspace.getLeavesOfType(VIEW_TYPE_COLUMNS)[0];return leaf&&leaf.view instanceof ColumnExplorerView?leaf.view:null}async activateView(){const existing=this.app.workspace.getLeavesOfType(VIEW_TYPE_COLUMNS);if(existing.length>0){await this.app.workspace.revealLeaf(existing[0]);return}const leaf=this.app.workspace.getLeftLeaf(false);if(leaf){await leaf.setViewState({type:VIEW_TYPE_COLUMNS,active:true});await this.app.workspace.revealLeaf(leaf)}}};
+"use strict";
+var __defProp = Object.defineProperty;
+var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
+var __getOwnPropNames = Object.getOwnPropertyNames;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __export = (target, all) => {
+  for (var name in all)
+    __defProp(target, name, { get: all[name], enumerable: true });
+};
+var __copyProps = (to, from, except, desc) => {
+  if (from && typeof from === "object" || typeof from === "function") {
+    for (let key of __getOwnPropNames(from))
+      if (!__hasOwnProp.call(to, key) && key !== except)
+        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
+  }
+  return to;
+};
+var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
+
+// src/main.ts
+var main_exports = {};
+__export(main_exports, {
+  default: () => ColumnExplorerPlugin
+});
+module.exports = __toCommonJS(main_exports);
+var import_obsidian10 = require("obsidian");
+
+// src/pure.ts
+function naturalCompare(a, b) {
+  return a.localeCompare(b, void 0, { numeric: true, sensitivity: "base" });
+}
+function humanSize(bytes) {
+  if (bytes < 1024) return bytes + " B";
+  const units = ["KB", "MB", "GB"];
+  let value = bytes;
+  let unitIndex = -1;
+  do {
+    value /= 1024;
+    unitIndex++;
+  } while (value >= 1024 && unitIndex < units.length - 1);
+  return value.toFixed(1) + " " + units[unitIndex];
+}
+function formatTemplate(template, vars) {
+  let result = template;
+  for (const key of Object.keys(vars)) {
+    result = result.replace("{" + key + "}", String(vars[key]));
+  }
+  return result;
+}
+function parseExcludePatterns(raw) {
+  return raw.split(",").map((p) => p.trim()).filter((p) => p.length > 0);
+}
+function globToRegExp(glob) {
+  const escaped = glob.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^/]*");
+  return new RegExp("^" + escaped + "$");
+}
+function matchesExcludePatterns(path, patterns) {
+  var _a;
+  if (patterns.length === 0) return false;
+  const name = (_a = path.split("/").pop()) != null ? _a : path;
+  return patterns.some((pattern) => {
+    if (pattern.endsWith("/")) {
+      const base = pattern.slice(0, -1);
+      return path === base || path.startsWith(base + "/");
+    }
+    if (pattern.includes("*")) {
+      return globToRegExp(pattern).test(name);
+    }
+    return path.includes(pattern);
+  });
+}
+
+// src/i18n.ts
+var STRINGS = {
+  en: {
+    newNote: "New note",
+    newFolder: "New folder",
+    reveal: "Reveal active file",
+    collapse: "Collapse to root",
+    search: "Filter files\u2026",
+    sort: "Sort order",
+    empty: "Empty",
+    noResults: "No matches",
+    open: "Open",
+    openNewTab: "Open in new tab",
+    openRight: "Open to the right",
+    duplicate: "Duplicate",
+    rename: "Rename",
+    delete: "Delete",
+    deleteN: "Delete {n} items",
+    duplicateN: "Duplicate {n} items",
+    moveTo: "Move to folder\u2026",
+    moveToPlaceholder: "Choose target folder\u2026",
+    copyPath: "Copy path",
+    pathCopied: "Path copied",
+    untitled: "Untitled",
+    newFolderName: "New folder",
+    cantMoveIntoSelf: "Cannot move a folder into itself",
+    alreadyExists: "\u201C{name}\u201D already exists in the target folder",
+    renameFailed: "Rename failed: ",
+    modified: "Modified",
+    created: "Created",
+    sortNameAsc: "Name (A \u2192 Z)",
+    sortNameDesc: "Name (Z \u2192 A)",
+    sortMtimeDesc: "Modified (newest first)",
+    sortMtimeAsc: "Modified (oldest first)",
+    confirmDeleteTitle: "Delete",
+    confirmDeleteOne: "Delete \u201C{name}\u201D?",
+    confirmDeleteMany: "Delete {n} items?",
+    confirm: "Delete",
+    cancel: "Cancel",
+    itemsMoved: "{n} items moved",
+    cmdOpen: "Open column explorer",
+    cmdReveal: "Reveal active file in columns",
+    setFoldersFirst: "Folders first",
+    setFoldersFirstDesc: "Always list folders above files.",
+    setShowExt: "Show extension badges",
+    setShowExtDesc: "Show a small badge with the file extension for non-Markdown files.",
+    setPreview: "Show file preview column",
+    setPreviewDesc: "Show a details column when a file is selected.",
+    setMdPreview: "Preview note content",
+    setMdPreviewDesc: "Render the beginning of Markdown notes in the preview column.",
+    setConfirmDelete: "Confirm before deleting",
+    setConfirmDeleteDesc: "Ask for confirmation before moving files to trash.",
+    setColWidth: "Minimum column width",
+    setColWidthDesc: "In pixels. Columns can also be resized by dragging their right edge.",
+    setSort: "Default sort order",
+    setAutoReveal: "Auto-reveal active file",
+    setAutoRevealDesc: "Follow the active editor tab and select its file in the columns.",
+    setExclude: "Excluded files",
+    setExcludeDesc: "Comma-separated patterns to hide, e.g. \u201C*.tmp, archive/, .trash\u201D."
+  },
+  ru: {
+    newNote: "\u041D\u043E\u0432\u0430\u044F \u0437\u0430\u043C\u0435\u0442\u043A\u0430",
+    newFolder: "\u041D\u043E\u0432\u0430\u044F \u043F\u0430\u043F\u043A\u0430",
+    reveal: "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u0439 \u0444\u0430\u0439\u043B",
+    collapse: "\u0421\u0432\u0435\u0440\u043D\u0443\u0442\u044C \u043A \u043A\u043E\u0440\u043D\u044E",
+    search: "\u0424\u0438\u043B\u044C\u0442\u0440 \u0444\u0430\u0439\u043B\u043E\u0432\u2026",
+    sort: "\u0421\u043E\u0440\u0442\u0438\u0440\u043E\u0432\u043A\u0430",
+    empty: "\u041F\u0443\u0441\u0442\u043E",
+    noResults: "\u041D\u0438\u0447\u0435\u0433\u043E \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u043E",
+    open: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C",
+    openNewTab: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0432 \u043D\u043E\u0432\u043E\u0439 \u0432\u043A\u043B\u0430\u0434\u043A\u0435",
+    openRight: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0441\u043F\u0440\u0430\u0432\u0430",
+    duplicate: "\u0414\u0443\u0431\u043B\u0438\u0440\u043E\u0432\u0430\u0442\u044C",
+    rename: "\u041F\u0435\u0440\u0435\u0438\u043C\u0435\u043D\u043E\u0432\u0430\u0442\u044C",
+    delete: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+    deleteN: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C {n} \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432",
+    duplicateN: "\u0414\u0443\u0431\u043B\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432: {n}",
+    moveTo: "\u041F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u044C \u0432 \u043F\u0430\u043F\u043A\u0443\u2026",
+    moveToPlaceholder: "\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043F\u0430\u043F\u043A\u0443\u2026",
+    copyPath: "\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u043F\u0443\u0442\u044C",
+    pathCopied: "\u041F\u0443\u0442\u044C \u0441\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u043D",
+    untitled: "\u0411\u0435\u0437 \u043D\u0430\u0437\u0432\u0430\u043D\u0438\u044F",
+    newFolderName: "\u041D\u043E\u0432\u0430\u044F \u043F\u0430\u043F\u043A\u0430",
+    cantMoveIntoSelf: "\u041D\u0435\u043B\u044C\u0437\u044F \u043F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u044C \u043F\u0430\u043F\u043A\u0443 \u0432\u043D\u0443\u0442\u0440\u044C \u0441\u0430\u043C\u043E\u0439 \u0441\u0435\u0431\u044F",
+    alreadyExists: "\u0412 \u0446\u0435\u043B\u0435\u0432\u043E\u0439 \u043F\u0430\u043F\u043A\u0435 \u0443\u0436\u0435 \u0435\u0441\u0442\u044C \xAB{name}\xBB",
+    renameFailed: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u0435\u0440\u0435\u0438\u043C\u0435\u043D\u043E\u0432\u0430\u0442\u044C: ",
+    modified: "\u0418\u0437\u043C\u0435\u043D\u0451\u043D",
+    created: "\u0421\u043E\u0437\u0434\u0430\u043D",
+    sortNameAsc: "\u0418\u043C\u044F (\u0410 \u2192 \u042F)",
+    sortNameDesc: "\u0418\u043C\u044F (\u042F \u2192 \u0410)",
+    sortMtimeDesc: "\u0414\u0430\u0442\u0430 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F (\u0441\u043D\u0430\u0447\u0430\u043B\u0430 \u043D\u043E\u0432\u044B\u0435)",
+    sortMtimeAsc: "\u0414\u0430\u0442\u0430 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F (\u0441\u043D\u0430\u0447\u0430\u043B\u0430 \u0441\u0442\u0430\u0440\u044B\u0435)",
+    confirmDeleteTitle: "\u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435",
+    confirmDeleteOne: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \xAB{name}\xBB?",
+    confirmDeleteMany: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432: {n}?",
+    confirm: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+    cancel: "\u041E\u0442\u043C\u0435\u043D\u0430",
+    itemsMoved: "\u041F\u0435\u0440\u0435\u043C\u0435\u0449\u0435\u043D\u043E \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432: {n}",
+    cmdOpen: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u043E\u0432\u043E\u0434\u043D\u0438\u043A-\u043A\u043E\u043B\u043E\u043D\u043A\u0438",
+    cmdReveal: "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u0439 \u0444\u0430\u0439\u043B \u0432 \u043A\u043E\u043B\u043E\u043D\u043A\u0430\u0445",
+    setFoldersFirst: "\u041F\u0430\u043F\u043A\u0438 \u0441\u0432\u0435\u0440\u0445\u0443",
+    setFoldersFirstDesc: "\u0412\u0441\u0435\u0433\u0434\u0430 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u043F\u0430\u043F\u043A\u0438 \u0432\u044B\u0448\u0435 \u0444\u0430\u0439\u043B\u043E\u0432.",
+    setShowExt: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u0440\u0430\u0441\u0448\u0438\u0440\u0435\u043D\u0438\u044F",
+    setShowExtDesc: "\u041D\u0435\u0431\u043E\u043B\u044C\u0448\u043E\u0439 \u0431\u0435\u0439\u0434\u0436 \u0441 \u0440\u0430\u0441\u0448\u0438\u0440\u0435\u043D\u0438\u0435\u043C \u0443 \u043D\u0435-Markdown \u0444\u0430\u0439\u043B\u043E\u0432.",
+    setPreview: "\u041A\u043E\u043B\u043E\u043D\u043A\u0430 \u043F\u0440\u0435\u0432\u044C\u044E \u0444\u0430\u0439\u043B\u0430",
+    setPreviewDesc: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u043A\u043E\u043B\u043E\u043D\u043A\u0443 \u0441 \u0434\u0435\u0442\u0430\u043B\u044F\u043C\u0438 \u043F\u0440\u0438 \u0432\u044B\u0431\u043E\u0440\u0435 \u0444\u0430\u0439\u043B\u0430.",
+    setMdPreview: "\u041F\u0440\u0435\u0432\u044C\u044E \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u043C\u043E\u0433\u043E \u0437\u0430\u043C\u0435\u0442\u043A\u0438",
+    setMdPreviewDesc: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u043D\u0430\u0447\u0430\u043B\u043E Markdown-\u0437\u0430\u043C\u0435\u0442\u043A\u0438 \u0432 \u043A\u043E\u043B\u043E\u043D\u043A\u0435 \u043F\u0440\u0435\u0432\u044C\u044E.",
+    setConfirmDelete: "\u041F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0430\u0442\u044C \u0443\u0434\u0430\u043B\u0435\u043D\u0438\u0435",
+    setConfirmDeleteDesc: "\u0421\u043F\u0440\u0430\u0448\u0438\u0432\u0430\u0442\u044C \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u0438\u0435 \u043F\u0435\u0440\u0435\u0434 \u043F\u0435\u0440\u0435\u043C\u0435\u0449\u0435\u043D\u0438\u0435\u043C \u0432 \u043A\u043E\u0440\u0437\u0438\u043D\u0443.",
+    setColWidth: "\u041C\u0438\u043D\u0438\u043C\u0430\u043B\u044C\u043D\u0430\u044F \u0448\u0438\u0440\u0438\u043D\u0430 \u043A\u043E\u043B\u043E\u043D\u043A\u0438",
+    setColWidthDesc: "\u0412 \u043F\u0438\u043A\u0441\u0435\u043B\u044F\u0445. \u041A\u043E\u043B\u043E\u043D\u043A\u0438 \u0442\u0430\u043A\u0436\u0435 \u043C\u043E\u0436\u043D\u043E \u0442\u044F\u043D\u0443\u0442\u044C \u0437\u0430 \u043F\u0440\u0430\u0432\u044B\u0439 \u043A\u0440\u0430\u0439.",
+    setSort: "\u0421\u043E\u0440\u0442\u0438\u0440\u043E\u0432\u043A\u0430 \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E",
+    setAutoReveal: "\u0421\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u044C \u0437\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u043C \u0444\u0430\u0439\u043B\u043E\u043C",
+    setAutoRevealDesc: "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0432\u044B\u0434\u0435\u043B\u044F\u0442\u044C \u0432 \u043A\u043E\u043B\u043E\u043D\u043A\u0430\u0445 \u0444\u0430\u0439\u043B \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0439 \u0432\u043A\u043B\u0430\u0434\u043A\u0438.",
+    setExclude: "\u0421\u043A\u0440\u044B\u0442\u044B\u0435 \u0444\u0430\u0439\u043B\u044B",
+    setExcludeDesc: "\u041F\u0430\u0442\u0442\u0435\u0440\u043D\u044B \u0447\u0435\u0440\u0435\u0437 \u0437\u0430\u043F\u044F\u0442\u0443\u044E, \u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440 \xAB*.tmp, archive/, .trash\xBB."
+  }
+};
+function t(key, vars) {
+  var _a, _b, _c, _d;
+  const lang = (_a = window.localStorage.getItem("language")) != null ? _a : "en";
+  const s = (_d = (_c = ((_b = STRINGS[lang]) != null ? _b : STRINGS.en)[key]) != null ? _c : STRINGS.en[key]) != null ? _d : key;
+  return vars ? formatTemplate(s, vars) : s;
+}
+
+// src/settings.ts
+var import_obsidian = require("obsidian");
+var DEFAULT_SETTINGS = {
+  foldersFirst: true,
+  showExtensions: true,
+  showPreview: true,
+  showMarkdownPreview: true,
+  confirmDelete: true,
+  autoReveal: false,
+  columnWidth: 200,
+  sortMode: "name-asc",
+  excludePatterns: ""
+};
+var MIN_COLUMN_WIDTH = 140;
+var MAX_COLUMN_WIDTH = 500;
+var ColumnExplorerSettingTab = class extends import_obsidian.PluginSettingTab {
+  constructor(app, plugin) {
+    super(app, plugin);
+    this.plugin = plugin;
+  }
+  display() {
+    const { containerEl } = this;
+    containerEl.empty();
+    const s = this.plugin.settings;
+    const save = async () => {
+      var _a;
+      await this.plugin.saveSettings();
+      (_a = this.plugin.getView()) == null ? void 0 : _a.render();
+    };
+    new import_obsidian.Setting(containerEl).setName(t("setSort")).addDropdown((d) => d.addOption("name-asc", t("sortNameAsc")).addOption("name-desc", t("sortNameDesc")).addOption("mtime-desc", t("sortMtimeDesc")).addOption("mtime-asc", t("sortMtimeAsc")).setValue(s.sortMode).onChange(async (v) => {
+      s.sortMode = v;
+      await save();
+    }));
+    new import_obsidian.Setting(containerEl).setName(t("setFoldersFirst")).setDesc(t("setFoldersFirstDesc")).addToggle((tg) => tg.setValue(s.foldersFirst).onChange(async (v) => {
+      s.foldersFirst = v;
+      await save();
+    }));
+    new import_obsidian.Setting(containerEl).setName(t("setShowExt")).setDesc(t("setShowExtDesc")).addToggle((tg) => tg.setValue(s.showExtensions).onChange(async (v) => {
+      s.showExtensions = v;
+      await save();
+    }));
+    new import_obsidian.Setting(containerEl).setName(t("setPreview")).setDesc(t("setPreviewDesc")).addToggle((tg) => tg.setValue(s.showPreview).onChange(async (v) => {
+      s.showPreview = v;
+      await save();
+    }));
+    new import_obsidian.Setting(containerEl).setName(t("setMdPreview")).setDesc(t("setMdPreviewDesc")).addToggle((tg) => tg.setValue(s.showMarkdownPreview).onChange(async (v) => {
+      s.showMarkdownPreview = v;
+      await save();
+    }));
+    new import_obsidian.Setting(containerEl).setName(t("setAutoReveal")).setDesc(t("setAutoRevealDesc")).addToggle((tg) => tg.setValue(s.autoReveal).onChange(async (v) => {
+      s.autoReveal = v;
+      await save();
+    }));
+    new import_obsidian.Setting(containerEl).setName(t("setConfirmDelete")).setDesc(t("setConfirmDeleteDesc")).addToggle((tg) => tg.setValue(s.confirmDelete).onChange(async (v) => {
+      s.confirmDelete = v;
+      await save();
+    }));
+    new import_obsidian.Setting(containerEl).setName(t("setColWidth")).setDesc(t("setColWidthDesc")).addSlider((sl) => sl.setLimits(MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH, 10).setDynamicTooltip().setValue(s.columnWidth).onChange(async (v) => {
+      s.columnWidth = v;
+      await save();
+    }));
+    new import_obsidian.Setting(containerEl).setName(t("setExclude")).setDesc(t("setExcludeDesc")).addText((txt) => txt.setValue(s.excludePatterns).onChange(async (v) => {
+      s.excludePatterns = v;
+      await save();
+    }));
+  }
+};
+
+// src/view.ts
+var import_obsidian9 = require("obsidian");
+
+// src/utils.ts
+var import_obsidian2 = require("obsidian");
+function sortChildren(children, s) {
+  const mtime = (f) => f instanceof import_obsidian2.TFile ? f.stat.mtime : 0;
+  return [...children].sort((a, b) => {
+    if (s.foldersFirst) {
+      const aF = a instanceof import_obsidian2.TFolder, bF = b instanceof import_obsidian2.TFolder;
+      if (aF !== bF) return aF ? -1 : 1;
+    }
+    switch (s.sortMode) {
+      case "name-desc":
+        return naturalCompare(b.name, a.name);
+      case "mtime-desc":
+        return mtime(b) - mtime(a) || naturalCompare(a.name, b.name);
+      case "mtime-asc":
+        return mtime(a) - mtime(b) || naturalCompare(a.name, b.name);
+      default:
+        return naturalCompare(a.name, b.name);
+    }
+  });
+}
+function visibleChildren(folder, s) {
+  const patterns = parseExcludePatterns(s.excludePatterns);
+  let children = folder.children;
+  if (patterns.length > 0) {
+    children = children.filter((c) => !matchesExcludePatterns(c.path, patterns));
+  }
+  return sortChildren(children, s);
+}
+function displayName(f) {
+  if (f instanceof import_obsidian2.TFile && f.extension === "md") return f.basename;
+  return f.name;
+}
+var IMAGE_EXTENSIONS = ["png", "jpg", "jpeg", "gif", "webp", "svg", "bmp"];
+function isImageFile(f) {
+  return IMAGE_EXTENSIONS.includes(f.extension);
+}
+function iconFor(f) {
+  if (f instanceof import_obsidian2.TFolder) return "folder";
+  const file = f;
+  switch (file.extension) {
+    case "md":
+      return "file-text";
+    case "canvas":
+      return "layout-dashboard";
+    case "pdf":
+      return "file-type";
+    case "png":
+    case "jpg":
+    case "jpeg":
+    case "gif":
+    case "webp":
+    case "svg":
+    case "bmp":
+      return "image";
+    case "mp3":
+    case "wav":
+    case "ogg":
+    case "flac":
+    case "m4a":
+      return "file-audio";
+    case "mp4":
+    case "mov":
+    case "webm":
+    case "mkv":
+      return "file-video";
+    default:
+      return "file";
+  }
+}
+
+// src/column.ts
+var import_obsidian7 = require("obsidian");
+
+// src/dnd.ts
+var import_obsidian4 = require("obsidian");
+
+// src/fileops.ts
+var import_obsidian3 = require("obsidian");
+async function moveFiles(app, paths, target) {
+  var _a;
+  let moved = 0;
+  for (const path of paths) {
+    const src = app.vault.getAbstractFileByPath(path);
+    if (!src || src.path === target.path) continue;
+    if (target.path.startsWith(src.path + "/")) {
+      new import_obsidian3.Notice(t("cantMoveIntoSelf"));
+      continue;
+    }
+    if (((_a = src.parent) == null ? void 0 : _a.path) === target.path) continue;
+    const dest = (0, import_obsidian3.normalizePath)((target.isRoot() ? "" : target.path + "/") + src.name);
+    if (app.vault.getAbstractFileByPath(dest)) {
+      new import_obsidian3.Notice(t("alreadyExists", { name: src.name }));
+      continue;
+    }
+    await app.fileManager.renameFile(src, dest);
+    moved++;
+  }
+  if (moved > 1) new import_obsidian3.Notice(t("itemsMoved", { n: moved }));
+  return moved;
+}
+async function duplicateFile(app, f) {
+  const dir = f.parent && !f.parent.isRoot() ? f.parent.path + "/" : "";
+  let n = 1;
+  let path = (0, import_obsidian3.normalizePath)(dir + f.basename + " copy." + f.extension);
+  while (app.vault.getAbstractFileByPath(path)) {
+    path = (0, import_obsidian3.normalizePath)(dir + f.basename + " copy " + n++ + "." + f.extension);
+  }
+  await app.vault.copy(f, path);
+}
+async function trashFiles(app, paths) {
+  for (const p of paths) {
+    const f = app.vault.getAbstractFileByPath(p);
+    if (f) await app.fileManager.trashFile(f);
+  }
+}
+
+// src/dnd.ts
+function itemUnderEvent(listEl, e) {
+  var _a;
+  const target = e.target;
+  return (_a = target == null ? void 0 : target.closest(".column-explorer-item")) != null ? _a : null;
+}
+function folderForItem(app, item) {
+  if (!(item == null ? void 0 : item.dataset.path)) return null;
+  const f = app.vault.getAbstractFileByPath(item.dataset.path);
+  return f instanceof import_obsidian4.TFolder ? f : null;
+}
+function setupColumnDnd(view, listEl, columnFolder, depth) {
+  const app = view.app;
+  let highlighted = null;
+  const setHighlight = (el) => {
+    if (highlighted === el) return;
+    highlighted == null ? void 0 : highlighted.removeClass("is-drop-target");
+    highlighted = el;
+    highlighted == null ? void 0 : highlighted.addClass("is-drop-target");
+  };
+  listEl.addEventListener("dragstart", (e) => {
+    var _a;
+    const item = itemUnderEvent(listEl, e);
+    if (!(item == null ? void 0 : item.dataset.path)) return;
+    const f = app.vault.getAbstractFileByPath(item.dataset.path);
+    if (!f) return;
+    const paths = view.dragPayload(f, depth);
+    (_a = e.dataTransfer) == null ? void 0 : _a.setData("text/plain", JSON.stringify(paths));
+    if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
+    try {
+      const dragManager = app.dragManager;
+      if (dragManager && paths.length === 1) {
+        const dragData = f instanceof import_obsidian4.TFile ? dragManager.dragFile(e, f) : dragManager.dragFolder(e, f);
+        dragManager.onDragStart(e, dragData);
+      }
+    } catch (e2) {
+    }
+  });
+  listEl.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+    const targetFolder = folderForItem(app, itemUnderEvent(listEl, e));
+    setHighlight(targetFolder ? itemUnderEvent(listEl, e) : listEl);
+  });
+  listEl.addEventListener("dragleave", (e) => {
+    if (!listEl.contains(e.relatedTarget)) setHighlight(null);
+  });
+  listEl.addEventListener("drop", async (e) => {
+    var _a, _b;
+    e.preventDefault();
+    e.stopPropagation();
+    const dropFolder = (_a = folderForItem(app, itemUnderEvent(listEl, e))) != null ? _a : columnFolder;
+    setHighlight(null);
+    const raw = (_b = e.dataTransfer) == null ? void 0 : _b.getData("text/plain");
+    if (!raw) return;
+    let paths;
+    try {
+      paths = JSON.parse(raw);
+    } catch (e2) {
+      paths = [raw];
+    }
+    if (!Array.isArray(paths)) paths = [String(paths)];
+    await moveFiles(app, paths, dropFolder);
+    view.clearMulti();
+  });
+}
+
+// src/menus.ts
+var import_obsidian6 = require("obsidian");
+
+// src/modals.ts
+var import_obsidian5 = require("obsidian");
+var ConfirmModal = class extends import_obsidian5.Modal {
+  constructor(app, message, onConfirm) {
+    super(app);
+    this.message = message;
+    this.onConfirm = onConfirm;
+  }
+  onOpen() {
+    this.titleEl.setText(t("confirmDeleteTitle"));
+    this.contentEl.createEl("p", { text: this.message });
+    const row = this.contentEl.createDiv({ cls: "modal-button-container" });
+    const ok = row.createEl("button", { text: t("confirm"), cls: "mod-warning" });
+    ok.addEventListener("click", () => {
+      this.close();
+      this.onConfirm();
+    });
+    const cancel = row.createEl("button", { text: t("cancel") });
+    cancel.addEventListener("click", () => this.close());
+  }
+  onClose() {
+    this.contentEl.empty();
+  }
+};
+var FolderSuggestModal = class extends import_obsidian5.FuzzySuggestModal {
+  constructor(app, onChoose) {
+    super(app);
+    this.onChoose = onChoose;
+    this.setPlaceholder(t("moveToPlaceholder"));
+  }
+  getItems() {
+    const folders = [this.app.vault.getRoot()];
+    const walk = (folder) => {
+      for (const child of folder.children) {
+        if (child instanceof import_obsidian5.TFolder) {
+          folders.push(child);
+          walk(child);
+        }
+      }
+    };
+    walk(this.app.vault.getRoot());
+    return folders;
+  }
+  getItemText(folder) {
+    return folder.isRoot() ? "/" : folder.path;
+  }
+  onChooseItem(folder) {
+    this.onChoose(folder);
+  }
+};
+
+// src/menus.ts
+function showFileMenu(view, e, f, depth) {
+  const app = view.app;
+  const menu = new import_obsidian6.Menu();
+  const multi = view.multiSelDepth === depth && view.multiSel.has(f.path) && view.multiSel.size > 1;
+  if (multi) {
+    const paths = [...view.multiSel];
+    menu.addItem((i) => i.setTitle(t("moveTo")).setIcon("folder-input").onClick(() => new FolderSuggestModal(app, async (target) => {
+      await moveFiles(app, paths, target);
+      view.clearMulti();
+    }).open()));
+    menu.addItem((i) => i.setTitle(t("duplicateN", { n: paths.length })).setIcon("copy").onClick(async () => {
+      for (const p of paths) {
+        const file = app.vault.getAbstractFileByPath(p);
+        if (file instanceof import_obsidian6.TFile) await duplicateFile(app, file);
+      }
+    }));
+    menu.addItem((i) => i.setTitle(t("deleteN", { n: paths.length })).setIcon("trash").onClick(() => view.deleteMany(paths)));
+    menu.showAtMouseEvent(e);
+    return;
+  }
+  if (f instanceof import_obsidian6.TFolder) {
+    menu.addItem((i) => i.setTitle(t("newNote")).setIcon("file-plus").onClick(() => view.createNote(f)));
+    menu.addItem((i) => i.setTitle(t("newFolder")).setIcon("folder-plus").onClick(() => view.createFolder(f)));
+    menu.addSeparator();
+  }
+  if (f instanceof import_obsidian6.TFile) {
+    menu.addItem((i) => i.setTitle(t("openNewTab")).setIcon("file-plus-2").onClick(() => app.workspace.getLeaf("tab").openFile(f)));
+    menu.addItem((i) => i.setTitle(t("openRight")).setIcon("separator-vertical").onClick(() => app.workspace.getLeaf("split").openFile(f)));
+    menu.addSeparator();
+    menu.addItem((i) => i.setTitle(t("duplicate")).setIcon("copy").onClick(() => duplicateFile(app, f)));
+  }
+  menu.addItem((i) => i.setTitle(t("moveTo")).setIcon("folder-input").onClick(() => new FolderSuggestModal(app, (target) => void moveFiles(app, [f.path], target)).open()));
+  menu.addItem((i) => i.setTitle(t("rename")).setIcon("pencil").onClick(() => view.startRename(f)));
+  menu.addItem((i) => i.setTitle(t("delete")).setIcon("trash").onClick(() => view.deleteMany([f.path])));
+  menu.addSeparator();
+  menu.addItem((i) => i.setTitle(t("copyPath")).setIcon("clipboard-copy").onClick(() => {
+    navigator.clipboard.writeText(f.path);
+    new import_obsidian6.Notice(t("pathCopied"));
+  }));
+  app.workspace.trigger("file-menu", menu, f, "file-explorer-context-menu", view.leaf);
+  menu.showAtMouseEvent(e);
+}
+function showFolderBackgroundMenu(view, e, folder) {
+  const menu = new import_obsidian6.Menu();
+  menu.addItem((i) => i.setTitle(t("newNote")).setIcon("file-plus").onClick(() => view.createNote(folder)));
+  menu.addItem((i) => i.setTitle(t("newFolder")).setIcon("folder-plus").onClick(() => view.createFolder(folder)));
+  menu.showAtMouseEvent(e);
+}
+function showSortMenu(view, e) {
+  const menu = new import_obsidian6.Menu();
+  const modes = ["name-asc", "name-desc", "mtime-desc", "mtime-asc"];
+  const labels = {
+    "name-asc": t("sortNameAsc"),
+    "name-desc": t("sortNameDesc"),
+    "mtime-desc": t("sortMtimeDesc"),
+    "mtime-asc": t("sortMtimeAsc")
+  };
+  for (const m of modes) {
+    menu.addItem((i) => i.setTitle(labels[m]).setChecked(view.plugin.settings.sortMode === m).onClick(async () => {
+      view.plugin.settings.sortMode = m;
+      await view.plugin.saveSettings();
+      view.render();
+    }));
+  }
+  menu.showAtMouseEvent(e);
+}
+
+// src/column.ts
+function itemFromEvent(e) {
+  var _a;
+  const el = (_a = e.target) == null ? void 0 : _a.closest(".column-explorer-item");
+  return (el == null ? void 0 : el.dataset.path) ? { el, path: el.dataset.path } : null;
+}
+function renderColumn(view, container, folder, depth) {
+  const col = container.createDiv({ cls: "column-explorer-column" });
+  col.dataset.depth = String(depth);
+  col.dataset.folderPath = folder.path;
+  const header = col.createDiv({ cls: "column-explorer-column-header" });
+  header.createSpan({ text: folder.isRoot() ? view.app.vault.getName() : folder.name });
+  const list = col.createDiv({ cls: "column-explorer-list", attr: { role: "listbox" } });
+  list.addEventListener("click", (e) => {
+    const hit = itemFromEvent(e);
+    if (!hit) {
+      if (e.target === list) {
+        view.clearMulti();
+        view.render();
+      }
+      return;
+    }
+    const f = view.app.vault.getAbstractFileByPath(hit.path);
+    if (!f || view.isRenaming(hit.path)) return;
+    if (e.ctrlKey || e.metaKey) {
+      view.toggleMulti(f, depth);
+      return;
+    }
+    if (e.shiftKey) {
+      view.rangeMulti(f, depth, view.childrenOf(folder));
+      return;
+    }
+    view.clearMulti();
+    view.selectItem(f, depth, e);
+  });
+  list.addEventListener("dblclick", (e) => {
+    const hit = itemFromEvent(e);
+    const f = hit ? view.app.vault.getAbstractFileByPath(hit.path) : null;
+    if (f instanceof import_obsidian7.TFile) void view.app.workspace.getLeaf("tab").openFile(f);
+  });
+  list.addEventListener("auxclick", (e) => {
+    if (e.button !== 1) return;
+    const hit = itemFromEvent(e);
+    const f = hit ? view.app.vault.getAbstractFileByPath(hit.path) : null;
+    if (f instanceof import_obsidian7.TFile) void view.app.workspace.getLeaf("tab").openFile(f);
+  });
+  list.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    const hit = itemFromEvent(e);
+    if (!hit) {
+      if (e.target === list) showFolderBackgroundMenu(view, e, folder);
+      return;
+    }
+    const f = view.app.vault.getAbstractFileByPath(hit.path);
+    if (f) showFileMenu(view, e, f, depth);
+  });
+  setupColumnDnd(view, list, folder, depth);
+  renderColumnList(view, list, folder, depth);
+  addResizeHandle(view, col);
+  return col;
+}
+function renderColumnList(view, list, folder, depth) {
+  list.empty();
+  const children = view.childrenOf(folder);
+  if (children.length === 0) {
+    list.createDiv({ cls: "column-explorer-empty", text: view.hasFilter() ? t("noResults") : t("empty") });
+    return;
+  }
+  const frag = document.createDocumentFragment();
+  for (const child of children) frag.appendChild(buildItem(view, child, depth));
+  list.appendChild(frag);
+}
+function buildItem(view, f, depth) {
+  const item = createDiv({ cls: "column-explorer-item", attr: { role: "option" } });
+  item.dataset.path = f.path;
+  item.draggable = true;
+  const selected = view.selection[depth] === f.path;
+  item.setAttribute("aria-selected", String(selected));
+  if (selected) item.addClass("is-selected");
+  if (selected && depth < view.selection.length - 1) item.addClass("is-ancestor");
+  if (view.multiSelDepth === depth && view.multiSel.has(f.path)) item.addClass("is-multi-selected");
+  const activeFile = view.app.workspace.getActiveFile();
+  if (activeFile && activeFile.path === f.path) item.addClass("is-active-file");
+  const iconEl = item.createDiv({ cls: "column-explorer-item-icon" });
+  (0, import_obsidian7.setIcon)(iconEl, iconFor(f));
+  item.createDiv({ cls: "column-explorer-item-title", text: displayName(f) });
+  if (f instanceof import_obsidian7.TFolder) {
+    const chev = item.createDiv({ cls: "column-explorer-item-chevron" });
+    (0, import_obsidian7.setIcon)(chev, "chevron-right");
+  } else if (f instanceof import_obsidian7.TFile && f.extension !== "md" && view.plugin.settings.showExtensions) {
+    item.createDiv({ cls: "column-explorer-item-ext", text: f.extension });
+  }
+  return item;
+}
+function addResizeHandle(view, col) {
+  const handle = col.createDiv({ cls: "column-explorer-resize-handle" });
+  handle.addEventListener("mousedown", (e) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startWidth = view.plugin.settings.columnWidth;
+    const onMove = (ev) => {
+      const width = Math.min(MAX_COLUMN_WIDTH, Math.max(MIN_COLUMN_WIDTH, startWidth + ev.clientX - startX));
+      view.plugin.settings.columnWidth = width;
+      view.applyColumnWidth();
+    };
+    const onUp = () => {
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+      void view.plugin.saveSettings();
+    };
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  });
+}
+
+// src/preview.ts
+var import_obsidian8 = require("obsidian");
+var MARKDOWN_PREVIEW_CHARS = 1e3;
+function renderPreviewColumn(view, container, file) {
+  const col = container.createDiv({ cls: "column-explorer-column column-explorer-preview" });
+  const inner = col.createDiv({ cls: "column-explorer-preview-inner" });
+  if (isImageFile(file)) {
+    const img = inner.createEl("img", { cls: "column-explorer-preview-image" });
+    img.src = view.app.vault.getResourcePath(file);
+  } else {
+    const big = inner.createDiv({ cls: "column-explorer-preview-icon" });
+    (0, import_obsidian8.setIcon)(big, iconFor(file));
+  }
+  inner.createDiv({ cls: "column-explorer-preview-name", text: displayName(file) });
+  const meta = inner.createDiv({ cls: "column-explorer-preview-meta" });
+  meta.createDiv({ text: file.extension.toUpperCase() + " \xB7 " + humanSize(file.stat.size) });
+  meta.createDiv({ text: t("modified") + ": " + new Date(file.stat.mtime).toLocaleString() });
+  meta.createDiv({ text: t("created") + ": " + new Date(file.stat.ctime).toLocaleString() });
+  const btn = inner.createEl("button", { text: t("open"), cls: "mod-cta" });
+  btn.addEventListener("click", (e) => {
+    void view.app.workspace.getLeaf(import_obsidian8.Keymap.isModEvent(e)).openFile(file);
+  });
+  if (file.extension === "md" && view.plugin.settings.showMarkdownPreview) {
+    void renderMarkdownSnippet(view, inner, file);
+  }
+}
+async function renderMarkdownSnippet(view, inner, file) {
+  try {
+    const content = await view.app.vault.cachedRead(file);
+    if (view.selectedFilePath() !== file.path) return;
+    let snippet = content.slice(0, MARKDOWN_PREVIEW_CHARS);
+    if (content.length > MARKDOWN_PREVIEW_CHARS) snippet += "\u2026";
+    if (!snippet.trim()) return;
+    const box = inner.createDiv({ cls: "column-explorer-preview-md markdown-rendered" });
+    await import_obsidian8.MarkdownRenderer.render(view.app, snippet, box, file.path, view);
+  } catch (e) {
+  }
+}
+
+// src/view.ts
+var VIEW_TYPE_COLUMNS = "column-explorer-view";
+var TYPEAHEAD_RESET_MS = 700;
+var PAGE_JUMP = 10;
+var ColumnExplorerView = class extends import_obsidian9.ItemView {
+  constructor(leaf, plugin) {
+    super(leaf);
+    /** Selected path at each depth. */
+    this.selection = [];
+    /** Multi-selection (Ctrl/Cmd or Shift click) within one column. */
+    this.multiSel = /* @__PURE__ */ new Set();
+    this.multiSelDepth = -1;
+    this.shiftAnchor = null;
+    this.filter = "";
+    this.renamingPath = null;
+    this.typeaheadBuffer = "";
+    this.typeaheadTimer = 0;
+    /** Targeted refresh: folders whose columns need re-rendering. */
+    this.dirtyFolders = /* @__PURE__ */ new Set();
+    this.fullRenderPending = false;
+    this.flushRefresh = (0, import_obsidian9.debounce)(() => this.doRefresh(), 60, true);
+    this.plugin = plugin;
+  }
+  getViewType() {
+    return VIEW_TYPE_COLUMNS;
+  }
+  getDisplayText() {
+    return "Column Explorer";
+  }
+  getIcon() {
+    return "columns-3";
+  }
+  /* --------- state persistence (restores selection on restart) ----- */
+  getState() {
+    return { selection: this.selection };
+  }
+  async setState(state, result) {
+    if ((state == null ? void 0 : state.selection) && Array.isArray(state.selection)) {
+      this.selection = state.selection;
+      if (this.columnsEl) this.render();
+    }
+    return super.setState(state, result);
+  }
+  persistState() {
+    this.app.workspace.requestSaveLayout();
+  }
+  /* ------------------------------ setup ---------------------------- */
+  async onOpen() {
+    const container = this.contentEl;
+    container.empty();
+    container.addClass("column-explorer-container");
+    const toolbar = container.createDiv({ cls: "column-explorer-toolbar" });
+    this.addToolbarButton(toolbar, "file-plus", t("newNote"), () => void this.createNote(this.currentFolder()));
+    this.addToolbarButton(toolbar, "folder-plus", t("newFolder"), () => void this.createFolder(this.currentFolder()));
+    this.addToolbarButton(toolbar, "locate", t("reveal"), () => this.revealFile(this.app.workspace.getActiveFile()));
+    this.addToolbarButton(toolbar, "arrow-up-narrow-wide", t("sort"), (e) => showSortMenu(this, e));
+    this.addToolbarButton(toolbar, "chevrons-left", t("collapse"), () => {
+      this.selection = [];
+      this.clearMulti();
+      this.render();
+    });
+    this.searchInput = toolbar.createEl("input", {
+      type: "search",
+      cls: "column-explorer-search",
+      attr: { placeholder: t("search") }
+    });
+    this.registerDomEvent(this.searchInput, "input", () => {
+      this.filter = this.searchInput.value.toLowerCase().trim();
+      this.render();
+    });
+    this.breadcrumbsEl = container.createDiv({ cls: "column-explorer-breadcrumbs" });
+    this.columnsEl = container.createDiv({ cls: "column-explorer-columns" });
+    this.columnsEl.tabIndex = 0;
+    this.registerDomEvent(this.columnsEl, "keydown", (e) => this.onKeyDown(e));
+    this.registerEvent(this.app.vault.on("create", (f) => {
+      var _a, _b;
+      return this.markDirty((_b = (_a = f.parent) == null ? void 0 : _a.path) != null ? _b : null);
+    }));
+    this.registerEvent(this.app.vault.on("delete", (f) => {
+      var _a, _b;
+      const changed = this.pruneSelection(f.path);
+      this.markDirty(changed ? null : (_b = (_a = f.parent) == null ? void 0 : _a.path) != null ? _b : null);
+    }));
+    this.registerEvent(this.app.vault.on("rename", (f, oldPath) => {
+      this.remapSelection(oldPath, f.path);
+      this.markDirty(null);
+    }));
+    this.render();
+  }
+  addToolbarButton(parent, icon, tooltip, onClick) {
+    const btn = parent.createDiv({ cls: "clickable-icon column-explorer-toolbar-btn", attr: { "aria-label": tooltip } });
+    (0, import_obsidian9.setIcon)(btn, icon);
+    this.registerDomEvent(btn, "click", onClick);
+  }
+  /* -------------------------- shared accessors --------------------- */
+  /** Visible (exclude-filtered, sorted, search-filtered) children of a folder. */
+  childrenOf(folder) {
+    let children = visibleChildren(folder, this.plugin.settings);
+    if (this.filter) {
+      children = children.filter(
+        (c) => c instanceof import_obsidian9.TFolder || displayName(c).toLowerCase().includes(this.filter)
+      );
+    }
+    return children;
+  }
+  hasFilter() {
+    return this.filter.length > 0;
+  }
+  isRenaming(path) {
+    return this.renamingPath === path;
+  }
+  selectedFilePath() {
+    const last = this.selection[this.selection.length - 1];
+    if (!last) return null;
+    const f = this.app.vault.getAbstractFileByPath(last);
+    return f instanceof import_obsidian9.TFile ? f.path : null;
+  }
+  dragPayload(f, depth) {
+    if (this.multiSelDepth === depth && this.multiSel.has(f.path)) return [...this.multiSel];
+    return [f.path];
+  }
+  clearMulti() {
+    this.multiSel.clear();
+    this.multiSelDepth = -1;
+    this.shiftAnchor = null;
+  }
+  currentFolder() {
+    for (let i = this.selection.length - 1; i >= 0; i--) {
+      const f = this.app.vault.getAbstractFileByPath(this.selection[i]);
+      if (f instanceof import_obsidian9.TFolder) return f;
+      if (f instanceof import_obsidian9.TFile && f.parent) return f.parent;
+    }
+    return this.app.vault.getRoot();
+  }
+  pruneSelection(deletedPath) {
+    const i = this.selection.findIndex((p) => p === deletedPath || p.startsWith(deletedPath + "/"));
+    if (i >= 0) this.selection = this.selection.slice(0, i);
+    this.multiSel.delete(deletedPath);
+    return i >= 0;
+  }
+  remapSelection(oldPath, newPath) {
+    this.selection = this.selection.map(
+      (p) => p === oldPath ? newPath : p.startsWith(oldPath + "/") ? newPath + p.slice(oldPath.length) : p
+    );
+  }
+  /* ------------------------------ render --------------------------- */
+  applyColumnWidth() {
+    this.columnsEl.style.setProperty("--ce-col-width", this.plugin.settings.columnWidth + "px");
+  }
+  markDirty(folderPath) {
+    if (folderPath === null) this.fullRenderPending = true;
+    else this.dirtyFolders.add(folderPath);
+    this.flushRefresh();
+  }
+  doRefresh() {
+    var _a;
+    if (this.fullRenderPending) {
+      this.fullRenderPending = false;
+      this.dirtyFolders.clear();
+      this.render();
+      return;
+    }
+    for (const path of this.dirtyFolders) {
+      const list = this.columnsEl.querySelector(
+        `.column-explorer-column[data-folder-path="${CSS.escape(path)}"] .column-explorer-list`
+      );
+      if (!list) continue;
+      const folder = path === "/" ? this.app.vault.getRoot() : this.app.vault.getAbstractFileByPath(path);
+      const col = list.closest(".column-explorer-column");
+      const depth = Number((_a = col == null ? void 0 : col.dataset.depth) != null ? _a : 0);
+      if (folder instanceof import_obsidian9.TFolder) renderColumnList(this, list, folder, depth);
+    }
+    this.dirtyFolders.clear();
+  }
+  render() {
+    this.columnsEl.empty();
+    this.applyColumnWidth();
+    const validSel = [];
+    let parent = this.app.vault.getRoot();
+    for (const path of this.selection) {
+      const f = this.app.vault.getAbstractFileByPath(path);
+      if (!f || f.parent !== parent) break;
+      validSel.push(path);
+      if (f instanceof import_obsidian9.TFolder) parent = f;
+      else break;
+    }
+    this.selection = validSel;
+    renderColumn(this, this.columnsEl, this.app.vault.getRoot(), 0);
+    for (let depth = 0; depth < this.selection.length; depth++) {
+      const f = this.app.vault.getAbstractFileByPath(this.selection[depth]);
+      if (f instanceof import_obsidian9.TFolder) {
+        renderColumn(this, this.columnsEl, f, depth + 1);
+      } else if (f instanceof import_obsidian9.TFile && this.plugin.settings.showPreview) {
+        renderPreviewColumn(this, this.columnsEl, f);
+      }
+    }
+    this.renderBreadcrumbs();
+    requestAnimationFrame(() => {
+      this.columnsEl.scrollLeft = this.columnsEl.scrollWidth;
+    });
+  }
+  renderBreadcrumbs() {
+    this.breadcrumbsEl.empty();
+    const addSegment = (label, targetDepth, isLast) => {
+      const seg = this.breadcrumbsEl.createSpan({
+        cls: "column-explorer-crumb" + (isLast ? " is-current" : ""),
+        text: label
+      });
+      if (!isLast) {
+        seg.addEventListener("click", () => {
+          this.selection = this.selection.slice(0, targetDepth);
+          this.clearMulti();
+          this.persistState();
+          this.render();
+        });
+        this.breadcrumbsEl.createSpan({ cls: "column-explorer-crumb-sep", text: "\u203A" });
+      }
+    };
+    addSegment(this.app.vault.getName(), 0, this.selection.length === 0);
+    this.selection.forEach((path, i) => {
+      var _a;
+      const f = this.app.vault.getAbstractFileByPath(path);
+      addSegment(f ? displayName(f) : (_a = path.split("/").pop()) != null ? _a : path, i + 1, i === this.selection.length - 1);
+    });
+  }
+  /** Cheap highlight update on active-leaf-change — no full re-render. */
+  updateActiveFileHighlight() {
+    const active = this.app.workspace.getActiveFile();
+    this.columnsEl.querySelectorAll(".column-explorer-item.is-active-file").forEach((el) => el.removeClass("is-active-file"));
+    if (!active) return;
+    const item = this.columnsEl.querySelector(
+      `.column-explorer-item[data-path="${CSS.escape(active.path)}"]`
+    );
+    item == null ? void 0 : item.addClass("is-active-file");
+  }
+  /* ----------------------------- actions --------------------------- */
+  selectItem(f, depth, e) {
+    this.selection = this.selection.slice(0, depth);
+    this.selection.push(f.path);
+    this.shiftAnchor = f.path;
+    if (f instanceof import_obsidian9.TFile) {
+      void this.app.workspace.getLeaf(import_obsidian9.Keymap.isModEvent(e)).openFile(f);
+    }
+    this.persistState();
+    this.render();
+  }
+  toggleMulti(f, depth) {
+    if (this.multiSelDepth !== depth) this.clearMulti();
+    this.multiSelDepth = depth;
+    if (this.multiSel.has(f.path)) this.multiSel.delete(f.path);
+    else this.multiSel.add(f.path);
+    this.shiftAnchor = f.path;
+    if (this.multiSel.size === 0) this.multiSelDepth = -1;
+    this.render();
+  }
+  rangeMulti(f, depth, siblings) {
+    var _a, _b;
+    if (this.multiSelDepth !== depth) {
+      this.clearMulti();
+      this.multiSelDepth = depth;
+    }
+    const anchor = (_b = (_a = this.shiftAnchor) != null ? _a : this.selection[depth]) != null ? _b : f.path;
+    const ai = siblings.findIndex((s) => s.path === anchor);
+    const bi = siblings.findIndex((s) => s.path === f.path);
+    if (ai === -1 || bi === -1) {
+      this.toggleMulti(f, depth);
+      return;
+    }
+    const [from, to] = ai < bi ? [ai, bi] : [bi, ai];
+    for (let i = from; i <= to; i++) this.multiSel.add(siblings[i].path);
+    this.render();
+  }
+  revealFile(file) {
+    if (!file) return;
+    if (this.filter) {
+      this.filter = "";
+      this.searchInput.value = "";
+    }
+    const chain = [];
+    let cur = file;
+    while (cur && cur.parent) {
+      chain.unshift(cur.path);
+      cur = cur.parent;
+    }
+    this.selection = chain;
+    this.clearMulti();
+    this.persistState();
+    this.render();
+  }
+  deleteMany(paths) {
+    const doDelete = async () => {
+      await trashFiles(this.app, paths);
+      this.clearMulti();
+    };
+    if (!this.plugin.settings.confirmDelete) {
+      void doDelete();
+      return;
+    }
+    const first = this.app.vault.getAbstractFileByPath(paths[0]);
+    const msg = paths.length === 1 ? t("confirmDeleteOne", { name: first ? displayName(first) : paths[0] }) : t("confirmDeleteMany", { n: paths.length });
+    new ConfirmModal(this.app, msg, () => void doDelete()).open();
+  }
+  async createNote(folder) {
+    const base = (folder.isRoot() ? "" : folder.path + "/") + t("untitled");
+    let path = (0, import_obsidian9.normalizePath)(base + ".md");
+    let n = 1;
+    while (this.app.vault.getAbstractFileByPath(path)) {
+      path = (0, import_obsidian9.normalizePath)(base + " " + n++ + ".md");
+    }
+    const file = await this.app.vault.create(path, "");
+    this.revealFile(file);
+    await this.app.workspace.getLeaf(false).openFile(file);
+    window.setTimeout(() => this.startRenameByPath(file.path), 100);
+  }
+  async createFolder(folder) {
+    const base = (folder.isRoot() ? "" : folder.path + "/") + t("newFolderName");
+    let path = (0, import_obsidian9.normalizePath)(base);
+    let n = 1;
+    while (this.app.vault.getAbstractFileByPath(path)) {
+      path = (0, import_obsidian9.normalizePath)(base + " " + n++);
+    }
+    await this.app.vault.createFolder(path);
+    window.setTimeout(() => this.startRenameByPath(path), 100);
+  }
+  startRenameByPath(path) {
+    const f = this.app.vault.getAbstractFileByPath(path);
+    if (f) this.startRename(f);
+  }
+  startRename(f) {
+    this.render();
+    const item = this.columnsEl.querySelector(
+      `.column-explorer-item[data-path="${CSS.escape(f.path)}"]`
+    );
+    if (!item) return;
+    const titleEl = item.querySelector(".column-explorer-item-title");
+    if (!titleEl) return;
+    this.renamingPath = f.path;
+    const isMdFile = f instanceof import_obsidian9.TFile && f.extension === "md";
+    const original = isMdFile ? f.basename : f.name;
+    const input = createEl("input", { type: "text", cls: "column-explorer-rename-input", value: original });
+    titleEl.replaceWith(input);
+    input.focus();
+    const dot = input.value.lastIndexOf(".");
+    input.setSelectionRange(0, isMdFile || dot <= 0 ? input.value.length : dot);
+    const finish = async (commit) => {
+      this.renamingPath = null;
+      const newName = input.value.trim();
+      if (commit && newName && newName !== original) {
+        const dir = f.parent && !f.parent.isRoot() ? f.parent.path + "/" : "";
+        const finalName = isMdFile ? newName + ".md" : newName;
+        try {
+          await this.app.fileManager.renameFile(f, (0, import_obsidian9.normalizePath)(dir + finalName));
+        } catch (err) {
+          new import_obsidian9.Notice(t("renameFailed") + err);
+        }
+      }
+      this.render();
+    };
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        e.preventDefault();
+        void finish(true);
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        void finish(false);
+      }
+    });
+    input.addEventListener("blur", () => void finish(true));
+    input.addEventListener("click", (e) => e.stopPropagation());
+  }
+  /* ---------------------------- keyboard --------------------------- */
+  onKeyDown(e) {
+    if (this.renamingPath) return;
+    const depth = Math.max(0, this.selection.length - 1);
+    const selectedPath = this.selection[depth];
+    const parentFolder = this.folderAtDepth(depth);
+    const children = parentFolder ? this.childrenOf(parentFolder) : [];
+    const currentIdx = children.findIndex((c) => c.path === selectedPath);
+    const jumpTo = (idx) => {
+      if (children.length === 0) return;
+      const next = children[Math.min(children.length - 1, Math.max(0, idx))];
+      this.selection = this.selection.slice(0, depth);
+      this.selection.push(next.path);
+      this.clearMulti();
+      this.persistState();
+      this.render();
+    };
+    if (e.key === "ArrowUp" || e.key === "ArrowDown") {
+      e.preventDefault();
+      jumpTo(e.key === "ArrowDown" ? Math.min(children.length - 1, currentIdx + 1) : Math.max(0, currentIdx === -1 ? 0 : currentIdx - 1));
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      jumpTo(0);
+    } else if (e.key === "End") {
+      e.preventDefault();
+      jumpTo(children.length - 1);
+    } else if (e.key === "PageUp" || e.key === "PageDown") {
+      e.preventDefault();
+      const base = currentIdx === -1 ? 0 : currentIdx;
+      jumpTo(e.key === "PageDown" ? base + PAGE_JUMP : base - PAGE_JUMP);
+    } else if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      if (this.selection.length > 0) {
+        this.selection.pop();
+        this.persistState();
+        this.render();
+      }
+    } else if (e.key === "ArrowRight" || e.key === "Enter") {
+      e.preventDefault();
+      const f = selectedPath ? this.app.vault.getAbstractFileByPath(selectedPath) : null;
+      if (f instanceof import_obsidian9.TFolder) {
+        const inner = this.childrenOf(f);
+        if (inner.length > 0) {
+          this.selection.push(inner[0].path);
+          this.persistState();
+          this.render();
+        }
+      } else if (f instanceof import_obsidian9.TFile && e.key === "Enter") {
+        void this.app.workspace.getLeaf(false).openFile(f);
+      }
+    } else if (e.key === "F2") {
+      e.preventDefault();
+      const f = selectedPath ? this.app.vault.getAbstractFileByPath(selectedPath) : null;
+      if (f) this.startRename(f);
+    } else if (e.key === "Delete" || e.key === "Backspace" && (e.metaKey || e.ctrlKey)) {
+      e.preventDefault();
+      if (this.multiSel.size > 0) {
+        this.deleteMany([...this.multiSel]);
+        return;
+      }
+      if (selectedPath) this.deleteMany([selectedPath]);
+    } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      this.onTypeahead(e.key, children, depth);
+    }
+  }
+  onTypeahead(char, children, depth) {
+    window.clearTimeout(this.typeaheadTimer);
+    this.typeaheadBuffer += char.toLowerCase();
+    this.typeaheadTimer = window.setTimeout(() => {
+      this.typeaheadBuffer = "";
+    }, TYPEAHEAD_RESET_MS);
+    const match = children.find((c) => displayName(c).toLowerCase().startsWith(this.typeaheadBuffer));
+    if (!match) return;
+    this.selection = this.selection.slice(0, depth);
+    this.selection.push(match.path);
+    this.clearMulti();
+    this.persistState();
+    this.render();
+  }
+  folderAtDepth(depth) {
+    if (depth === 0) return this.app.vault.getRoot();
+    const f = this.app.vault.getAbstractFileByPath(this.selection[depth - 1]);
+    return f instanceof import_obsidian9.TFolder ? f : null;
+  }
+};
+
+// src/main.ts
+var ColumnExplorerPlugin = class extends import_obsidian10.Plugin {
+  constructor() {
+    super(...arguments);
+    this.settings = DEFAULT_SETTINGS;
+  }
+  async onload() {
+    await this.loadSettings();
+    this.registerView(VIEW_TYPE_COLUMNS, (leaf) => new ColumnExplorerView(leaf, this));
+    this.addSettingTab(new ColumnExplorerSettingTab(this.app, this));
+    this.addRibbonIcon("columns-3", "Column Explorer", () => void this.activateView());
+    this.addCommand({
+      id: "open-view",
+      name: t("cmdOpen"),
+      callback: () => void this.activateView()
+    });
+    this.addCommand({
+      id: "reveal-active-file",
+      name: t("cmdReveal"),
+      callback: async () => {
+        var _a;
+        await this.activateView();
+        (_a = this.getView()) == null ? void 0 : _a.revealFile(this.app.workspace.getActiveFile());
+      }
+    });
+    this.registerEvent(this.app.workspace.on("active-leaf-change", () => {
+      const view = this.getView();
+      if (!view) return;
+      view.updateActiveFileHighlight();
+      if (this.settings.autoReveal) {
+        const active = this.app.workspace.getActiveFile();
+        if (active && view.selectedFilePath() !== active.path) view.revealFile(active);
+      }
+    }));
+  }
+  async loadSettings() {
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+  }
+  async saveSettings() {
+    await this.saveData(this.settings);
+  }
+  getView() {
+    const leaf = this.app.workspace.getLeavesOfType(VIEW_TYPE_COLUMNS)[0];
+    return leaf && leaf.view instanceof ColumnExplorerView ? leaf.view : null;
+  }
+  async activateView() {
+    const existing = this.app.workspace.getLeavesOfType(VIEW_TYPE_COLUMNS);
+    if (existing.length > 0) {
+      await this.app.workspace.revealLeaf(existing[0]);
+      return;
+    }
+    const leaf = this.app.workspace.getLeftLeaf(false);
+    if (leaf) {
+      await leaf.setViewState({ type: VIEW_TYPE_COLUMNS, active: true });
+      await this.app.workspace.revealLeaf(leaf);
+    }
+  }
+};

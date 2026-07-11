@@ -1,0 +1,68 @@
+import { formatTemplate } from "./pure";
+
+const STRINGS: Record<string, Record<string, string>> = {
+	en: {
+		newNote: "New note", newFolder: "New folder", reveal: "Reveal active file",
+		collapse: "Collapse to root", search: "Filter files…", sort: "Sort order",
+		empty: "Empty", noResults: "No matches", open: "Open",
+		openNewTab: "Open in new tab", openRight: "Open to the right",
+		duplicate: "Duplicate", rename: "Rename", delete: "Delete",
+		deleteN: "Delete {n} items", duplicateN: "Duplicate {n} items",
+		moveTo: "Move to folder…", moveToPlaceholder: "Choose target folder…",
+		copyPath: "Copy path", pathCopied: "Path copied",
+		untitled: "Untitled", newFolderName: "New folder",
+		cantMoveIntoSelf: "Cannot move a folder into itself",
+		alreadyExists: "“{name}” already exists in the target folder",
+		renameFailed: "Rename failed: ", modified: "Modified", created: "Created",
+		sortNameAsc: "Name (A → Z)", sortNameDesc: "Name (Z → A)",
+		sortMtimeDesc: "Modified (newest first)", sortMtimeAsc: "Modified (oldest first)",
+		confirmDeleteTitle: "Delete", confirmDeleteOne: "Delete “{name}”?",
+		confirmDeleteMany: "Delete {n} items?", confirm: "Delete", cancel: "Cancel",
+		itemsMoved: "{n} items moved",
+		cmdOpen: "Open column explorer", cmdReveal: "Reveal active file in columns",
+		setFoldersFirst: "Folders first", setFoldersFirstDesc: "Always list folders above files.",
+		setShowExt: "Show extension badges", setShowExtDesc: "Show a small badge with the file extension for non-Markdown files.",
+		setPreview: "Show file preview column", setPreviewDesc: "Show a details column when a file is selected.",
+		setMdPreview: "Preview note content", setMdPreviewDesc: "Render the beginning of Markdown notes in the preview column.",
+		setConfirmDelete: "Confirm before deleting", setConfirmDeleteDesc: "Ask for confirmation before moving files to trash.",
+		setColWidth: "Minimum column width", setColWidthDesc: "In pixels. Columns can also be resized by dragging their right edge.",
+		setSort: "Default sort order",
+		setAutoReveal: "Auto-reveal active file", setAutoRevealDesc: "Follow the active editor tab and select its file in the columns.",
+		setExclude: "Excluded files", setExcludeDesc: "Comma-separated patterns to hide, e.g. “*.tmp, archive/, .trash”.",
+	},
+	ru: {
+		newNote: "Новая заметка", newFolder: "Новая папка", reveal: "Показать активный файл",
+		collapse: "Свернуть к корню", search: "Фильтр файлов…", sort: "Сортировка",
+		empty: "Пусто", noResults: "Ничего не найдено", open: "Открыть",
+		openNewTab: "Открыть в новой вкладке", openRight: "Открыть справа",
+		duplicate: "Дублировать", rename: "Переименовать", delete: "Удалить",
+		deleteN: "Удалить {n} элементов", duplicateN: "Дублировать элементов: {n}",
+		moveTo: "Переместить в папку…", moveToPlaceholder: "Выберите папку…",
+		copyPath: "Скопировать путь", pathCopied: "Путь скопирован",
+		untitled: "Без названия", newFolderName: "Новая папка",
+		cantMoveIntoSelf: "Нельзя переместить папку внутрь самой себя",
+		alreadyExists: "В целевой папке уже есть «{name}»",
+		renameFailed: "Не удалось переименовать: ", modified: "Изменён", created: "Создан",
+		sortNameAsc: "Имя (А → Я)", sortNameDesc: "Имя (Я → А)",
+		sortMtimeDesc: "Дата изменения (сначала новые)", sortMtimeAsc: "Дата изменения (сначала старые)",
+		confirmDeleteTitle: "Удаление", confirmDeleteOne: "Удалить «{name}»?",
+		confirmDeleteMany: "Удалить элементов: {n}?", confirm: "Удалить", cancel: "Отмена",
+		itemsMoved: "Перемещено элементов: {n}",
+		cmdOpen: "Открыть проводник-колонки", cmdReveal: "Показать активный файл в колонках",
+		setFoldersFirst: "Папки сверху", setFoldersFirstDesc: "Всегда показывать папки выше файлов.",
+		setShowExt: "Показывать расширения", setShowExtDesc: "Небольшой бейдж с расширением у не-Markdown файлов.",
+		setPreview: "Колонка превью файла", setPreviewDesc: "Показывать колонку с деталями при выборе файла.",
+		setMdPreview: "Превью содержимого заметки", setMdPreviewDesc: "Показывать начало Markdown-заметки в колонке превью.",
+		setConfirmDelete: "Подтверждать удаление", setConfirmDeleteDesc: "Спрашивать подтверждение перед перемещением в корзину.",
+		setColWidth: "Минимальная ширина колонки", setColWidthDesc: "В пикселях. Колонки также можно тянуть за правый край.",
+		setSort: "Сортировка по умолчанию",
+		setAutoReveal: "Следовать за активным файлом", setAutoRevealDesc: "Автоматически выделять в колонках файл активной вкладки.",
+		setExclude: "Скрытые файлы", setExcludeDesc: "Паттерны через запятую, например «*.tmp, archive/, .trash».",
+	},
+};
+
+export function t(key: string, vars?: Record<string, string | number>): string {
+	const lang = window.localStorage.getItem("language") ?? "en";
+	const s = (STRINGS[lang] ?? STRINGS.en)[key] ?? STRINGS.en[key] ?? key;
+	return vars ? formatTemplate(s, vars) : s;
+}

@@ -16,7 +16,8 @@ jobs:
         with:
           node-version: "20"
       - run: npm ci
-      - run: node esbuild.config.mjs production
+      - run: npm test
+      - run: npm run build
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
