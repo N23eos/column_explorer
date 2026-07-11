@@ -243,7 +243,7 @@ var FOLDER_COLOR_KEYS = ["red", "orange", "yellow", "green", "cyan", "blue", "pu
 var DEFAULT_SETTINGS = {
   foldersFirst: true,
   showExtensions: true,
-  showPreview: true,
+  showPreview: false,
   showMarkdownPreview: true,
   confirmDelete: true,
   autoReveal: false,

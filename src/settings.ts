@@ -26,7 +26,7 @@ export interface ColumnExplorerSettings {
 export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
 	foldersFirst: true,
 	showExtensions: true,
-	showPreview: true,
+	showPreview: false,
 	showMarkdownPreview: true,
 	confirmDelete: true,
 	autoReveal: false,
