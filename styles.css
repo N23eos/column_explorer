@@ -306,3 +306,100 @@
 .column-explorer-columns:focus-visible {
 	box-shadow: inset 0 0 0 2px var(--background-modifier-border-focus);
 }
+
+/* ---- v1.3 additions ---- */
+
+/* Column header with view toggle */
+.column-explorer-column-header {
+	display: flex;
+	align-items: center;
+	gap: 4px;
+}
+
+.column-explorer-column-title {
+	flex: 1;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.column-explorer-view-toggle {
+	flex-shrink: 0;
+	padding: 2px;
+	opacity: 0;
+	transition: opacity 0.1s ease-in-out;
+}
+
+.column-explorer-column:hover .column-explorer-view-toggle,
+.column-explorer-view-toggle:focus-visible {
+	opacity: 1;
+}
+
+.column-explorer-view-toggle svg {
+	width: 14px;
+	height: 14px;
+}
+
+/* Grid (icons) view */
+.column-explorer-list.is-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(72px, 1fr));
+	gap: 4px;
+	align-content: start;
+}
+
+.column-explorer-list.is-grid .column-explorer-item {
+	flex-direction: column;
+	gap: 4px;
+	padding: 8px 4px;
+	text-align: center;
+}
+
+.column-explorer-list.is-grid .column-explorer-item-icon svg {
+	width: 28px;
+	height: 28px;
+}
+
+.column-explorer-list.is-grid .column-explorer-item-title {
+	white-space: normal;
+	overflow: hidden;
+	display: -webkit-box;
+	-webkit-line-clamp: 2;
+	-webkit-box-orient: vertical;
+	word-break: break-word;
+	font-size: var(--font-ui-smaller);
+	line-height: 1.2;
+	width: 100%;
+}
+
+.column-explorer-list.is-grid .column-explorer-item-chevron {
+	display: none;
+}
+
+.column-explorer-list.is-grid .column-explorer-empty {
+	grid-column: 1 / -1;
+}
+
+/* Folder colors */
+.column-explorer-item.has-folder-color .column-explorer-item-icon {
+	color: var(--ce-folder-color);
+}
+
+.column-explorer-item.has-folder-color.is-selected .column-explorer-item-icon {
+	color: var(--text-on-accent);
+}
+
+/* Color dot in the folder color menu */
+.column-explorer-color-dot {
+	display: inline-block;
+	width: 10px;
+	height: 10px;
+	border-radius: 50%;
+	margin-right: 8px;
+	background-color: var(--ce-dot-color);
+	vertical-align: baseline;
+}
+
+.column-explorer-color-dot.is-default {
+	background: none;
+	border: 1px solid var(--text-muted);
+}

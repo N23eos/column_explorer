@@ -29,6 +29,10 @@ const STRINGS: Record<string, Record<string, string>> = {
 		setSort: "Default sort order",
 		setAutoReveal: "Auto-reveal active file", setAutoRevealDesc: "Follow the active editor tab and select its file in the columns.",
 		setExclude: "Excluded files", setExcludeDesc: "Comma-separated patterns to hide, e.g. “*.tmp, archive/, .trash”.",
+		folderColor: "Folder color", colorDefault: "Default",
+		colorRed: "Red", colorOrange: "Orange", colorYellow: "Yellow", colorGreen: "Green",
+		colorCyan: "Cyan", colorBlue: "Blue", colorPurple: "Purple", colorPink: "Pink",
+		viewAsList: "View as list", viewAsGrid: "View as icons",
 	},
 	ru: {
 		newNote: "Новая заметка", newFolder: "Новая папка", reveal: "Показать активный файл",
@@ -58,6 +62,10 @@ const STRINGS: Record<string, Record<string, string>> = {
 		setSort: "Сортировка по умолчанию",
 		setAutoReveal: "Следовать за активным файлом", setAutoRevealDesc: "Автоматически выделять в колонках файл активной вкладки.",
 		setExclude: "Скрытые файлы", setExcludeDesc: "Паттерны через запятую, например «*.tmp, archive/, .trash».",
+		folderColor: "Цвет папки", colorDefault: "Стандартный",
+		colorRed: "Красный", colorOrange: "Оранжевый", colorYellow: "Жёлтый", colorGreen: "Зелёный",
+		colorCyan: "Голубой", colorBlue: "Синий", colorPurple: "Фиолетовый", colorPink: "Розовый",
+		viewAsList: "Вид: список", viewAsGrid: "Вид: значки",
 	},
 };
 

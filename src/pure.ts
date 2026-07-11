@@ -39,6 +39,30 @@ function globToRegExp(glob: string): RegExp {
 }
 
 /**
+ * Remap path-keyed records (folder colors, view modes) when a file or
+ * folder is renamed/moved. Returns a new object — never mutates.
+ */
+export function remapPathKeys<V>(record: Record<string, V>, oldPath: string, newPath: string): Record<string, V> {
+	const result: Record<string, V> = {};
+	for (const [key, value] of Object.entries(record)) {
+		if (key === oldPath) result[newPath] = value;
+		else if (key.startsWith(oldPath + "/")) result[newPath + key.slice(oldPath.length)] = value;
+		else result[key] = value;
+	}
+	return result;
+}
+
+/** Drop entries for a deleted path and everything inside it. Returns a new object. */
+export function prunePathKeys<V>(record: Record<string, V>, deletedPath: string): Record<string, V> {
+	const result: Record<string, V> = {};
+	for (const [key, value] of Object.entries(record)) {
+		if (key === deletedPath || key.startsWith(deletedPath + "/")) continue;
+		result[key] = value;
+	}
+	return result;
+}
+
+/**
  * Pattern semantics:
  * - "folder/"  — the folder itself and everything inside it
  * - "*.tmp"    — glob matched against the file name (not the full path)

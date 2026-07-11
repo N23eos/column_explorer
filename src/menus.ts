@@ -1,8 +1,63 @@
-import { Menu, Notice, TFile, TFolder, TAbstractFile } from "obsidian";
+import { Menu, MenuItem, Notice, TFile, TFolder, TAbstractFile } from "obsidian";
 import { t } from "./i18n";
 import { duplicateFile, moveFiles } from "./fileops";
 import { FolderSuggestModal } from "./modals";
+import { FOLDER_COLOR_KEYS, FolderColorKey } from "./settings";
 import type { ColumnExplorerView } from "./view";
+
+function colorMenuTitle(colorKey: FolderColorKey | null, label: string): DocumentFragment {
+	return createFragment((frag) => {
+		const dot = frag.createSpan({ cls: "column-explorer-color-dot" });
+		if (colorKey) dot.style.setProperty("--ce-dot-color", `var(--color-${colorKey})`);
+		else dot.addClass("is-default");
+		frag.createSpan({ text: label });
+	});
+}
+
+function addFolderColorMenu(view: ColumnExplorerView, menu: Menu, folder: TFolder) {
+	const current = view.plugin.settings.folderColors[folder.path];
+	const capitalized = (k: string) => "color" + k.charAt(0).toUpperCase() + k.slice(1);
+
+	const fillColorItems = (target: Menu) => {
+		for (const key of FOLDER_COLOR_KEYS) {
+			target.addItem(i => i
+				.setTitle(colorMenuTitle(key, t(capitalized(key))))
+				.setChecked(current === key)
+				.onClick(async () => {
+					view.plugin.settings.folderColors = {
+						...view.plugin.settings.folderColors,
+						[folder.path]: key,
+					};
+					await view.plugin.saveSettings();
+					view.render();
+				}));
+		}
+		target.addSeparator();
+		target.addItem(i => i
+			.setTitle(colorMenuTitle(null, t("colorDefault")))
+			.setChecked(!current)
+			.onClick(async () => {
+				// Сбрасываем только эту папку — цвета вложенных папок не трогаем
+				const rest = { ...view.plugin.settings.folderColors };
+				delete rest[folder.path];
+				view.plugin.settings.folderColors = rest;
+				await view.plugin.saveSettings();
+				view.render();
+			}));
+	};
+
+	menu.addItem((item: MenuItem) => {
+		item.setTitle(t("folderColor")).setIcon("palette");
+		// setSubmenu есть в рантайме, но отсутствует в публичных типах;
+		// при его пропаже пункты лягут плоско в родительское меню
+		const withSubmenu = item as MenuItem & { setSubmenu?: () => Menu };
+		if (typeof withSubmenu.setSubmenu === "function") {
+			fillColorItems(withSubmenu.setSubmenu());
+		} else {
+			fillColorItems(menu);
+		}
+	});
+}
 
 export function showFileMenu(view: ColumnExplorerView, e: MouseEvent, f: TAbstractFile, depth: number) {
 	const app = view.app;
@@ -34,6 +89,7 @@ export function showFileMenu(view: ColumnExplorerView, e: MouseEvent, f: TAbstra
 			.onClick(() => view.createNote(f)));
 		menu.addItem(i => i.setTitle(t("newFolder")).setIcon("folder-plus")
 			.onClick(() => view.createFolder(f)));
+		addFolderColorMenu(view, menu, f);
 		menu.addSeparator();
 	}
 

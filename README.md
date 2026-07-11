@@ -5,6 +5,8 @@ A Finder-style Miller-columns file explorer for Obsidian with full file-manager 
 ## Features
 
 - **Miller columns** — click a folder to open its contents in a new column to the right
+- **List or icon view per column** — toggle in the column header, remembered per folder
+- **Folder colors** — right-click a folder → Folder color, eight theme-aware presets
 - **Breadcrumbs** — clickable path bar for quick jumps to any ancestor folder
 - **File preview column** — image thumbnails, note content preview, size, dates, open button
 - **All standard file operations** — create notes/folders (with inline rename), rename, trash, duplicate, move to folder, copy path

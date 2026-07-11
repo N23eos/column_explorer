@@ -3,6 +3,11 @@ import { t } from "./i18n";
 import type ColumnExplorerPlugin from "./main";
 
 export type SortMode = "name-asc" | "name-desc" | "mtime-desc" | "mtime-asc";
+export type ColumnViewMode = "list" | "grid";
+
+/** Theme color keys — resolve to Obsidian's native `--color-*` CSS variables. */
+export const FOLDER_COLOR_KEYS = ["red", "orange", "yellow", "green", "cyan", "blue", "purple", "pink"] as const;
+export type FolderColorKey = (typeof FOLDER_COLOR_KEYS)[number];
 
 export interface ColumnExplorerSettings {
 	foldersFirst: boolean;
@@ -14,6 +19,8 @@ export interface ColumnExplorerSettings {
 	columnWidth: number;
 	sortMode: SortMode;
 	excludePatterns: string;
+	folderColors: Record<string, FolderColorKey>;
+	columnViewModes: Record<string, ColumnViewMode>;
 }
 
 export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
@@ -26,6 +33,8 @@ export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
 	columnWidth: 200,
 	sortMode: "name-asc",
 	excludePatterns: "",
+	folderColors: {},
+	columnViewModes: {},
 };
 
 export const MIN_COLUMN_WIDTH = 140;

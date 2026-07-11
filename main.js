@@ -54,6 +54,23 @@ function globToRegExp(glob) {
   const escaped = glob.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^/]*");
   return new RegExp("^" + escaped + "$");
 }
+function remapPathKeys(record, oldPath, newPath) {
+  const result = {};
+  for (const [key, value] of Object.entries(record)) {
+    if (key === oldPath) result[newPath] = value;
+    else if (key.startsWith(oldPath + "/")) result[newPath + key.slice(oldPath.length)] = value;
+    else result[key] = value;
+  }
+  return result;
+}
+function prunePathKeys(record, deletedPath) {
+  const result = {};
+  for (const [key, value] of Object.entries(record)) {
+    if (key === deletedPath || key.startsWith(deletedPath + "/")) continue;
+    result[key] = value;
+  }
+  return result;
+}
 function matchesExcludePatterns(path, patterns) {
   var _a;
   if (patterns.length === 0) return false;
@@ -128,7 +145,19 @@ var STRINGS = {
     setAutoReveal: "Auto-reveal active file",
     setAutoRevealDesc: "Follow the active editor tab and select its file in the columns.",
     setExclude: "Excluded files",
-    setExcludeDesc: "Comma-separated patterns to hide, e.g. \u201C*.tmp, archive/, .trash\u201D."
+    setExcludeDesc: "Comma-separated patterns to hide, e.g. \u201C*.tmp, archive/, .trash\u201D.",
+    folderColor: "Folder color",
+    colorDefault: "Default",
+    colorRed: "Red",
+    colorOrange: "Orange",
+    colorYellow: "Yellow",
+    colorGreen: "Green",
+    colorCyan: "Cyan",
+    colorBlue: "Blue",
+    colorPurple: "Purple",
+    colorPink: "Pink",
+    viewAsList: "View as list",
+    viewAsGrid: "View as icons"
   },
   ru: {
     newNote: "\u041D\u043E\u0432\u0430\u044F \u0437\u0430\u043C\u0435\u0442\u043A\u0430",
@@ -186,7 +215,19 @@ var STRINGS = {
     setAutoReveal: "\u0421\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u044C \u0437\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u043C \u0444\u0430\u0439\u043B\u043E\u043C",
     setAutoRevealDesc: "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0432\u044B\u0434\u0435\u043B\u044F\u0442\u044C \u0432 \u043A\u043E\u043B\u043E\u043D\u043A\u0430\u0445 \u0444\u0430\u0439\u043B \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0439 \u0432\u043A\u043B\u0430\u0434\u043A\u0438.",
     setExclude: "\u0421\u043A\u0440\u044B\u0442\u044B\u0435 \u0444\u0430\u0439\u043B\u044B",
-    setExcludeDesc: "\u041F\u0430\u0442\u0442\u0435\u0440\u043D\u044B \u0447\u0435\u0440\u0435\u0437 \u0437\u0430\u043F\u044F\u0442\u0443\u044E, \u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440 \xAB*.tmp, archive/, .trash\xBB."
+    setExcludeDesc: "\u041F\u0430\u0442\u0442\u0435\u0440\u043D\u044B \u0447\u0435\u0440\u0435\u0437 \u0437\u0430\u043F\u044F\u0442\u0443\u044E, \u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440 \xAB*.tmp, archive/, .trash\xBB.",
+    folderColor: "\u0426\u0432\u0435\u0442 \u043F\u0430\u043F\u043A\u0438",
+    colorDefault: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442\u043D\u044B\u0439",
+    colorRed: "\u041A\u0440\u0430\u0441\u043D\u044B\u0439",
+    colorOrange: "\u041E\u0440\u0430\u043D\u0436\u0435\u0432\u044B\u0439",
+    colorYellow: "\u0416\u0451\u043B\u0442\u044B\u0439",
+    colorGreen: "\u0417\u0435\u043B\u0451\u043D\u044B\u0439",
+    colorCyan: "\u0413\u043E\u043B\u0443\u0431\u043E\u0439",
+    colorBlue: "\u0421\u0438\u043D\u0438\u0439",
+    colorPurple: "\u0424\u0438\u043E\u043B\u0435\u0442\u043E\u0432\u044B\u0439",
+    colorPink: "\u0420\u043E\u0437\u043E\u0432\u044B\u0439",
+    viewAsList: "\u0412\u0438\u0434: \u0441\u043F\u0438\u0441\u043E\u043A",
+    viewAsGrid: "\u0412\u0438\u0434: \u0437\u043D\u0430\u0447\u043A\u0438"
   }
 };
 function t(key, vars) {
@@ -198,6 +239,7 @@ function t(key, vars) {
 
 // src/settings.ts
 var import_obsidian = require("obsidian");
+var FOLDER_COLOR_KEYS = ["red", "orange", "yellow", "green", "cyan", "blue", "purple", "pink"];
 var DEFAULT_SETTINGS = {
   foldersFirst: true,
   showExtensions: true,
@@ -207,7 +249,9 @@ var DEFAULT_SETTINGS = {
   autoReveal: false,
   columnWidth: 200,
   sortMode: "name-asc",
-  excludePatterns: ""
+  excludePatterns: "",
+  folderColors: {},
+  columnViewModes: {}
 };
 var MIN_COLUMN_WIDTH = 140;
 var MAX_COLUMN_WIDTH = 500;
@@ -507,6 +551,47 @@ var FolderSuggestModal = class extends import_obsidian5.FuzzySuggestModal {
 };
 
 // src/menus.ts
+function colorMenuTitle(colorKey, label) {
+  return createFragment((frag) => {
+    const dot = frag.createSpan({ cls: "column-explorer-color-dot" });
+    if (colorKey) dot.style.setProperty("--ce-dot-color", `var(--color-${colorKey})`);
+    else dot.addClass("is-default");
+    frag.createSpan({ text: label });
+  });
+}
+function addFolderColorMenu(view, menu, folder) {
+  const current = view.plugin.settings.folderColors[folder.path];
+  const capitalized = (k) => "color" + k.charAt(0).toUpperCase() + k.slice(1);
+  const fillColorItems = (target) => {
+    for (const key of FOLDER_COLOR_KEYS) {
+      target.addItem((i) => i.setTitle(colorMenuTitle(key, t(capitalized(key)))).setChecked(current === key).onClick(async () => {
+        view.plugin.settings.folderColors = {
+          ...view.plugin.settings.folderColors,
+          [folder.path]: key
+        };
+        await view.plugin.saveSettings();
+        view.render();
+      }));
+    }
+    target.addSeparator();
+    target.addItem((i) => i.setTitle(colorMenuTitle(null, t("colorDefault"))).setChecked(!current).onClick(async () => {
+      const rest = { ...view.plugin.settings.folderColors };
+      delete rest[folder.path];
+      view.plugin.settings.folderColors = rest;
+      await view.plugin.saveSettings();
+      view.render();
+    }));
+  };
+  menu.addItem((item) => {
+    item.setTitle(t("folderColor")).setIcon("palette");
+    const withSubmenu = item;
+    if (typeof withSubmenu.setSubmenu === "function") {
+      fillColorItems(withSubmenu.setSubmenu());
+    } else {
+      fillColorItems(menu);
+    }
+  });
+}
 function showFileMenu(view, e, f, depth) {
   const app = view.app;
   const menu = new import_obsidian6.Menu();
@@ -530,6 +615,7 @@ function showFileMenu(view, e, f, depth) {
   if (f instanceof import_obsidian6.TFolder) {
     menu.addItem((i) => i.setTitle(t("newNote")).setIcon("file-plus").onClick(() => view.createNote(f)));
     menu.addItem((i) => i.setTitle(t("newFolder")).setIcon("folder-plus").onClick(() => view.createFolder(f)));
+    addFolderColorMenu(view, menu, f);
     menu.addSeparator();
   }
   if (f instanceof import_obsidian6.TFile) {
@@ -581,12 +667,28 @@ function itemFromEvent(e) {
   return (el == null ? void 0 : el.dataset.path) ? { el, path: el.dataset.path } : null;
 }
 function renderColumn(view, container, folder, depth) {
+  var _a;
   const col = container.createDiv({ cls: "column-explorer-column" });
   col.dataset.depth = String(depth);
   col.dataset.folderPath = folder.path;
   const header = col.createDiv({ cls: "column-explorer-column-header" });
-  header.createSpan({ text: folder.isRoot() ? view.app.vault.getName() : folder.name });
+  header.createSpan({ cls: "column-explorer-column-title", text: folder.isRoot() ? view.app.vault.getName() : folder.name });
+  const viewMode = (_a = view.plugin.settings.columnViewModes[folder.path]) != null ? _a : "list";
+  const toggle = header.createDiv({
+    cls: "clickable-icon column-explorer-view-toggle",
+    attr: { "aria-label": viewMode === "list" ? t("viewAsGrid") : t("viewAsList") }
+  });
+  (0, import_obsidian7.setIcon)(toggle, viewMode === "list" ? "layout-grid" : "list");
+  toggle.addEventListener("click", async () => {
+    view.plugin.settings.columnViewModes = {
+      ...view.plugin.settings.columnViewModes,
+      [folder.path]: viewMode === "list" ? "grid" : "list"
+    };
+    await view.plugin.saveSettings();
+    view.render();
+  });
   const list = col.createDiv({ cls: "column-explorer-list", attr: { role: "listbox" } });
+  if (viewMode === "grid") list.addClass("is-grid");
   list.addEventListener("click", (e) => {
     const hit = itemFromEvent(e);
     if (!hit) {
@@ -657,6 +759,13 @@ function buildItem(view, f, depth) {
   if (view.multiSelDepth === depth && view.multiSel.has(f.path)) item.addClass("is-multi-selected");
   const activeFile = view.app.workspace.getActiveFile();
   if (activeFile && activeFile.path === f.path) item.addClass("is-active-file");
+  if (f instanceof import_obsidian7.TFolder) {
+    const colorKey = view.plugin.settings.folderColors[f.path];
+    if (colorKey) {
+      item.addClass("has-folder-color");
+      item.style.setProperty("--ce-folder-color", `var(--color-${colorKey})`);
+    }
+  }
   const iconEl = item.createDiv({ cls: "column-explorer-item-icon" });
   (0, import_obsidian7.setIcon)(iconEl, iconFor(f));
   item.createDiv({ cls: "column-explorer-item-title", text: displayName(f) });
@@ -809,10 +918,12 @@ var ColumnExplorerView = class extends import_obsidian9.ItemView {
     this.registerEvent(this.app.vault.on("delete", (f) => {
       var _a, _b;
       const changed = this.pruneSelection(f.path);
+      this.prunePathRecords(f.path);
       this.markDirty(changed ? null : (_b = (_a = f.parent) == null ? void 0 : _a.path) != null ? _b : null);
     }));
     this.registerEvent(this.app.vault.on("rename", (f, oldPath) => {
       this.remapSelection(oldPath, f.path);
+      this.remapPathRecords(oldPath, f.path);
       this.markDirty(null);
     }));
     this.render();
@@ -872,6 +983,19 @@ var ColumnExplorerView = class extends import_obsidian9.ItemView {
     this.selection = this.selection.map(
       (p) => p === oldPath ? newPath : p.startsWith(oldPath + "/") ? newPath + p.slice(oldPath.length) : p
     );
+  }
+  /** Keep folder colors and per-folder view modes in sync with renames. */
+  remapPathRecords(oldPath, newPath) {
+    const s = this.plugin.settings;
+    s.folderColors = remapPathKeys(s.folderColors, oldPath, newPath);
+    s.columnViewModes = remapPathKeys(s.columnViewModes, oldPath, newPath);
+    void this.plugin.saveSettings();
+  }
+  prunePathRecords(deletedPath) {
+    const s = this.plugin.settings;
+    s.folderColors = prunePathKeys(s.folderColors, deletedPath);
+    s.columnViewModes = prunePathKeys(s.columnViewModes, deletedPath);
+    void this.plugin.saveSettings();
   }
   /* ------------------------------ render --------------------------- */
   applyColumnWidth() {

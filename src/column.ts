@@ -17,9 +17,25 @@ export function renderColumn(view: ColumnExplorerView, container: HTMLElement, f
 	col.dataset.folderPath = folder.path;
 
 	const header = col.createDiv({ cls: "column-explorer-column-header" });
-	header.createSpan({ text: folder.isRoot() ? view.app.vault.getName() : folder.name });
+	header.createSpan({ cls: "column-explorer-column-title", text: folder.isRoot() ? view.app.vault.getName() : folder.name });
+
+	const viewMode = view.plugin.settings.columnViewModes[folder.path] ?? "list";
+	const toggle = header.createDiv({
+		cls: "clickable-icon column-explorer-view-toggle",
+		attr: { "aria-label": viewMode === "list" ? t("viewAsGrid") : t("viewAsList") },
+	});
+	setIcon(toggle, viewMode === "list" ? "layout-grid" : "list");
+	toggle.addEventListener("click", async () => {
+		view.plugin.settings.columnViewModes = {
+			...view.plugin.settings.columnViewModes,
+			[folder.path]: viewMode === "list" ? "grid" : "list",
+		};
+		await view.plugin.saveSettings();
+		view.render();
+	});
 
 	const list = col.createDiv({ cls: "column-explorer-list", attr: { role: "listbox" } });
+	if (viewMode === "grid") list.addClass("is-grid");
 
 	/* Event delegation: one listener set per column, not per item. */
 	list.addEventListener("click", (e) => {
@@ -95,6 +111,14 @@ function buildItem(view: ColumnExplorerView, f: TAbstractFile, depth: number): H
 
 	const activeFile = view.app.workspace.getActiveFile();
 	if (activeFile && activeFile.path === f.path) item.addClass("is-active-file");
+
+	if (f instanceof TFolder) {
+		const colorKey = view.plugin.settings.folderColors[f.path];
+		if (colorKey) {
+			item.addClass("has-folder-color");
+			item.style.setProperty("--ce-folder-color", `var(--color-${colorKey})`);
+		}
+	}
 
 	const iconEl = item.createDiv({ cls: "column-explorer-item-icon" });
 	setIcon(iconEl, iconFor(f));

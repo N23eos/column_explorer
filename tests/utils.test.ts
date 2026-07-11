@@ -96,3 +96,42 @@ describe("formatTemplate", () => {
 		expect(formatTemplate("Nothing here", {})).toBe("Nothing here");
 	});
 });
+
+import { remapPathKeys, prunePathKeys } from "../src/pure";
+
+describe("remapPathKeys", () => {
+	test("remaps exact key and nested children keys", () => {
+		// Arrange
+		const record = { "a/b": "red", "a/b/c": "blue", "other": "green" };
+
+		// Act
+		const result = remapPathKeys(record, "a/b", "x/y");
+
+		// Assert
+		expect(result).toEqual({ "x/y": "red", "x/y/c": "blue", "other": "green" });
+	});
+
+	test("returns new object without mutating the original", () => {
+		const record = { "a": "red" };
+		const result = remapPathKeys(record, "a", "b");
+		expect(record).toEqual({ "a": "red" });
+		expect(result).not.toBe(record);
+	});
+
+	test("does not touch keys that only share a prefix string", () => {
+		const record = { "ab": "red", "a": "blue" };
+		expect(remapPathKeys(record, "a", "z")).toEqual({ "ab": "red", "z": "blue" });
+	});
+});
+
+describe("prunePathKeys", () => {
+	test("removes exact key and nested children keys", () => {
+		const record = { "a/b": "red", "a/b/c": "blue", "other": "green" };
+		expect(prunePathKeys(record, "a/b")).toEqual({ "other": "green" });
+	});
+
+	test("keeps keys that only share a prefix string", () => {
+		const record = { "ab": "red", "a": "blue" };
+		expect(prunePathKeys(record, "a")).toEqual({ "ab": "red" });
+	});
+});

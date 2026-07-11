@@ -12,6 +12,7 @@ import {
 	setIcon,
 } from "obsidian";
 import { t } from "./i18n";
+import { prunePathKeys, remapPathKeys } from "./pure";
 import { displayName, visibleChildren } from "./utils";
 import { renderColumn, renderColumnList } from "./column";
 import { renderPreviewColumn } from "./preview";
@@ -110,10 +111,12 @@ export class ColumnExplorerView extends ItemView {
 		this.registerEvent(this.app.vault.on("create", (f) => this.markDirty(f.parent?.path ?? null)));
 		this.registerEvent(this.app.vault.on("delete", (f) => {
 			const changed = this.pruneSelection(f.path);
+			this.prunePathRecords(f.path);
 			this.markDirty(changed ? null : f.parent?.path ?? null);
 		}));
 		this.registerEvent(this.app.vault.on("rename", (f, oldPath) => {
 			this.remapSelection(oldPath, f.path);
+			this.remapPathRecords(oldPath, f.path);
 			// Переименование может менять заголовки колонок и две папки сразу — полный рендер
 			this.markDirty(null);
 		}));
@@ -182,6 +185,21 @@ export class ColumnExplorerView extends ItemView {
 			p === oldPath ? newPath :
 			p.startsWith(oldPath + "/") ? newPath + p.slice(oldPath.length) : p
 		);
+	}
+
+	/** Keep folder colors and per-folder view modes in sync with renames. */
+	private remapPathRecords(oldPath: string, newPath: string) {
+		const s = this.plugin.settings;
+		s.folderColors = remapPathKeys(s.folderColors, oldPath, newPath);
+		s.columnViewModes = remapPathKeys(s.columnViewModes, oldPath, newPath);
+		void this.plugin.saveSettings();
+	}
+
+	private prunePathRecords(deletedPath: string) {
+		const s = this.plugin.settings;
+		s.folderColors = prunePathKeys(s.folderColors, deletedPath);
+		s.columnViewModes = prunePathKeys(s.columnViewModes, deletedPath);
+		void this.plugin.saveSettings();
 	}
 
 	/* ------------------------------ render --------------------------- */
