@@ -145,6 +145,22 @@
 	color: var(--text-faint);
 }
 
+/* Pin indicator on pinned items */
+.column-explorer-item-pin {
+	display: flex;
+	flex-shrink: 0;
+	color: var(--text-faint);
+}
+
+.column-explorer-item-pin svg {
+	width: 12px;
+	height: 12px;
+}
+
+.column-explorer-item.is-selected .column-explorer-item-pin {
+	color: var(--text-on-accent);
+}
+
 .column-explorer-item-chevron svg {
 	width: 14px;
 	height: 14px;

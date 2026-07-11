@@ -97,7 +97,32 @@ describe("formatTemplate", () => {
 	});
 });
 
-import { remapPathKeys, prunePathKeys } from "../src/pure";
+import { remapPathKeys, prunePathKeys, pinnedFirst } from "../src/pure";
+
+describe("pinnedFirst", () => {
+	test("moves pinned items to the front keeping relative order", () => {
+		// Arrange
+		const items = ["a", "b", "c", "d"];
+		const pinned = new Set(["c", "a"]);
+
+		// Act
+		const result = pinnedFirst(items, (x) => pinned.has(x));
+
+		// Assert
+		expect(result).toEqual(["a", "c", "b", "d"]);
+	});
+
+	test("returns new array without mutating the original", () => {
+		const items = ["a", "b"];
+		const result = pinnedFirst(items, (x) => x === "b");
+		expect(items).toEqual(["a", "b"]);
+		expect(result).toEqual(["b", "a"]);
+	});
+
+	test("returns items unchanged when nothing is pinned", () => {
+		expect(pinnedFirst(["a", "b"], () => false)).toEqual(["a", "b"]);
+	});
+});
 
 describe("remapPathKeys", () => {
 	test("remaps exact key and nested children keys", () => {

@@ -71,6 +71,12 @@ function prunePathKeys(record, deletedPath) {
   }
   return result;
 }
+function pinnedFirst(items, isPinned) {
+  const pinned = [];
+  const rest = [];
+  for (const item of items) (isPinned(item) ? pinned : rest).push(item);
+  return [...pinned, ...rest];
+}
 function matchesExcludePatterns(path, patterns) {
   var _a;
   if (patterns.length === 0) return false;
@@ -157,7 +163,10 @@ var STRINGS = {
     colorPurple: "Purple",
     colorPink: "Pink",
     viewAsList: "View as list",
-    viewAsGrid: "View as icons"
+    viewAsGrid: "View as icons",
+    pin: "Pin to top",
+    unpin: "Unpin",
+    newCanvas: "New canvas"
   },
   ru: {
     newNote: "\u041D\u043E\u0432\u0430\u044F \u0437\u0430\u043C\u0435\u0442\u043A\u0430",
@@ -227,7 +236,10 @@ var STRINGS = {
     colorPurple: "\u0424\u0438\u043E\u043B\u0435\u0442\u043E\u0432\u044B\u0439",
     colorPink: "\u0420\u043E\u0437\u043E\u0432\u044B\u0439",
     viewAsList: "\u0412\u0438\u0434: \u0441\u043F\u0438\u0441\u043E\u043A",
-    viewAsGrid: "\u0412\u0438\u0434: \u0437\u043D\u0430\u0447\u043A\u0438"
+    viewAsGrid: "\u0412\u0438\u0434: \u0437\u043D\u0430\u0447\u043A\u0438",
+    pin: "\u0417\u0430\u043A\u0440\u0435\u043F\u0438\u0442\u044C \u0441\u0432\u0435\u0440\u0445\u0443",
+    unpin: "\u041E\u0442\u043A\u0440\u0435\u043F\u0438\u0442\u044C",
+    newCanvas: "\u041D\u043E\u0432\u044B\u0439 \u0445\u043E\u043B\u0441\u0442"
   }
 };
 function t(key, vars) {
@@ -251,7 +263,8 @@ var DEFAULT_SETTINGS = {
   sortMode: "name-asc",
   excludePatterns: "",
   folderColors: {},
-  columnViewModes: {}
+  columnViewModes: {},
+  pinnedPaths: {}
 };
 var MIN_COLUMN_WIDTH = 140;
 var MAX_COLUMN_WIDTH = 500;
@@ -338,7 +351,7 @@ function visibleChildren(folder, s) {
   if (patterns.length > 0) {
     children = children.filter((c) => !matchesExcludePatterns(c.path, patterns));
   }
-  return sortChildren(children, s);
+  return pinnedFirst(sortChildren(children, s), (c) => !!s.pinnedPaths[c.path]);
 }
 function displayName(f) {
   if (f instanceof import_obsidian2.TFile && f.extension === "md") return f.basename;
@@ -556,7 +569,8 @@ function colorMenuTitle(colorKey, label) {
     const dot = frag.createSpan({ cls: "column-explorer-color-dot" });
     if (colorKey) dot.style.setProperty("--ce-dot-color", `var(--color-${colorKey})`);
     else dot.addClass("is-default");
-    frag.createSpan({ text: label });
+    const text = frag.createSpan({ text: label });
+    if (colorKey) text.style.color = `var(--color-${colorKey})`;
   });
 }
 function addFolderColorMenu(view, menu, folder) {
@@ -624,6 +638,15 @@ function showFileMenu(view, e, f, depth) {
     menu.addSeparator();
     menu.addItem((i) => i.setTitle(t("duplicate")).setIcon("copy").onClick(() => duplicateFile(app, f)));
   }
+  const isPinned = !!view.plugin.settings.pinnedPaths[f.path];
+  menu.addItem((i) => i.setTitle(isPinned ? t("unpin") : t("pin")).setIcon(isPinned ? "pin-off" : "pin").onClick(async () => {
+    const pinned = { ...view.plugin.settings.pinnedPaths };
+    if (isPinned) delete pinned[f.path];
+    else pinned[f.path] = true;
+    view.plugin.settings.pinnedPaths = pinned;
+    await view.plugin.saveSettings();
+    view.render();
+  }));
   menu.addItem((i) => i.setTitle(t("moveTo")).setIcon("folder-input").onClick(() => new FolderSuggestModal(app, (target) => void moveFiles(app, [f.path], target)).open()));
   menu.addItem((i) => i.setTitle(t("rename")).setIcon("pencil").onClick(() => view.startRename(f)));
   menu.addItem((i) => i.setTitle(t("delete")).setIcon("trash").onClick(() => view.deleteMany([f.path])));
@@ -639,6 +662,7 @@ function showFolderBackgroundMenu(view, e, folder) {
   const menu = new import_obsidian6.Menu();
   menu.addItem((i) => i.setTitle(t("newNote")).setIcon("file-plus").onClick(() => view.createNote(folder)));
   menu.addItem((i) => i.setTitle(t("newFolder")).setIcon("folder-plus").onClick(() => view.createFolder(folder)));
+  menu.addItem((i) => i.setTitle(t("newCanvas")).setIcon("layout-dashboard").onClick(() => view.createNote(folder, "canvas", "{}")));
   menu.showAtMouseEvent(e);
 }
 function showSortMenu(view, e) {
@@ -769,6 +793,10 @@ function buildItem(view, f, depth) {
   const iconEl = item.createDiv({ cls: "column-explorer-item-icon" });
   (0, import_obsidian7.setIcon)(iconEl, iconFor(f));
   item.createDiv({ cls: "column-explorer-item-title", text: displayName(f) });
+  if (view.plugin.settings.pinnedPaths[f.path]) {
+    const pin = item.createDiv({ cls: "column-explorer-item-pin" });
+    (0, import_obsidian7.setIcon)(pin, "pin");
+  }
   if (f instanceof import_obsidian7.TFolder) {
     const chev = item.createDiv({ cls: "column-explorer-item-chevron" });
     (0, import_obsidian7.setIcon)(chev, "chevron-right");
@@ -989,12 +1017,14 @@ var ColumnExplorerView = class extends import_obsidian9.ItemView {
     const s = this.plugin.settings;
     s.folderColors = remapPathKeys(s.folderColors, oldPath, newPath);
     s.columnViewModes = remapPathKeys(s.columnViewModes, oldPath, newPath);
+    s.pinnedPaths = remapPathKeys(s.pinnedPaths, oldPath, newPath);
     void this.plugin.saveSettings();
   }
   prunePathRecords(deletedPath) {
     const s = this.plugin.settings;
     s.folderColors = prunePathKeys(s.folderColors, deletedPath);
     s.columnViewModes = prunePathKeys(s.columnViewModes, deletedPath);
+    s.pinnedPaths = prunePathKeys(s.pinnedPaths, deletedPath);
     void this.plugin.saveSettings();
   }
   /* ------------------------------ render --------------------------- */
@@ -1022,11 +1052,42 @@ var ColumnExplorerView = class extends import_obsidian9.ItemView {
       const folder = path === "/" ? this.app.vault.getRoot() : this.app.vault.getAbstractFileByPath(path);
       const col = list.closest(".column-explorer-column");
       const depth = Number((_a = col == null ? void 0 : col.dataset.depth) != null ? _a : 0);
-      if (folder instanceof import_obsidian9.TFolder) renderColumnList(this, list, folder, depth);
+      if (folder instanceof import_obsidian9.TFolder) {
+        const prevTop = list.scrollTop;
+        renderColumnList(this, list, folder, depth);
+        list.scrollTop = prevTop;
+      }
     }
     this.dirtyFolders.clear();
   }
+  /** Vertical scroll of each column keyed by folder path — survives re-render. */
+  captureScrollTops() {
+    const tops = /* @__PURE__ */ new Map();
+    this.columnsEl.querySelectorAll(".column-explorer-column[data-folder-path]").forEach((col) => {
+      const list = col.querySelector(".column-explorer-list");
+      if (list && col.dataset.folderPath !== void 0) tops.set(col.dataset.folderPath, list.scrollTop);
+    });
+    return tops;
+  }
+  restoreScrollTops(tops) {
+    this.columnsEl.querySelectorAll(".column-explorer-column[data-folder-path]").forEach((col) => {
+      var _a;
+      const saved = tops.get((_a = col.dataset.folderPath) != null ? _a : "");
+      const list = col.querySelector(".column-explorer-list");
+      if (saved !== void 0 && list) list.scrollTop = saved;
+    });
+  }
+  /** Identity of the rendered column set — to decide whether to keep horizontal scroll. */
+  columnsKey() {
+    return Array.from(this.columnsEl.querySelectorAll(".column-explorer-column")).map((col) => {
+      var _a;
+      return (_a = col.dataset.folderPath) != null ? _a : "";
+    }).join("\n");
+  }
   render() {
+    const scrollTops = this.captureScrollTops();
+    const prevKey = this.columnsKey();
+    const prevScrollLeft = this.columnsEl.scrollLeft;
     this.columnsEl.empty();
     this.applyColumnWidth();
     const validSel = [];
@@ -1049,8 +1110,10 @@ var ColumnExplorerView = class extends import_obsidian9.ItemView {
       }
     }
     this.renderBreadcrumbs();
+    this.restoreScrollTops(scrollTops);
+    const sameColumns = this.columnsKey() === prevKey;
     requestAnimationFrame(() => {
-      this.columnsEl.scrollLeft = this.columnsEl.scrollWidth;
+      this.columnsEl.scrollLeft = sameColumns ? prevScrollLeft : this.columnsEl.scrollWidth;
     });
   }
   renderBreadcrumbs() {
@@ -1154,14 +1217,14 @@ var ColumnExplorerView = class extends import_obsidian9.ItemView {
     const msg = paths.length === 1 ? t("confirmDeleteOne", { name: first ? displayName(first) : paths[0] }) : t("confirmDeleteMany", { n: paths.length });
     new ConfirmModal(this.app, msg, () => void doDelete()).open();
   }
-  async createNote(folder) {
+  async createNote(folder, extension = "md", initialContent = "") {
     const base = (folder.isRoot() ? "" : folder.path + "/") + t("untitled");
-    let path = (0, import_obsidian9.normalizePath)(base + ".md");
+    let path = (0, import_obsidian9.normalizePath)(base + "." + extension);
     let n = 1;
     while (this.app.vault.getAbstractFileByPath(path)) {
-      path = (0, import_obsidian9.normalizePath)(base + " " + n++ + ".md");
+      path = (0, import_obsidian9.normalizePath)(base + " " + n++ + "." + extension);
     }
-    const file = await this.app.vault.create(path, "");
+    const file = await this.app.vault.create(path, initialContent);
     this.revealFile(file);
     await this.app.workspace.getLeaf(false).openFile(file);
     window.setTimeout(() => this.startRenameByPath(file.path), 100);

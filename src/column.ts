@@ -125,6 +125,11 @@ function buildItem(view: ColumnExplorerView, f: TAbstractFile, depth: number): H
 
 	item.createDiv({ cls: "column-explorer-item-title", text: displayName(f) });
 
+	if (view.plugin.settings.pinnedPaths[f.path]) {
+		const pin = item.createDiv({ cls: "column-explorer-item-pin" });
+		setIcon(pin, "pin");
+	}
+
 	if (f instanceof TFolder) {
 		const chev = item.createDiv({ cls: "column-explorer-item-chevron" });
 		setIcon(chev, "chevron-right");

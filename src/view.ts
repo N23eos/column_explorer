@@ -192,6 +192,7 @@ export class ColumnExplorerView extends ItemView {
 		const s = this.plugin.settings;
 		s.folderColors = remapPathKeys(s.folderColors, oldPath, newPath);
 		s.columnViewModes = remapPathKeys(s.columnViewModes, oldPath, newPath);
+		s.pinnedPaths = remapPathKeys(s.pinnedPaths, oldPath, newPath);
 		void this.plugin.saveSettings();
 	}
 
@@ -199,6 +200,7 @@ export class ColumnExplorerView extends ItemView {
 		const s = this.plugin.settings;
 		s.folderColors = prunePathKeys(s.folderColors, deletedPath);
 		s.columnViewModes = prunePathKeys(s.columnViewModes, deletedPath);
+		s.pinnedPaths = prunePathKeys(s.pinnedPaths, deletedPath);
 		void this.plugin.saveSettings();
 	}
 
@@ -230,12 +232,44 @@ export class ColumnExplorerView extends ItemView {
 			const folder = path === "/" ? this.app.vault.getRoot() : this.app.vault.getAbstractFileByPath(path);
 			const col = list.closest<HTMLElement>(".column-explorer-column");
 			const depth = Number(col?.dataset.depth ?? 0);
-			if (folder instanceof TFolder) renderColumnList(this, list, folder, depth);
+			if (folder instanceof TFolder) {
+				const prevTop = list.scrollTop;
+				renderColumnList(this, list, folder, depth);
+				list.scrollTop = prevTop;
+			}
 		}
 		this.dirtyFolders.clear();
 	}
 
+	/** Vertical scroll of each column keyed by folder path — survives re-render. */
+	private captureScrollTops(): Map<string, number> {
+		const tops = new Map<string, number>();
+		this.columnsEl.querySelectorAll<HTMLElement>(".column-explorer-column[data-folder-path]").forEach(col => {
+			const list = col.querySelector<HTMLElement>(".column-explorer-list");
+			if (list && col.dataset.folderPath !== undefined) tops.set(col.dataset.folderPath, list.scrollTop);
+		});
+		return tops;
+	}
+
+	private restoreScrollTops(tops: Map<string, number>) {
+		this.columnsEl.querySelectorAll<HTMLElement>(".column-explorer-column[data-folder-path]").forEach(col => {
+			const saved = tops.get(col.dataset.folderPath ?? "");
+			const list = col.querySelector<HTMLElement>(".column-explorer-list");
+			if (saved !== undefined && list) list.scrollTop = saved;
+		});
+	}
+
+	/** Identity of the rendered column set — to decide whether to keep horizontal scroll. */
+	private columnsKey(): string {
+		return Array.from(this.columnsEl.querySelectorAll<HTMLElement>(".column-explorer-column"))
+			.map(col => col.dataset.folderPath ?? "").join("\n");
+	}
+
 	render() {
+		const scrollTops = this.captureScrollTops();
+		const prevKey = this.columnsKey();
+		const prevScrollLeft = this.columnsEl.scrollLeft;
+
 		this.columnsEl.empty();
 		this.applyColumnWidth();
 
@@ -260,7 +294,13 @@ export class ColumnExplorerView extends ItemView {
 		}
 
 		this.renderBreadcrumbs();
-		requestAnimationFrame(() => { this.columnsEl.scrollLeft = this.columnsEl.scrollWidth; });
+		this.restoreScrollTops(scrollTops);
+		// Вправо прокручиваем только когда набор колонок изменился (открыли новую);
+		// при клике внутри тех же колонок скролл остаётся на месте
+		const sameColumns = this.columnsKey() === prevKey;
+		requestAnimationFrame(() => {
+			this.columnsEl.scrollLeft = sameColumns ? prevScrollLeft : this.columnsEl.scrollWidth;
+		});
 	}
 
 	private renderBreadcrumbs() {
@@ -361,14 +401,14 @@ export class ColumnExplorerView extends ItemView {
 		new ConfirmModal(this.app, msg, () => void doDelete()).open();
 	}
 
-	async createNote(folder: TFolder) {
+	async createNote(folder: TFolder, extension = "md", initialContent = "") {
 		const base = (folder.isRoot() ? "" : folder.path + "/") + t("untitled");
-		let path = normalizePath(base + ".md");
+		let path = normalizePath(base + "." + extension);
 		let n = 1;
 		while (this.app.vault.getAbstractFileByPath(path)) {
-			path = normalizePath(base + " " + n++ + ".md");
+			path = normalizePath(base + " " + n++ + "." + extension);
 		}
-		const file = await this.app.vault.create(path, "");
+		const file = await this.app.vault.create(path, initialContent);
 		this.revealFile(file);
 		await this.app.workspace.getLeaf(false).openFile(file);
 		window.setTimeout(() => this.startRenameByPath(file.path), 100);

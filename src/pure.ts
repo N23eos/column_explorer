@@ -62,6 +62,14 @@ export function prunePathKeys<V>(record: Record<string, V>, deletedPath: string)
 	return result;
 }
 
+/** Stable partition: pinned items first, relative order preserved. Returns a new array. */
+export function pinnedFirst<T>(items: T[], isPinned: (item: T) => boolean): T[] {
+	const pinned: T[] = [];
+	const rest: T[] = [];
+	for (const item of items) (isPinned(item) ? pinned : rest).push(item);
+	return [...pinned, ...rest];
+}
+
 /**
  * Pattern semantics:
  * - "folder/"  — the folder itself and everything inside it

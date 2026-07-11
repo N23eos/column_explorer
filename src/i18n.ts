@@ -33,6 +33,7 @@ const STRINGS: Record<string, Record<string, string>> = {
 		colorRed: "Red", colorOrange: "Orange", colorYellow: "Yellow", colorGreen: "Green",
 		colorCyan: "Cyan", colorBlue: "Blue", colorPurple: "Purple", colorPink: "Pink",
 		viewAsList: "View as list", viewAsGrid: "View as icons",
+		pin: "Pin to top", unpin: "Unpin", newCanvas: "New canvas",
 	},
 	ru: {
 		newNote: "Новая заметка", newFolder: "Новая папка", reveal: "Показать активный файл",
@@ -66,6 +67,7 @@ const STRINGS: Record<string, Record<string, string>> = {
 		colorRed: "Красный", colorOrange: "Оранжевый", colorYellow: "Жёлтый", colorGreen: "Зелёный",
 		colorCyan: "Голубой", colorBlue: "Синий", colorPurple: "Фиолетовый", colorPink: "Розовый",
 		viewAsList: "Вид: список", viewAsGrid: "Вид: значки",
+		pin: "Закрепить сверху", unpin: "Открепить", newCanvas: "Новый холст",
 	},
 };
 

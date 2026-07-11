@@ -1,5 +1,5 @@
 import { TAbstractFile, TFile, TFolder } from "obsidian";
-import { matchesExcludePatterns, naturalCompare, parseExcludePatterns } from "./pure";
+import { matchesExcludePatterns, naturalCompare, parseExcludePatterns, pinnedFirst } from "./pure";
 import type { ColumnExplorerSettings } from "./settings";
 
 export function sortChildren(children: TAbstractFile[], s: ColumnExplorerSettings): TAbstractFile[] {
@@ -25,7 +25,7 @@ export function visibleChildren(folder: TFolder, s: ColumnExplorerSettings): TAb
 	if (patterns.length > 0) {
 		children = children.filter((c) => !matchesExcludePatterns(c.path, patterns));
 	}
-	return sortChildren(children, s);
+	return pinnedFirst(sortChildren(children, s), (c) => !!s.pinnedPaths[c.path]);
 }
 
 export function displayName(f: TAbstractFile): string {

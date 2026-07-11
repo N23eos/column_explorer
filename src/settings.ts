@@ -21,6 +21,7 @@ export interface ColumnExplorerSettings {
 	excludePatterns: string;
 	folderColors: Record<string, FolderColorKey>;
 	columnViewModes: Record<string, ColumnViewMode>;
+	pinnedPaths: Record<string, true>;
 }
 
 export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
@@ -35,6 +36,7 @@ export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
 	excludePatterns: "",
 	folderColors: {},
 	columnViewModes: {},
+	pinnedPaths: {},
 };
 
 export const MIN_COLUMN_WIDTH = 140;

@@ -10,7 +10,9 @@ function colorMenuTitle(colorKey: FolderColorKey | null, label: string): Documen
 		const dot = frag.createSpan({ cls: "column-explorer-color-dot" });
 		if (colorKey) dot.style.setProperty("--ce-dot-color", `var(--color-${colorKey})`);
 		else dot.addClass("is-default");
-		frag.createSpan({ text: label });
+		const text = frag.createSpan({ text: label });
+		// Красим и сам текст пункта — цвет виден сразу, а не только точкой
+		if (colorKey) text.style.color = `var(--color-${colorKey})`;
 	});
 }
 
@@ -103,6 +105,16 @@ export function showFileMenu(view: ColumnExplorerView, e: MouseEvent, f: TAbstra
 			.onClick(() => duplicateFile(app, f)));
 	}
 
+	const isPinned = !!view.plugin.settings.pinnedPaths[f.path];
+	menu.addItem(i => i.setTitle(isPinned ? t("unpin") : t("pin")).setIcon(isPinned ? "pin-off" : "pin")
+		.onClick(async () => {
+			const pinned = { ...view.plugin.settings.pinnedPaths };
+			if (isPinned) delete pinned[f.path];
+			else pinned[f.path] = true;
+			view.plugin.settings.pinnedPaths = pinned;
+			await view.plugin.saveSettings();
+			view.render();
+		}));
 	menu.addItem(i => i.setTitle(t("moveTo")).setIcon("folder-input")
 		.onClick(() => new FolderSuggestModal(app, (target) => void moveFiles(app, [f.path], target)).open()));
 	menu.addItem(i => i.setTitle(t("rename")).setIcon("pencil")
@@ -125,6 +137,8 @@ export function showFolderBackgroundMenu(view: ColumnExplorerView, e: MouseEvent
 		.onClick(() => view.createNote(folder)));
 	menu.addItem(i => i.setTitle(t("newFolder")).setIcon("folder-plus")
 		.onClick(() => view.createFolder(folder)));
+	menu.addItem(i => i.setTitle(t("newCanvas")).setIcon("layout-dashboard")
+		.onClick(() => view.createNote(folder, "canvas", "{}")));
 	menu.showAtMouseEvent(e);
 }
 
