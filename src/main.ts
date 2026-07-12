@@ -52,7 +52,8 @@ export default class ColumnExplorerPlugin extends Plugin {
 		let order = 0;
 		const migrated: Record<string, number> = {};
 		for (const path of Object.keys(raw)) {
-			migrated[path] = typeof raw[path] === "number" ? (raw[path] as number) : order;
+			const value = raw[path];
+			migrated[path] = typeof value === "number" ? value : order;
 			order++;
 		}
 		this.settings.pinnedPaths = migrated;
