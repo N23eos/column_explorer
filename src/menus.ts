@@ -1,9 +1,23 @@
 import { Menu, MenuItem, Notice, TFile, TFolder, TAbstractFile } from "obsidian";
 import { t } from "./i18n";
 import { duplicateFile, moveFiles } from "./fileops";
-import { FolderSuggestModal } from "./modals";
-import { FOLDER_COLOR_KEYS, FolderColorKey } from "./settings";
+import { FolderSuggestModal, IconSuggestModal } from "./modals";
+import { FOLDER_COLOR_KEYS, FolderColorKey, SortMode } from "./settings";
 import type { ColumnExplorerView } from "./view";
+
+const SORT_MODES = ["name-asc", "name-desc", "mtime-desc", "mtime-asc"] as const;
+
+function sortLabel(mode: SortMode): string {
+	const keys: Record<SortMode, string> = {
+		"name-asc": "sortNameAsc", "name-desc": "sortNameDesc",
+		"mtime-desc": "sortMtimeDesc", "mtime-asc": "sortMtimeAsc",
+	};
+	return t(keys[mode]);
+}
+
+function copyToClipboard(text: string, notice: string) {
+	void navigator.clipboard.writeText(text).then(() => new Notice(notice));
+}
 
 function colorMenuTitle(colorKey: FolderColorKey | null, label: string): DocumentFragment {
 	return createFragment((frag) => {
@@ -91,6 +105,7 @@ export function showFileMenu(view: ColumnExplorerView, e: MouseEvent, f: TAbstra
 		menu.addItem(i => i.setTitle(t("newFolder")).setIcon("folder-plus")
 			.onClick(() => view.createFolder(f)));
 		addFolderColorMenu(view, menu, f);
+		addFolderIconItems(view, menu, f);
 		menu.addSeparator();
 	}
 
@@ -126,13 +141,72 @@ export function showFileMenu(view: ColumnExplorerView, e: MouseEvent, f: TAbstra
 		.onClick(() => view.deleteMany([f.path])));
 	menu.addSeparator();
 	menu.addItem(i => i.setTitle(t("copyPath")).setIcon("clipboard-copy")
-		.onClick(() => {
-			void navigator.clipboard.writeText(f.path).then(() => new Notice(t("pathCopied")));
-		}));
+		.onClick(() => copyToClipboard(f.path, t("pathCopied"))));
+	if (f instanceof TFile) {
+		menu.addItem(i => i.setTitle(t("copyMdLink")).setIcon("link")
+			.onClick(() => copyToClipboard(app.fileManager.generateMarkdownLink(f, ""), t("linkCopied"))));
+		menu.addItem(i => i.setTitle(t("copyObsidianUrl")).setIcon("external-link")
+			.onClick(() => {
+				const url = "obsidian://open?vault=" + encodeURIComponent(app.vault.getName())
+					+ "&file=" + encodeURIComponent(f.path);
+				copyToClipboard(url, t("linkCopied"));
+			}));
+	}
 
 	// Стандартное меню Obsidian: пункты ядра и других плагинов
 	app.workspace.trigger("file-menu", menu, f, "file-explorer-context-menu", view.leaf);
 
+	menu.showAtMouseEvent(e);
+}
+
+function addFolderIconItems(view: ColumnExplorerView, menu: Menu, folder: TFolder) {
+	menu.addItem(i => i.setTitle(t("folderIcon")).setIcon("shapes")
+		.onClick(() => new IconSuggestModal(view.app, (icon) => {
+			view.plugin.settings.folderIcons = {
+				...view.plugin.settings.folderIcons,
+				[folder.path]: icon,
+			};
+			void view.plugin.saveSettings();
+			view.render();
+		}).open()));
+	if (view.plugin.settings.folderIcons[folder.path]) {
+		menu.addItem(i => i.setTitle(t("folderIconReset")).setIcon("shapes")
+			.onClick(() => {
+				const rest = { ...view.plugin.settings.folderIcons };
+				delete rest[folder.path];
+				view.plugin.settings.folderIcons = rest;
+				void view.plugin.saveSettings();
+				view.render();
+			}));
+	}
+}
+
+/** Right-click on a column header: create items + per-folder sort override. */
+export function showColumnHeaderMenu(view: ColumnExplorerView, e: MouseEvent, folder: TFolder) {
+	const menu = new Menu();
+	menu.addItem(i => i.setTitle(t("newNote")).setIcon("file-plus")
+		.onClick(() => void view.createNote(folder)));
+	menu.addItem(i => i.setTitle(t("newFolder")).setIcon("folder-plus")
+		.onClick(() => void view.createFolder(folder)));
+	menu.addItem(i => i.setTitle(t("newCanvas")).setIcon("layout-dashboard")
+		.onClick(() => void view.createNote(folder, "canvas", "{}")));
+	menu.addSeparator();
+
+	const current = view.plugin.settings.columnSortModes[folder.path];
+	const setMode = (mode: SortMode | null) => {
+		const rest = { ...view.plugin.settings.columnSortModes };
+		if (mode === null) delete rest[folder.path];
+		else rest[folder.path] = mode;
+		view.plugin.settings.columnSortModes = rest;
+		void view.plugin.saveSettings();
+		view.render();
+	};
+	menu.addItem(i => i.setTitle(t("sortDefault")).setChecked(current === undefined)
+		.onClick(() => setMode(null)));
+	for (const mode of SORT_MODES) {
+		menu.addItem(i => i.setTitle(sortLabel(mode)).setChecked(current === mode)
+			.onClick(() => setMode(mode)));
+	}
 	menu.showAtMouseEvent(e);
 }
 
@@ -149,13 +223,8 @@ export function showFolderBackgroundMenu(view: ColumnExplorerView, e: MouseEvent
 
 export function showSortMenu(view: ColumnExplorerView, e: MouseEvent) {
 	const menu = new Menu();
-	const modes = ["name-asc", "name-desc", "mtime-desc", "mtime-asc"] as const;
-	const labels: Record<(typeof modes)[number], string> = {
-		"name-asc": t("sortNameAsc"), "name-desc": t("sortNameDesc"),
-		"mtime-desc": t("sortMtimeDesc"), "mtime-asc": t("sortMtimeAsc"),
-	};
-	for (const m of modes) {
-		menu.addItem(i => i.setTitle(labels[m]).setChecked(view.plugin.settings.sortMode === m)
+	for (const m of SORT_MODES) {
+		menu.addItem(i => i.setTitle(sortLabel(m)).setChecked(view.plugin.settings.sortMode === m)
 			.onClick(async () => {
 				view.plugin.settings.sortMode = m;
 				await view.plugin.saveSettings();

@@ -29,6 +29,14 @@ export function visibleChildren(folder: TFolder, s: ColumnExplorerSettings): TAb
 	return pinnedFirst(sortChildren(children, s, mode), (c) => s.pinnedPaths[c.path]);
 }
 
+/** The folder note (a note named like its folder, inside it), or null. */
+export function folderNoteOf(folder: TFolder): TFile | null {
+	const note = folder.children.find(
+		(c) => c instanceof TFile && c.extension === "md" && c.basename === folder.name
+	);
+	return note instanceof TFile ? note : null;
+}
+
 export function displayName(f: TAbstractFile): string {
 	if (f instanceof TFile && f.extension === "md") return f.basename;
 	return f.name;

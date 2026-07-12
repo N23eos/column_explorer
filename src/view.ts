@@ -13,7 +13,7 @@ import {
 } from "obsidian";
 import { t } from "./i18n";
 import { prunePathKeys, remapPathKeys } from "./pure";
-import { displayName, visibleChildren } from "./utils";
+import { displayName, folderNoteOf, visibleChildren } from "./utils";
 import { renderColumn, renderColumnList } from "./column";
 import { renderPreviewColumn } from "./preview";
 import { showSortMenu } from "./menus";
@@ -351,6 +351,9 @@ export class ColumnExplorerView extends ItemView {
 		this.shiftAnchor = f.path;
 		if (f instanceof TFile) {
 			void this.app.workspace.getLeaf(Keymap.isModEvent(e)).openFile(f);
+		} else if (f instanceof TFolder && this.plugin.settings.openFolderNote) {
+			const note = folderNoteOf(f);
+			if (note) void this.app.workspace.getLeaf(Keymap.isModEvent(e)).openFile(note);
 		}
 		this.persistState();
 		this.render();

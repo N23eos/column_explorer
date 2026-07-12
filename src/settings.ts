@@ -89,6 +89,9 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 		new Setting(containerEl).setName(t("setAutoReveal")).setDesc(t("setAutoRevealDesc"))
 			.addToggle(tg => tg.setValue(s.autoReveal).onChange(async (v) => { s.autoReveal = v; await save(); }));
 
+		new Setting(containerEl).setName(t("setFolderNote")).setDesc(t("setFolderNoteDesc"))
+			.addToggle(tg => tg.setValue(s.openFolderNote).onChange(async (v) => { s.openFolderNote = v; await save(); }));
+
 		new Setting(containerEl).setName(t("setConfirmDelete")).setDesc(t("setConfirmDeleteDesc"))
 			.addToggle(tg => tg.setValue(s.confirmDelete).onChange(async (v) => { s.confirmDelete = v; await save(); }));
 
