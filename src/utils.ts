@@ -2,14 +2,14 @@ import { TAbstractFile, TFile, TFolder } from "obsidian";
 import { matchesExcludePatterns, naturalCompare, parseExcludePatterns, pinnedFirst } from "./pure";
 import type { ColumnExplorerSettings } from "./settings";
 
-export function sortChildren(children: TAbstractFile[], s: ColumnExplorerSettings): TAbstractFile[] {
+export function sortChildren(children: TAbstractFile[], s: ColumnExplorerSettings, mode = s.sortMode): TAbstractFile[] {
 	const mtime = (f: TAbstractFile) => (f instanceof TFile ? f.stat.mtime : 0);
 	return [...children].sort((a, b) => {
 		if (s.foldersFirst) {
 			const aF = a instanceof TFolder, bF = b instanceof TFolder;
 			if (aF !== bF) return aF ? -1 : 1;
 		}
-		switch (s.sortMode) {
+		switch (mode) {
 			case "name-desc": return naturalCompare(b.name, a.name);
 			case "mtime-desc": return mtime(b) - mtime(a) || naturalCompare(a.name, b.name);
 			case "mtime-asc": return mtime(a) - mtime(b) || naturalCompare(a.name, b.name);
@@ -25,7 +25,16 @@ export function visibleChildren(folder: TFolder, s: ColumnExplorerSettings): TAb
 	if (patterns.length > 0) {
 		children = children.filter((c) => !matchesExcludePatterns(c.path, patterns));
 	}
-	return pinnedFirst(sortChildren(children, s), (c) => !!s.pinnedPaths[c.path]);
+	const mode = s.columnSortModes[folder.path] ?? s.sortMode;
+	return pinnedFirst(sortChildren(children, s, mode), (c) => s.pinnedPaths[c.path]);
+}
+
+/** The folder note (a note named like its folder, inside it), or null. */
+export function folderNoteOf(folder: TFolder): TFile | null {
+	const note = folder.children.find(
+		(c) => c instanceof TFile && c.extension === "md" && c.basename === folder.name
+	);
+	return note instanceof TFile ? note : null;
 }
 
 export function displayName(f: TAbstractFile): string {

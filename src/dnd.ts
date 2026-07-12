@@ -1,5 +1,6 @@
 import { App, TFile, TFolder } from "obsidian";
 import { moveFiles } from "./fileops";
+import { movePinnedBefore } from "./pure";
 import type { ColumnExplorerView } from "./view";
 
 interface DragManagerLike {
@@ -84,6 +85,25 @@ export function setupColumnDnd(view: ColumnExplorerView, listEl: HTMLElement, co
 		} catch {
 			paths = [raw];
 		}
+		if (paths.length === 1 && reorderPinned(view, paths[0], itemUnderEvent(listEl, e))) return;
 		void moveFiles(app, paths, dropFolder).then(() => view.clearMulti());
 	});
+}
+
+/**
+ * Dropping a pinned item onto another pinned item of the same folder
+ * reorders the pins instead of moving files. Returns true when handled.
+ */
+function reorderPinned(view: ColumnExplorerView, dragPath: string, targetItem: HTMLElement | null): boolean {
+	const targetPath = targetItem?.dataset.path;
+	if (!targetPath || targetPath === dragPath) return false;
+	const s = view.plugin.settings;
+	if (s.pinnedPaths[dragPath] === undefined || s.pinnedPaths[targetPath] === undefined) return false;
+	const drag = view.app.vault.getAbstractFileByPath(dragPath);
+	const target = view.app.vault.getAbstractFileByPath(targetPath);
+	if (!drag || !target || drag.parent?.path !== target.parent?.path) return false;
+	s.pinnedPaths = movePinnedBefore(s.pinnedPaths, dragPath, targetPath);
+	void view.plugin.saveSettings();
+	view.render();
+	return true;
 }

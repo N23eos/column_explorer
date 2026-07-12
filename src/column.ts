@@ -1,8 +1,8 @@
 import { TAbstractFile, TFile, TFolder, setIcon } from "obsidian";
 import { t } from "./i18n";
-import { displayName, iconFor } from "./utils";
+import { displayName, folderNoteOf, iconFor, isImageFile } from "./utils";
 import { setupColumnDnd } from "./dnd";
-import { showFileMenu, showFolderBackgroundMenu } from "./menus";
+import { showColumnHeaderMenu, showFileMenu, showFolderBackgroundMenu } from "./menus";
 import { MAX_COLUMN_WIDTH, MIN_COLUMN_WIDTH } from "./settings";
 import type { ColumnExplorerView } from "./view";
 
@@ -18,6 +18,11 @@ export function renderColumn(view: ColumnExplorerView, container: HTMLElement, f
 
 	const header = col.createDiv({ cls: "column-explorer-column-header" });
 	header.createSpan({ cls: "column-explorer-column-title", text: folder.isRoot() ? view.app.vault.getName() : folder.name });
+	header.createSpan({ cls: "column-explorer-column-count" });
+	header.addEventListener("contextmenu", (e) => {
+		e.preventDefault();
+		showColumnHeaderMenu(view, e, folder);
+	});
 
 	const viewMode = view.plugin.settings.columnViewModes[folder.path] ?? "list";
 	const toggle = header.createDiv({
@@ -88,17 +93,21 @@ export function renderColumnList(view: ColumnExplorerView, list: HTMLElement, fo
 	list.empty();
 	const children = view.childrenOf(folder);
 
+	const countEl = list.closest(".column-explorer-column")?.querySelector(".column-explorer-column-count");
+	countEl?.setText(String(children.length));
+
 	if (children.length === 0) {
 		list.createDiv({ cls: "column-explorer-empty", text: view.hasFilter() ? t("noResults") : t("empty") });
 		return;
 	}
 
+	const isGrid = (view.plugin.settings.columnViewModes[folder.path] ?? "list") === "grid";
 	const frag = createFragment();
-	for (const child of children) frag.appendChild(buildItem(view, child, depth));
+	for (const child of children) frag.appendChild(buildItem(view, child, depth, isGrid));
 	list.appendChild(frag);
 }
 
-function buildItem(view: ColumnExplorerView, f: TAbstractFile, depth: number): HTMLElement {
+function buildItem(view: ColumnExplorerView, f: TAbstractFile, depth: number, isGrid = false): HTMLElement {
 	const item = createDiv({ cls: "column-explorer-item", attr: { role: "option" } });
 	item.dataset.path = f.path;
 	item.draggable = true;
@@ -118,14 +127,24 @@ function buildItem(view: ColumnExplorerView, f: TAbstractFile, depth: number): H
 			item.addClass("has-folder-color");
 			item.style.setProperty("--ce-folder-color", `var(--color-${colorKey})`);
 		}
+		if (folderNoteOf(f)) item.addClass("has-folder-note");
 	}
 
 	const iconEl = item.createDiv({ cls: "column-explorer-item-icon" });
-	setIcon(iconEl, iconFor(f));
+	if (isGrid && f instanceof TFile && isImageFile(f)) {
+		item.addClass("has-thumbnail");
+		iconEl.createEl("img", {
+			cls: "column-explorer-thumb",
+			attr: { src: view.app.vault.getResourcePath(f), loading: "lazy", alt: displayName(f) },
+		});
+	} else {
+		const customIcon = f instanceof TFolder ? view.plugin.settings.folderIcons[f.path] : undefined;
+		setIcon(iconEl, customIcon ?? iconFor(f));
+	}
 
 	item.createDiv({ cls: "column-explorer-item-title", text: displayName(f) });
 
-	if (view.plugin.settings.pinnedPaths[f.path]) {
+	if (view.plugin.settings.pinnedPaths[f.path] !== undefined) {
 		const pin = item.createDiv({ cls: "column-explorer-item-pin" });
 		setIcon(pin, "pin");
 	}

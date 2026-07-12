@@ -74,11 +74,28 @@ function prunePathKeys(record, deletedPath) {
   }
   return result;
 }
-function pinnedFirst(items, isPinned) {
+function pinnedFirst(items, orderOf) {
   const pinned = [];
   const rest = [];
-  for (const item of items) (isPinned(item) ? pinned : rest).push(item);
-  return [...pinned, ...rest];
+  for (const item of items) {
+    const order = orderOf(item);
+    if (order === void 0) rest.push(item);
+    else pinned.push({ item, order });
+  }
+  pinned.sort((a, b) => a.order - b.order);
+  return [...pinned.map((p) => p.item), ...rest];
+}
+function movePinnedBefore(pinned, dragPath, targetPath) {
+  if (pinned[dragPath] === void 0 || pinned[targetPath] === void 0 || dragPath === targetPath) {
+    return { ...pinned };
+  }
+  const ordered = Object.keys(pinned).sort((a, b) => pinned[a] - pinned[b]).filter((p) => p !== dragPath);
+  ordered.splice(ordered.indexOf(targetPath), 0, dragPath);
+  const result = {};
+  ordered.forEach((path, i) => {
+    result[path] = i;
+  });
+  return result;
 }
 function matchesExcludePatterns(path, patterns) {
   var _a;
@@ -169,7 +186,16 @@ var STRINGS = {
     viewAsGrid: "View as icons",
     pin: "Pin to top",
     unpin: "Unpin",
-    newCanvas: "New canvas"
+    newCanvas: "New canvas",
+    copyMdLink: "Copy Markdown link",
+    copyObsidianUrl: "Copy Obsidian URL",
+    linkCopied: "Link copied",
+    sortDefault: "Default sort",
+    folderIcon: "Folder icon\u2026",
+    folderIconReset: "Reset folder icon",
+    iconPlaceholder: "Choose an icon\u2026",
+    setFolderNote: "Open folder notes",
+    setFolderNoteDesc: "Selecting a folder also opens the note with the same name inside it, when one exists."
   },
   ru: {
     newNote: "\u041D\u043E\u0432\u0430\u044F \u0437\u0430\u043C\u0435\u0442\u043A\u0430",
@@ -242,7 +268,16 @@ var STRINGS = {
     viewAsGrid: "\u0412\u0438\u0434: \u0437\u043D\u0430\u0447\u043A\u0438",
     pin: "\u0417\u0430\u043A\u0440\u0435\u043F\u0438\u0442\u044C \u0441\u0432\u0435\u0440\u0445\u0443",
     unpin: "\u041E\u0442\u043A\u0440\u0435\u043F\u0438\u0442\u044C",
-    newCanvas: "\u041D\u043E\u0432\u044B\u0439 \u0445\u043E\u043B\u0441\u0442"
+    newCanvas: "\u041D\u043E\u0432\u044B\u0439 \u0445\u043E\u043B\u0441\u0442",
+    copyMdLink: "\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C markdown-\u0441\u0441\u044B\u043B\u043A\u0443",
+    copyObsidianUrl: "\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C Obsidian URL",
+    linkCopied: "\u0421\u0441\u044B\u043B\u043A\u0430 \u0441\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u043D\u0430",
+    sortDefault: "\u0421\u043E\u0440\u0442\u0438\u0440\u043E\u0432\u043A\u0430 \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E",
+    folderIcon: "\u0418\u043A\u043E\u043D\u043A\u0430 \u043F\u0430\u043F\u043A\u0438\u2026",
+    folderIconReset: "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443 \u043F\u0430\u043F\u043A\u0438",
+    iconPlaceholder: "\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0438\u043A\u043E\u043D\u043A\u0443\u2026",
+    setFolderNote: "\u041E\u0442\u043A\u0440\u044B\u0432\u0430\u0442\u044C \u0437\u0430\u043C\u0435\u0442\u043A\u0438 \u043F\u0430\u043F\u043E\u043A",
+    setFolderNoteDesc: "\u0412\u044B\u0431\u043E\u0440 \u043F\u0430\u043F\u043A\u0438 \u0442\u0430\u043A\u0436\u0435 \u043E\u0442\u043A\u0440\u044B\u0432\u0430\u0435\u0442 \u0437\u0430\u043C\u0435\u0442\u043A\u0443 \u0441 \u0435\u0451 \u0438\u043C\u0435\u043D\u0435\u043C \u0432\u043D\u0443\u0442\u0440\u0438, \u0435\u0441\u043B\u0438 \u043E\u043D\u0430 \u0435\u0441\u0442\u044C."
   }
 };
 function t(key, vars) {
@@ -267,7 +302,10 @@ var DEFAULT_SETTINGS = {
   excludePatterns: "",
   folderColors: {},
   columnViewModes: {},
-  pinnedPaths: {}
+  pinnedPaths: {},
+  columnSortModes: {},
+  folderIcons: {},
+  openFolderNote: false
 };
 var MIN_COLUMN_WIDTH = 140;
 var MAX_COLUMN_WIDTH = 500;
@@ -275,6 +313,47 @@ var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
     this.plugin = plugin;
+  }
+  /**
+   * Declarative settings (Obsidian 1.13+): powers the settings search.
+   * Older versions fall back to display() below.
+   */
+  getSettingDefinitions() {
+    return [
+      {
+        name: t("setSort"),
+        control: {
+          type: "dropdown",
+          key: "sortMode",
+          options: {
+            "name-asc": t("sortNameAsc"),
+            "name-desc": t("sortNameDesc"),
+            "mtime-desc": t("sortMtimeDesc"),
+            "mtime-asc": t("sortMtimeAsc")
+          }
+        }
+      },
+      { name: t("setFoldersFirst"), desc: t("setFoldersFirstDesc"), control: { type: "toggle", key: "foldersFirst" } },
+      { name: t("setShowExt"), desc: t("setShowExtDesc"), control: { type: "toggle", key: "showExtensions" } },
+      { name: t("setPreview"), desc: t("setPreviewDesc"), control: { type: "toggle", key: "showPreview" } },
+      { name: t("setMdPreview"), desc: t("setMdPreviewDesc"), control: { type: "toggle", key: "showMarkdownPreview" } },
+      { name: t("setAutoReveal"), desc: t("setAutoRevealDesc"), control: { type: "toggle", key: "autoReveal" } },
+      { name: t("setFolderNote"), desc: t("setFolderNoteDesc"), control: { type: "toggle", key: "openFolderNote" } },
+      { name: t("setConfirmDelete"), desc: t("setConfirmDeleteDesc"), control: { type: "toggle", key: "confirmDelete" } },
+      {
+        name: t("setColWidth"),
+        desc: t("setColWidthDesc"),
+        control: { type: "slider", key: "columnWidth", min: MIN_COLUMN_WIDTH, max: MAX_COLUMN_WIDTH, step: 10 }
+      },
+      { name: t("setExclude"), desc: t("setExcludeDesc"), control: { type: "text", key: "excludePatterns" } }
+    ];
+  }
+  /** Self-contained override — avoids calling the 1.13-only base implementation. */
+  async setControlValue(key, value) {
+    var _a;
+    this.plugin.settings[key] = value;
+    await this.plugin.saveSettings();
+    (_a = this.plugin.getView()) == null ? void 0 : _a.render();
   }
   display() {
     const { containerEl } = this;
@@ -309,6 +388,10 @@ var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
       s.autoReveal = v;
       await save();
     }));
+    new import_obsidian2.Setting(containerEl).setName(t("setFolderNote")).setDesc(t("setFolderNoteDesc")).addToggle((tg) => tg.setValue(s.openFolderNote).onChange(async (v) => {
+      s.openFolderNote = v;
+      await save();
+    }));
     new import_obsidian2.Setting(containerEl).setName(t("setConfirmDelete")).setDesc(t("setConfirmDeleteDesc")).addToggle((tg) => tg.setValue(s.confirmDelete).onChange(async (v) => {
       s.confirmDelete = v;
       await save();
@@ -329,14 +412,14 @@ var import_obsidian10 = require("obsidian");
 
 // src/utils.ts
 var import_obsidian3 = require("obsidian");
-function sortChildren(children, s) {
+function sortChildren(children, s, mode = s.sortMode) {
   const mtime = (f) => f instanceof import_obsidian3.TFile ? f.stat.mtime : 0;
   return [...children].sort((a, b) => {
     if (s.foldersFirst) {
       const aF = a instanceof import_obsidian3.TFolder, bF = b instanceof import_obsidian3.TFolder;
       if (aF !== bF) return aF ? -1 : 1;
     }
-    switch (s.sortMode) {
+    switch (mode) {
       case "name-desc":
         return naturalCompare(b.name, a.name);
       case "mtime-desc":
@@ -349,12 +432,20 @@ function sortChildren(children, s) {
   });
 }
 function visibleChildren(folder, s) {
+  var _a;
   const patterns = parseExcludePatterns(s.excludePatterns);
   let children = folder.children;
   if (patterns.length > 0) {
     children = children.filter((c) => !matchesExcludePatterns(c.path, patterns));
   }
-  return pinnedFirst(sortChildren(children, s), (c) => !!s.pinnedPaths[c.path]);
+  const mode = (_a = s.columnSortModes[folder.path]) != null ? _a : s.sortMode;
+  return pinnedFirst(sortChildren(children, s, mode), (c) => s.pinnedPaths[c.path]);
+}
+function folderNoteOf(folder) {
+  const note = folder.children.find(
+    (c) => c instanceof import_obsidian3.TFile && c.extension === "md" && c.basename === folder.name
+  );
+  return note instanceof import_obsidian3.TFile ? note : null;
 }
 function displayName(f) {
   if (f instanceof import_obsidian3.TFile && f.extension === "md") return f.basename;
@@ -506,8 +597,23 @@ function setupColumnDnd(view, listEl, columnFolder, depth) {
     } catch (e2) {
       paths = [raw];
     }
+    if (paths.length === 1 && reorderPinned(view, paths[0], itemUnderEvent(listEl, e))) return;
     void moveFiles(app, paths, dropFolder).then(() => view.clearMulti());
   });
+}
+function reorderPinned(view, dragPath, targetItem) {
+  var _a, _b;
+  const targetPath = targetItem == null ? void 0 : targetItem.dataset.path;
+  if (!targetPath || targetPath === dragPath) return false;
+  const s = view.plugin.settings;
+  if (s.pinnedPaths[dragPath] === void 0 || s.pinnedPaths[targetPath] === void 0) return false;
+  const drag = view.app.vault.getAbstractFileByPath(dragPath);
+  const target = view.app.vault.getAbstractFileByPath(targetPath);
+  if (!drag || !target || ((_a = drag.parent) == null ? void 0 : _a.path) !== ((_b = target.parent) == null ? void 0 : _b.path)) return false;
+  s.pinnedPaths = movePinnedBefore(s.pinnedPaths, dragPath, targetPath);
+  void view.plugin.saveSettings();
+  view.render();
+  return true;
 }
 
 // src/menus.ts
@@ -563,8 +669,43 @@ var FolderSuggestModal = class extends import_obsidian6.FuzzySuggestModal {
     this.onChoose(folder);
   }
 };
+var IconSuggestModal = class extends import_obsidian6.FuzzySuggestModal {
+  constructor(app, onChoose) {
+    super(app);
+    this.onChoose = onChoose;
+    this.setPlaceholder(t("iconPlaceholder"));
+  }
+  getItems() {
+    return (0, import_obsidian6.getIconIds)();
+  }
+  getItemText(icon) {
+    return icon;
+  }
+  renderSuggestion(match, el) {
+    el.addClass("column-explorer-icon-suggestion");
+    const preview = el.createSpan({ cls: "column-explorer-icon-suggestion-preview" });
+    (0, import_obsidian6.setIcon)(preview, match.item);
+    el.createSpan({ text: match.item });
+  }
+  onChooseItem(icon) {
+    this.onChoose(icon);
+  }
+};
 
 // src/menus.ts
+var SORT_MODES = ["name-asc", "name-desc", "mtime-desc", "mtime-asc"];
+function sortLabel(mode) {
+  const keys = {
+    "name-asc": "sortNameAsc",
+    "name-desc": "sortNameDesc",
+    "mtime-desc": "sortMtimeDesc",
+    "mtime-asc": "sortMtimeAsc"
+  };
+  return t(keys[mode]);
+}
+function copyToClipboard(text, notice) {
+  void navigator.clipboard.writeText(text).then(() => new import_obsidian7.Notice(notice));
+}
 function colorMenuTitle(colorKey, label) {
   return createFragment((frag) => {
     const dot = frag.createSpan({ cls: "column-explorer-color-dot" });
@@ -630,6 +771,7 @@ function showFileMenu(view, e, f, depth) {
     menu.addItem((i) => i.setTitle(t("newNote")).setIcon("file-plus").onClick(() => view.createNote(f)));
     menu.addItem((i) => i.setTitle(t("newFolder")).setIcon("folder-plus").onClick(() => view.createFolder(f)));
     addFolderColorMenu(view, menu, f);
+    addFolderIconItems(view, menu, f);
     menu.addSeparator();
   }
   if (f instanceof import_obsidian7.TFile) {
@@ -638,11 +780,15 @@ function showFileMenu(view, e, f, depth) {
     menu.addSeparator();
     menu.addItem((i) => i.setTitle(t("duplicate")).setIcon("copy").onClick(() => duplicateFile(app, f)));
   }
-  const isPinned = !!view.plugin.settings.pinnedPaths[f.path];
+  const isPinned = view.plugin.settings.pinnedPaths[f.path] !== void 0;
   menu.addItem((i) => i.setTitle(isPinned ? t("unpin") : t("pin")).setIcon(isPinned ? "pin-off" : "pin").onClick(async () => {
     const pinned = { ...view.plugin.settings.pinnedPaths };
-    if (isPinned) delete pinned[f.path];
-    else pinned[f.path] = true;
+    if (isPinned) {
+      delete pinned[f.path];
+    } else {
+      const orders = Object.values(pinned);
+      pinned[f.path] = orders.length > 0 ? Math.max(...orders) + 1 : 0;
+    }
     view.plugin.settings.pinnedPaths = pinned;
     await view.plugin.saveSettings();
     view.render();
@@ -651,10 +797,55 @@ function showFileMenu(view, e, f, depth) {
   menu.addItem((i) => i.setTitle(t("rename")).setIcon("pencil").onClick(() => view.startRename(f)));
   menu.addItem((i) => i.setTitle(t("delete")).setIcon("trash").onClick(() => view.deleteMany([f.path])));
   menu.addSeparator();
-  menu.addItem((i) => i.setTitle(t("copyPath")).setIcon("clipboard-copy").onClick(() => {
-    void navigator.clipboard.writeText(f.path).then(() => new import_obsidian7.Notice(t("pathCopied")));
-  }));
+  menu.addItem((i) => i.setTitle(t("copyPath")).setIcon("clipboard-copy").onClick(() => copyToClipboard(f.path, t("pathCopied"))));
+  if (f instanceof import_obsidian7.TFile) {
+    menu.addItem((i) => i.setTitle(t("copyMdLink")).setIcon("link").onClick(() => copyToClipboard(app.fileManager.generateMarkdownLink(f, ""), t("linkCopied"))));
+    menu.addItem((i) => i.setTitle(t("copyObsidianUrl")).setIcon("external-link").onClick(() => {
+      const url = "obsidian://open?vault=" + encodeURIComponent(app.vault.getName()) + "&file=" + encodeURIComponent(f.path);
+      copyToClipboard(url, t("linkCopied"));
+    }));
+  }
   app.workspace.trigger("file-menu", menu, f, "file-explorer-context-menu", view.leaf);
+  menu.showAtMouseEvent(e);
+}
+function addFolderIconItems(view, menu, folder) {
+  menu.addItem((i) => i.setTitle(t("folderIcon")).setIcon("shapes").onClick(() => new IconSuggestModal(view.app, (icon) => {
+    view.plugin.settings.folderIcons = {
+      ...view.plugin.settings.folderIcons,
+      [folder.path]: icon
+    };
+    void view.plugin.saveSettings();
+    view.render();
+  }).open()));
+  if (view.plugin.settings.folderIcons[folder.path]) {
+    menu.addItem((i) => i.setTitle(t("folderIconReset")).setIcon("shapes").onClick(() => {
+      const rest = { ...view.plugin.settings.folderIcons };
+      delete rest[folder.path];
+      view.plugin.settings.folderIcons = rest;
+      void view.plugin.saveSettings();
+      view.render();
+    }));
+  }
+}
+function showColumnHeaderMenu(view, e, folder) {
+  const menu = new import_obsidian7.Menu();
+  menu.addItem((i) => i.setTitle(t("newNote")).setIcon("file-plus").onClick(() => void view.createNote(folder)));
+  menu.addItem((i) => i.setTitle(t("newFolder")).setIcon("folder-plus").onClick(() => void view.createFolder(folder)));
+  menu.addItem((i) => i.setTitle(t("newCanvas")).setIcon("layout-dashboard").onClick(() => void view.createNote(folder, "canvas", "{}")));
+  menu.addSeparator();
+  const current = view.plugin.settings.columnSortModes[folder.path];
+  const setMode = (mode) => {
+    const rest = { ...view.plugin.settings.columnSortModes };
+    if (mode === null) delete rest[folder.path];
+    else rest[folder.path] = mode;
+    view.plugin.settings.columnSortModes = rest;
+    void view.plugin.saveSettings();
+    view.render();
+  };
+  menu.addItem((i) => i.setTitle(t("sortDefault")).setChecked(current === void 0).onClick(() => setMode(null)));
+  for (const mode of SORT_MODES) {
+    menu.addItem((i) => i.setTitle(sortLabel(mode)).setChecked(current === mode).onClick(() => setMode(mode)));
+  }
   menu.showAtMouseEvent(e);
 }
 function showFolderBackgroundMenu(view, e, folder) {
@@ -666,15 +857,8 @@ function showFolderBackgroundMenu(view, e, folder) {
 }
 function showSortMenu(view, e) {
   const menu = new import_obsidian7.Menu();
-  const modes = ["name-asc", "name-desc", "mtime-desc", "mtime-asc"];
-  const labels = {
-    "name-asc": t("sortNameAsc"),
-    "name-desc": t("sortNameDesc"),
-    "mtime-desc": t("sortMtimeDesc"),
-    "mtime-asc": t("sortMtimeAsc")
-  };
-  for (const m of modes) {
-    menu.addItem((i) => i.setTitle(labels[m]).setChecked(view.plugin.settings.sortMode === m).onClick(async () => {
+  for (const m of SORT_MODES) {
+    menu.addItem((i) => i.setTitle(sortLabel(m)).setChecked(view.plugin.settings.sortMode === m).onClick(async () => {
       view.plugin.settings.sortMode = m;
       await view.plugin.saveSettings();
       view.render();
@@ -696,6 +880,11 @@ function renderColumn(view, container, folder, depth) {
   col.dataset.folderPath = folder.path;
   const header = col.createDiv({ cls: "column-explorer-column-header" });
   header.createSpan({ cls: "column-explorer-column-title", text: folder.isRoot() ? view.app.vault.getName() : folder.name });
+  header.createSpan({ cls: "column-explorer-column-count" });
+  header.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    showColumnHeaderMenu(view, e, folder);
+  });
   const viewMode = (_a = view.plugin.settings.columnViewModes[folder.path]) != null ? _a : "list";
   const toggle = header.createDiv({
     cls: "clickable-icon column-explorer-view-toggle",
@@ -761,17 +950,21 @@ function renderColumn(view, container, folder, depth) {
   return col;
 }
 function renderColumnList(view, list, folder, depth) {
+  var _a, _b;
   list.empty();
   const children = view.childrenOf(folder);
+  const countEl = (_a = list.closest(".column-explorer-column")) == null ? void 0 : _a.querySelector(".column-explorer-column-count");
+  countEl == null ? void 0 : countEl.setText(String(children.length));
   if (children.length === 0) {
     list.createDiv({ cls: "column-explorer-empty", text: view.hasFilter() ? t("noResults") : t("empty") });
     return;
   }
+  const isGrid = ((_b = view.plugin.settings.columnViewModes[folder.path]) != null ? _b : "list") === "grid";
   const frag = createFragment();
-  for (const child of children) frag.appendChild(buildItem(view, child, depth));
+  for (const child of children) frag.appendChild(buildItem(view, child, depth, isGrid));
   list.appendChild(frag);
 }
-function buildItem(view, f, depth) {
+function buildItem(view, f, depth, isGrid = false) {
   const item = createDiv({ cls: "column-explorer-item", attr: { role: "option" } });
   item.dataset.path = f.path;
   item.draggable = true;
@@ -788,11 +981,21 @@ function buildItem(view, f, depth) {
       item.addClass("has-folder-color");
       item.style.setProperty("--ce-folder-color", `var(--color-${colorKey})`);
     }
+    if (folderNoteOf(f)) item.addClass("has-folder-note");
   }
   const iconEl = item.createDiv({ cls: "column-explorer-item-icon" });
-  (0, import_obsidian8.setIcon)(iconEl, iconFor(f));
+  if (isGrid && f instanceof import_obsidian8.TFile && isImageFile(f)) {
+    item.addClass("has-thumbnail");
+    iconEl.createEl("img", {
+      cls: "column-explorer-thumb",
+      attr: { src: view.app.vault.getResourcePath(f), loading: "lazy", alt: displayName(f) }
+    });
+  } else {
+    const customIcon = f instanceof import_obsidian8.TFolder ? view.plugin.settings.folderIcons[f.path] : void 0;
+    (0, import_obsidian8.setIcon)(iconEl, customIcon != null ? customIcon : iconFor(f));
+  }
   item.createDiv({ cls: "column-explorer-item-title", text: displayName(f) });
-  if (view.plugin.settings.pinnedPaths[f.path]) {
+  if (view.plugin.settings.pinnedPaths[f.path] !== void 0) {
     const pin = item.createDiv({ cls: "column-explorer-item-pin" });
     (0, import_obsidian8.setIcon)(pin, "pin");
   }
@@ -828,13 +1031,12 @@ function addResizeHandle(view, col) {
 // src/preview.ts
 var import_obsidian9 = require("obsidian");
 var MARKDOWN_PREVIEW_CHARS = 1e3;
+var AUDIO_EXTENSIONS = ["mp3", "wav", "ogg", "flac", "m4a"];
+var VIDEO_EXTENSIONS = ["mp4", "mov", "webm", "ogv"];
 function renderPreviewColumn(view, container, file) {
   const col = container.createDiv({ cls: "column-explorer-column column-explorer-preview" });
   const inner = col.createDiv({ cls: "column-explorer-preview-inner" });
-  if (isImageFile(file)) {
-    const img = inner.createEl("img", { cls: "column-explorer-preview-image" });
-    img.src = view.app.vault.getResourcePath(file);
-  } else {
+  if (!renderMediaPreview(view, inner, file)) {
     const big = inner.createDiv({ cls: "column-explorer-preview-icon" });
     (0, import_obsidian9.setIcon)(big, iconFor(file));
   }
@@ -850,6 +1052,26 @@ function renderPreviewColumn(view, container, file) {
   if (file.extension === "md" && view.plugin.settings.showMarkdownPreview) {
     void renderMarkdownSnippet(view, inner, file);
   }
+}
+function renderMediaPreview(view, inner, file) {
+  const src = view.app.vault.getResourcePath(file);
+  if (isImageFile(file)) {
+    inner.createEl("img", { cls: "column-explorer-preview-image", attr: { src } });
+    return true;
+  }
+  if (AUDIO_EXTENSIONS.includes(file.extension)) {
+    inner.createEl("audio", { cls: "column-explorer-preview-audio", attr: { src, controls: "" } });
+    return true;
+  }
+  if (VIDEO_EXTENSIONS.includes(file.extension)) {
+    inner.createEl("video", { cls: "column-explorer-preview-video", attr: { src, controls: "" } });
+    return true;
+  }
+  if (file.extension === "pdf" && import_obsidian9.Platform.isDesktopApp) {
+    inner.createEl("iframe", { cls: "column-explorer-preview-pdf", attr: { src } });
+    return true;
+  }
+  return false;
 }
 async function renderMarkdownSnippet(view, inner, file) {
   try {
@@ -1017,6 +1239,8 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     s.folderColors = remapPathKeys(s.folderColors, oldPath, newPath);
     s.columnViewModes = remapPathKeys(s.columnViewModes, oldPath, newPath);
     s.pinnedPaths = remapPathKeys(s.pinnedPaths, oldPath, newPath);
+    s.columnSortModes = remapPathKeys(s.columnSortModes, oldPath, newPath);
+    s.folderIcons = remapPathKeys(s.folderIcons, oldPath, newPath);
     void this.plugin.saveSettings();
   }
   prunePathRecords(deletedPath) {
@@ -1024,6 +1248,8 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     s.folderColors = prunePathKeys(s.folderColors, deletedPath);
     s.columnViewModes = prunePathKeys(s.columnViewModes, deletedPath);
     s.pinnedPaths = prunePathKeys(s.pinnedPaths, deletedPath);
+    s.columnSortModes = prunePathKeys(s.columnSortModes, deletedPath);
+    s.folderIcons = prunePathKeys(s.folderIcons, deletedPath);
     void this.plugin.saveSettings();
   }
   /* ------------------------------ render --------------------------- */
@@ -1156,6 +1382,9 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     this.shiftAnchor = f.path;
     if (f instanceof import_obsidian10.TFile) {
       void this.app.workspace.getLeaf(import_obsidian10.Keymap.isModEvent(e)).openFile(f);
+    } else if (f instanceof import_obsidian10.TFolder && this.plugin.settings.openFolderNote) {
+      const note = folderNoteOf(f);
+      if (note) void this.app.workspace.getLeaf(import_obsidian10.Keymap.isModEvent(e)).openFile(note);
     }
     this.persistState();
     this.render();
@@ -1409,6 +1638,19 @@ var ColumnExplorerPlugin = class extends import_obsidian11.Plugin {
   async loadSettings() {
     const data = await this.loadData();
     this.settings = Object.assign({}, DEFAULT_SETTINGS, data != null ? data : {});
+    this.migratePinnedPaths();
+  }
+  /** v1.3.x stored pins as `true`; convert to numeric order once. */
+  migratePinnedPaths() {
+    const raw = this.settings.pinnedPaths;
+    let order = 0;
+    const migrated = {};
+    for (const path of Object.keys(raw)) {
+      const value = raw[path];
+      migrated[path] = typeof value === "number" ? value : order;
+      order++;
+    }
+    this.settings.pinnedPaths = migrated;
   }
   async saveSettings() {
     await this.saveData(this.settings);

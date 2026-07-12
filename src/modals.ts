@@ -1,4 +1,4 @@
-import { App, FuzzySuggestModal, Modal, TFolder } from "obsidian";
+import { App, FuzzyMatch, FuzzySuggestModal, Modal, TFolder, getIconIds, setIcon } from "obsidian";
 import { t } from "./i18n";
 
 export class ConfirmModal extends Modal {
@@ -44,5 +44,32 @@ export class FolderSuggestModal extends FuzzySuggestModal<TFolder> {
 
 	onChooseItem(folder: TFolder): void {
 		this.onChoose(folder);
+	}
+}
+
+/** Fuzzy icon picker for "Folder icon" — lists all lucide icon ids with a preview. */
+export class IconSuggestModal extends FuzzySuggestModal<string> {
+	constructor(app: App, private onChoose: (icon: string) => void) {
+		super(app);
+		this.setPlaceholder(t("iconPlaceholder"));
+	}
+
+	getItems(): string[] {
+		return getIconIds();
+	}
+
+	getItemText(icon: string): string {
+		return icon;
+	}
+
+	renderSuggestion(match: FuzzyMatch<string>, el: HTMLElement): void {
+		el.addClass("column-explorer-icon-suggestion");
+		const preview = el.createSpan({ cls: "column-explorer-icon-suggestion-preview" });
+		setIcon(preview, match.item);
+		el.createSpan({ text: match.item });
+	}
+
+	onChooseItem(icon: string): void {
+		this.onChoose(icon);
 	}
 }

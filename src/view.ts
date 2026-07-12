@@ -13,7 +13,7 @@ import {
 } from "obsidian";
 import { t } from "./i18n";
 import { prunePathKeys, remapPathKeys } from "./pure";
-import { displayName, visibleChildren } from "./utils";
+import { displayName, folderNoteOf, visibleChildren } from "./utils";
 import { renderColumn, renderColumnList } from "./column";
 import { renderPreviewColumn } from "./preview";
 import { showSortMenu } from "./menus";
@@ -193,6 +193,8 @@ export class ColumnExplorerView extends ItemView {
 		s.folderColors = remapPathKeys(s.folderColors, oldPath, newPath);
 		s.columnViewModes = remapPathKeys(s.columnViewModes, oldPath, newPath);
 		s.pinnedPaths = remapPathKeys(s.pinnedPaths, oldPath, newPath);
+		s.columnSortModes = remapPathKeys(s.columnSortModes, oldPath, newPath);
+		s.folderIcons = remapPathKeys(s.folderIcons, oldPath, newPath);
 		void this.plugin.saveSettings();
 	}
 
@@ -201,6 +203,8 @@ export class ColumnExplorerView extends ItemView {
 		s.folderColors = prunePathKeys(s.folderColors, deletedPath);
 		s.columnViewModes = prunePathKeys(s.columnViewModes, deletedPath);
 		s.pinnedPaths = prunePathKeys(s.pinnedPaths, deletedPath);
+		s.columnSortModes = prunePathKeys(s.columnSortModes, deletedPath);
+		s.folderIcons = prunePathKeys(s.folderIcons, deletedPath);
 		void this.plugin.saveSettings();
 	}
 
@@ -347,6 +351,9 @@ export class ColumnExplorerView extends ItemView {
 		this.shiftAnchor = f.path;
 		if (f instanceof TFile) {
 			void this.app.workspace.getLeaf(Keymap.isModEvent(e)).openFile(f);
+		} else if (f instanceof TFolder && this.plugin.settings.openFolderNote) {
+			const note = folderNoteOf(f);
+			if (note) void this.app.workspace.getLeaf(Keymap.isModEvent(e)).openFile(note);
 		}
 		this.persistState();
 		this.render();

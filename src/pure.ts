@@ -62,12 +62,39 @@ export function prunePathKeys<V>(record: Record<string, V>, deletedPath: string)
 	return result;
 }
 
-/** Stable partition: pinned items first, relative order preserved. Returns a new array. */
-export function pinnedFirst<T>(items: T[], isPinned: (item: T) => boolean): T[] {
-	const pinned: T[] = [];
+/**
+ * Pinned items (with a defined order) first, sorted by that order;
+ * the rest keep their given order. Returns a new array.
+ */
+export function pinnedFirst<T>(items: T[], orderOf: (item: T) => number | undefined): T[] {
+	const pinned: { item: T; order: number }[] = [];
 	const rest: T[] = [];
-	for (const item of items) (isPinned(item) ? pinned : rest).push(item);
-	return [...pinned, ...rest];
+	for (const item of items) {
+		const order = orderOf(item);
+		if (order === undefined) rest.push(item);
+		else pinned.push({ item, order });
+	}
+	pinned.sort((a, b) => a.order - b.order);
+	return [...pinned.map(p => p.item), ...rest];
+}
+
+/**
+ * Reorder pins: place dragPath immediately before targetPath and renumber
+ * all orders from zero. Returns a new record — never mutates.
+ */
+export function movePinnedBefore(
+	pinned: Record<string, number>,
+	dragPath: string,
+	targetPath: string
+): Record<string, number> {
+	if (pinned[dragPath] === undefined || pinned[targetPath] === undefined || dragPath === targetPath) {
+		return { ...pinned };
+	}
+	const ordered = Object.keys(pinned).sort((a, b) => pinned[a] - pinned[b]).filter(p => p !== dragPath);
+	ordered.splice(ordered.indexOf(targetPath), 0, dragPath);
+	const result: Record<string, number> = {};
+	ordered.forEach((path, i) => { result[path] = i; });
+	return result;
 }
 
 /**
