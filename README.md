@@ -13,6 +13,7 @@ Every column can switch between a compact list and an icon grid — the choice i
 ### Navigation
 - **Miller columns** — drill down through folders, each level in its own column
 - **Breadcrumbs** — clickable path bar for quick jumps to any ancestor folder
+- **Folder notes** — optionally open the note named like its folder when selecting the folder
 - **Keyboard navigation** — `↑`/`↓` select, `→`/`←` drill in/out, `Home`/`End`/`PageUp`/`PageDown`, type-ahead (start typing to jump, like in Finder), `Enter` open, `F2` rename, `Delete` trash
 - **Filter** — live search box that filters files in every column
 - **Auto-reveal** — optionally follow the active editor tab
@@ -20,9 +21,11 @@ Every column can switch between a compact list and an icon grid — the choice i
 
 ### Appearance
 - **List or icon view per column** — toggle in the column header, remembered per folder
-- **Folder colors** — right-click a folder → *Folder color*, eight theme-aware presets
-- **Pinned items** — right-click → *Pin to top* keeps important files and folders first
-- **File preview column** — image thumbnails, note content preview, size, dates, open button
+- **Image thumbnails** — the icon view shows real thumbnails for image files
+- **Folder colors & icons** — right-click a folder: eight theme-aware color presets and any lucide icon
+- **Pinned items** — right-click → *Pin to top*; drag one pin onto another to reorder
+- **File preview column** — image, audio, video and PDF previews, note content, size, dates
+- **Item counts** — each column header shows how many items it lists
 - **Resizable columns** — drag the right edge of any column
 - **Localized** — English and Russian UI
 
@@ -31,8 +34,9 @@ Every column can switch between a compact list and an icon grid — the choice i
 - **Multi-select** — `Ctrl`/`Cmd`-click to toggle, `Shift`-click for range; move, duplicate, delete or drag many at once
 - **Drag & drop** — move files/folders between columns or straight onto a folder row; drag a file into an editor to insert a link
 - **Full Obsidian context menu** — core & community plugin items (bookmarks, "Reveal in Finder", copy link, …) are injected via the `file-menu` event
+- **Copy links** — copy a file's Markdown link or `obsidian://` URL from the context menu
 - **Excluded files** — hide files and folders by patterns (`*.tmp`, `archive/`, `.trash`)
-- **Sort options** — name or modified date, ascending/descending, folders-first toggle
+- **Sort options** — global default plus per-folder overrides (right-click a column header)
 
 ## Installation
 
