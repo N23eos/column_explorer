@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import { App, PluginSettingTab, Setting, SettingDefinitionItem } from "obsidian";
 import { t } from "./i18n";
 import type ColumnExplorerPlugin from "./main";
 
@@ -54,6 +54,44 @@ export const MAX_COLUMN_WIDTH = 500;
 export class ColumnExplorerSettingTab extends PluginSettingTab {
 	constructor(app: App, private plugin: ColumnExplorerPlugin) {
 		super(app, plugin);
+	}
+
+	/**
+	 * Declarative settings (Obsidian 1.13+): powers the settings search.
+	 * Older versions fall back to display() below.
+	 */
+	getSettingDefinitions(): SettingDefinitionItem[] {
+		return [
+			{
+				name: t("setSort"),
+				control: {
+					type: "dropdown", key: "sortMode",
+					options: {
+						"name-asc": t("sortNameAsc"), "name-desc": t("sortNameDesc"),
+						"mtime-desc": t("sortMtimeDesc"), "mtime-asc": t("sortMtimeAsc"),
+					},
+				},
+			},
+			{ name: t("setFoldersFirst"), desc: t("setFoldersFirstDesc"), control: { type: "toggle", key: "foldersFirst" } },
+			{ name: t("setShowExt"), desc: t("setShowExtDesc"), control: { type: "toggle", key: "showExtensions" } },
+			{ name: t("setPreview"), desc: t("setPreviewDesc"), control: { type: "toggle", key: "showPreview" } },
+			{ name: t("setMdPreview"), desc: t("setMdPreviewDesc"), control: { type: "toggle", key: "showMarkdownPreview" } },
+			{ name: t("setAutoReveal"), desc: t("setAutoRevealDesc"), control: { type: "toggle", key: "autoReveal" } },
+			{ name: t("setFolderNote"), desc: t("setFolderNoteDesc"), control: { type: "toggle", key: "openFolderNote" } },
+			{ name: t("setConfirmDelete"), desc: t("setConfirmDeleteDesc"), control: { type: "toggle", key: "confirmDelete" } },
+			{
+				name: t("setColWidth"), desc: t("setColWidthDesc"),
+				control: { type: "slider", key: "columnWidth", min: MIN_COLUMN_WIDTH, max: MAX_COLUMN_WIDTH, step: 10 },
+			},
+			{ name: t("setExclude"), desc: t("setExcludeDesc"), control: { type: "text", key: "excludePatterns" } },
+		];
+	}
+
+	/** Self-contained override — avoids calling the 1.13-only base implementation. */
+	async setControlValue(key: string, value: unknown) {
+		(this.plugin.settings as unknown as Record<string, unknown>)[key] = value;
+		await this.plugin.saveSettings();
+		this.plugin.getView()?.render();
 	}
 
 	display() {
