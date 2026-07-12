@@ -21,7 +21,13 @@ export interface ColumnExplorerSettings {
 	excludePatterns: string;
 	folderColors: Record<string, FolderColorKey>;
 	columnViewModes: Record<string, ColumnViewMode>;
-	pinnedPaths: Record<string, true>;
+	/** Pinned paths → pin order (0 = topmost). */
+	pinnedPaths: Record<string, number>;
+	/** Per-folder sort override; folders absent here use the global sortMode. */
+	columnSortModes: Record<string, SortMode>;
+	/** Custom folder icons (lucide icon ids). */
+	folderIcons: Record<string, string>;
+	openFolderNote: boolean;
 }
 
 export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
@@ -37,6 +43,9 @@ export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
 	folderColors: {},
 	columnViewModes: {},
 	pinnedPaths: {},
+	columnSortModes: {},
+	folderIcons: {},
+	openFolderNote: false,
 };
 
 export const MIN_COLUMN_WIDTH = 140;

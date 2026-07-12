@@ -193,6 +193,8 @@ export class ColumnExplorerView extends ItemView {
 		s.folderColors = remapPathKeys(s.folderColors, oldPath, newPath);
 		s.columnViewModes = remapPathKeys(s.columnViewModes, oldPath, newPath);
 		s.pinnedPaths = remapPathKeys(s.pinnedPaths, oldPath, newPath);
+		s.columnSortModes = remapPathKeys(s.columnSortModes, oldPath, newPath);
+		s.folderIcons = remapPathKeys(s.folderIcons, oldPath, newPath);
 		void this.plugin.saveSettings();
 	}
 
@@ -201,6 +203,8 @@ export class ColumnExplorerView extends ItemView {
 		s.folderColors = prunePathKeys(s.folderColors, deletedPath);
 		s.columnViewModes = prunePathKeys(s.columnViewModes, deletedPath);
 		s.pinnedPaths = prunePathKeys(s.pinnedPaths, deletedPath);
+		s.columnSortModes = prunePathKeys(s.columnSortModes, deletedPath);
+		s.folderIcons = prunePathKeys(s.folderIcons, deletedPath);
 		void this.plugin.saveSettings();
 	}
 

@@ -104,12 +104,16 @@ export function showFileMenu(view: ColumnExplorerView, e: MouseEvent, f: TAbstra
 			.onClick(() => duplicateFile(app, f)));
 	}
 
-	const isPinned = !!view.plugin.settings.pinnedPaths[f.path];
+	const isPinned = view.plugin.settings.pinnedPaths[f.path] !== undefined;
 	menu.addItem(i => i.setTitle(isPinned ? t("unpin") : t("pin")).setIcon(isPinned ? "pin-off" : "pin")
 		.onClick(async () => {
 			const pinned = { ...view.plugin.settings.pinnedPaths };
-			if (isPinned) delete pinned[f.path];
-			else pinned[f.path] = true;
+			if (isPinned) {
+				delete pinned[f.path];
+			} else {
+				const orders = Object.values(pinned);
+				pinned[f.path] = orders.length > 0 ? Math.max(...orders) + 1 : 0;
+			}
 			view.plugin.settings.pinnedPaths = pinned;
 			await view.plugin.saveSettings();
 			view.render();

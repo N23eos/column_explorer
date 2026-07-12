@@ -125,7 +125,7 @@ function buildItem(view: ColumnExplorerView, f: TAbstractFile, depth: number): H
 
 	item.createDiv({ cls: "column-explorer-item-title", text: displayName(f) });
 
-	if (view.plugin.settings.pinnedPaths[f.path]) {
+	if (view.plugin.settings.pinnedPaths[f.path] !== undefined) {
 		const pin = item.createDiv({ cls: "column-explorer-item-pin" });
 		setIcon(pin, "pin");
 	}

@@ -43,6 +43,19 @@ export default class ColumnExplorerPlugin extends Plugin {
 	async loadSettings() {
 		const data = (await this.loadData()) as Partial<ColumnExplorerSettings> | null;
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, data ?? {});
+		this.migratePinnedPaths();
+	}
+
+	/** v1.3.x stored pins as `true`; convert to numeric order once. */
+	private migratePinnedPaths() {
+		const raw = this.settings.pinnedPaths as Record<string, number | boolean>;
+		let order = 0;
+		const migrated: Record<string, number> = {};
+		for (const path of Object.keys(raw)) {
+			migrated[path] = typeof raw[path] === "number" ? (raw[path] as number) : order;
+			order++;
+		}
+		this.settings.pinnedPaths = migrated;
 	}
 
 	async saveSettings() {

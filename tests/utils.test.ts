@@ -97,30 +97,68 @@ describe("formatTemplate", () => {
 	});
 });
 
-import { remapPathKeys, prunePathKeys, pinnedFirst } from "../src/pure";
+import { remapPathKeys, prunePathKeys, pinnedFirst, movePinnedBefore } from "../src/pure";
 
 describe("pinnedFirst", () => {
-	test("moves pinned items to the front keeping relative order", () => {
+	test("moves pinned items to the front sorted by their pin order", () => {
 		// Arrange
 		const items = ["a", "b", "c", "d"];
-		const pinned = new Set(["c", "a"]);
+		const order: Record<string, number> = { c: 0, a: 1 };
 
 		// Act
-		const result = pinnedFirst(items, (x) => pinned.has(x));
+		const result = pinnedFirst(items, (x) => order[x]);
 
 		// Assert
-		expect(result).toEqual(["a", "c", "b", "d"]);
+		expect(result).toEqual(["c", "a", "b", "d"]);
+	});
+
+	test("treats order 0 as pinned", () => {
+		expect(pinnedFirst(["a", "b"], (x) => (x === "b" ? 0 : undefined))).toEqual(["b", "a"]);
 	});
 
 	test("returns new array without mutating the original", () => {
 		const items = ["a", "b"];
-		const result = pinnedFirst(items, (x) => x === "b");
+		const result = pinnedFirst(items, (x) => (x === "b" ? 1 : undefined));
 		expect(items).toEqual(["a", "b"]);
 		expect(result).toEqual(["b", "a"]);
 	});
 
 	test("returns items unchanged when nothing is pinned", () => {
-		expect(pinnedFirst(["a", "b"], () => false)).toEqual(["a", "b"]);
+		expect(pinnedFirst(["a", "b"], () => undefined)).toEqual(["a", "b"]);
+	});
+});
+
+describe("movePinnedBefore", () => {
+	test("moves dragged path before target and renumbers from zero", () => {
+		// Arrange
+		const pinned = { a: 0, b: 1, c: 2 };
+
+		// Act
+		const result = movePinnedBefore(pinned, "c", "a");
+
+		// Assert
+		expect(result).toEqual({ c: 0, a: 1, b: 2 });
+	});
+
+	test("moves dragged path down past the target", () => {
+		const pinned = { a: 0, b: 1, c: 2 };
+		expect(movePinnedBefore(pinned, "a", "c")).toEqual({ b: 0, a: 1, c: 2 });
+	});
+
+	test("returns record unchanged when drag equals target", () => {
+		const pinned = { a: 0, b: 1 };
+		expect(movePinnedBefore(pinned, "a", "a")).toEqual({ a: 0, b: 1 });
+	});
+
+	test("does not mutate the original record", () => {
+		const pinned = { a: 0, b: 1 };
+		movePinnedBefore(pinned, "b", "a");
+		expect(pinned).toEqual({ a: 0, b: 1 });
+	});
+
+	test("ignores paths missing from the record", () => {
+		const pinned = { a: 0, b: 1 };
+		expect(movePinnedBefore(pinned, "x", "a")).toEqual({ a: 0, b: 1 });
 	});
 });
 
