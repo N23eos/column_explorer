@@ -195,7 +195,9 @@ var STRINGS = {
     folderIconReset: "Reset folder icon",
     iconPlaceholder: "Choose an icon\u2026",
     setFolderNote: "Open folder notes",
-    setFolderNoteDesc: "Selecting a folder also opens the note with the same name inside it, when one exists."
+    setFolderNoteDesc: "Selecting a folder also opens the note with the same name inside it, when one exists.",
+    lockPanel: "Lock panel (single column)",
+    unlockPanel: "Unlock panel"
   },
   ru: {
     newNote: "\u041D\u043E\u0432\u0430\u044F \u0437\u0430\u043C\u0435\u0442\u043A\u0430",
@@ -277,7 +279,9 @@ var STRINGS = {
     folderIconReset: "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443 \u043F\u0430\u043F\u043A\u0438",
     iconPlaceholder: "\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0438\u043A\u043E\u043D\u043A\u0443\u2026",
     setFolderNote: "\u041E\u0442\u043A\u0440\u044B\u0432\u0430\u0442\u044C \u0437\u0430\u043C\u0435\u0442\u043A\u0438 \u043F\u0430\u043F\u043E\u043A",
-    setFolderNoteDesc: "\u0412\u044B\u0431\u043E\u0440 \u043F\u0430\u043F\u043A\u0438 \u0442\u0430\u043A\u0436\u0435 \u043E\u0442\u043A\u0440\u044B\u0432\u0430\u0435\u0442 \u0437\u0430\u043C\u0435\u0442\u043A\u0443 \u0441 \u0435\u0451 \u0438\u043C\u0435\u043D\u0435\u043C \u0432\u043D\u0443\u0442\u0440\u0438, \u0435\u0441\u043B\u0438 \u043E\u043D\u0430 \u0435\u0441\u0442\u044C."
+    setFolderNoteDesc: "\u0412\u044B\u0431\u043E\u0440 \u043F\u0430\u043F\u043A\u0438 \u0442\u0430\u043A\u0436\u0435 \u043E\u0442\u043A\u0440\u044B\u0432\u0430\u0435\u0442 \u0437\u0430\u043C\u0435\u0442\u043A\u0443 \u0441 \u0435\u0451 \u0438\u043C\u0435\u043D\u0435\u043C \u0432\u043D\u0443\u0442\u0440\u0438, \u0435\u0441\u043B\u0438 \u043E\u043D\u0430 \u0435\u0441\u0442\u044C.",
+    lockPanel: "\u0417\u0430\u0444\u0438\u043A\u0441\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u043F\u0430\u043D\u0435\u043B\u044C (\u043E\u0434\u043D\u0430 \u043A\u043E\u043B\u043E\u043D\u043A\u0430)",
+    unlockPanel: "\u0421\u043D\u044F\u0442\u044C \u0444\u0438\u043A\u0441\u0430\u0446\u0438\u044E \u043F\u0430\u043D\u0435\u043B\u0438"
   }
 };
 function t(key, vars) {
@@ -305,7 +309,8 @@ var DEFAULT_SETTINGS = {
   pinnedPaths: {},
   columnSortModes: {},
   folderIcons: {},
-  openFolderNote: false
+  openFolderNote: false,
+  panelLocked: false
 };
 var MIN_COLUMN_WIDTH = 140;
 var MAX_COLUMN_WIDTH = 500;
@@ -1147,6 +1152,13 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
       this.clearMulti();
       this.render();
     });
+    const lockBtn = this.addToolbarButton(toolbar, "lock-open", t("lockPanel"), () => {
+      this.plugin.settings.panelLocked = !this.plugin.settings.panelLocked;
+      void this.plugin.saveSettings();
+      this.updateLockButton(lockBtn);
+      this.render();
+    });
+    this.updateLockButton(lockBtn);
     this.searchInput = toolbar.createEl("input", {
       type: "search",
       cls: "column-explorer-search",
@@ -1181,6 +1193,13 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     const btn = parent.createDiv({ cls: "clickable-icon column-explorer-toolbar-btn", attr: { "aria-label": tooltip } });
     (0, import_obsidian10.setIcon)(btn, icon);
     this.registerDomEvent(btn, "click", onClick);
+    return btn;
+  }
+  updateLockButton(btn) {
+    const locked = this.plugin.settings.panelLocked;
+    (0, import_obsidian10.setIcon)(btn, locked ? "lock" : "lock-open");
+    btn.setAttribute("aria-label", locked ? t("unlockPanel") : t("lockPanel"));
+    btn.toggleClass("is-active", locked);
   }
   /* -------------------------- shared accessors --------------------- */
   /** Visible (exclude-filtered, sorted, search-filtered) children of a folder. */
@@ -1325,13 +1344,19 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
       else break;
     }
     this.selection = validSel;
-    renderColumn(this, this.columnsEl, this.app.vault.getRoot(), 0);
-    for (let depth = 0; depth < this.selection.length; depth++) {
-      const f = this.app.vault.getAbstractFileByPath(this.selection[depth]);
-      if (f instanceof import_obsidian10.TFolder) {
-        renderColumn(this, this.columnsEl, f, depth + 1);
-      } else if (f instanceof import_obsidian10.TFile && this.plugin.settings.showPreview) {
-        renderPreviewColumn(this, this.columnsEl, f);
+    this.columnsEl.toggleClass("is-locked", this.plugin.settings.panelLocked);
+    if (this.plugin.settings.panelLocked) {
+      const folder = this.currentFolder();
+      renderColumn(this, this.columnsEl, folder, this.selection.indexOf(folder.path) + 1);
+    } else {
+      renderColumn(this, this.columnsEl, this.app.vault.getRoot(), 0);
+      for (let depth = 0; depth < this.selection.length; depth++) {
+        const f = this.app.vault.getAbstractFileByPath(this.selection[depth]);
+        if (f instanceof import_obsidian10.TFolder) {
+          renderColumn(this, this.columnsEl, f, depth + 1);
+        } else if (f instanceof import_obsidian10.TFile && this.plugin.settings.showPreview) {
+          renderPreviewColumn(this, this.columnsEl, f);
+        }
       }
     }
     this.renderBreadcrumbs();

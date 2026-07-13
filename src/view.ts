@@ -92,6 +92,13 @@ export class ColumnExplorerView extends ItemView {
 		this.addToolbarButton(toolbar, "locate", t("reveal"), () => this.revealFile(this.app.workspace.getActiveFile()));
 		this.addToolbarButton(toolbar, "arrow-up-narrow-wide", t("sort"), (e) => showSortMenu(this, e));
 		this.addToolbarButton(toolbar, "chevrons-left", t("collapse"), () => { this.selection = []; this.clearMulti(); this.render(); });
+		const lockBtn = this.addToolbarButton(toolbar, "lock-open", t("lockPanel"), () => {
+			this.plugin.settings.panelLocked = !this.plugin.settings.panelLocked;
+			void this.plugin.saveSettings();
+			this.updateLockButton(lockBtn);
+			this.render();
+		});
+		this.updateLockButton(lockBtn);
 
 		this.searchInput = toolbar.createEl("input", {
 			type: "search", cls: "column-explorer-search",
@@ -124,10 +131,18 @@ export class ColumnExplorerView extends ItemView {
 		this.render();
 	}
 
-	private addToolbarButton(parent: HTMLElement, icon: string, tooltip: string, onClick: (e: MouseEvent) => void) {
+	private addToolbarButton(parent: HTMLElement, icon: string, tooltip: string, onClick: (e: MouseEvent) => void): HTMLElement {
 		const btn = parent.createDiv({ cls: "clickable-icon column-explorer-toolbar-btn", attr: { "aria-label": tooltip } });
 		setIcon(btn, icon);
 		this.registerDomEvent(btn, "click", onClick);
+		return btn;
+	}
+
+	private updateLockButton(btn: HTMLElement) {
+		const locked = this.plugin.settings.panelLocked;
+		setIcon(btn, locked ? "lock" : "lock-open");
+		btn.setAttribute("aria-label", locked ? t("unlockPanel") : t("lockPanel"));
+		btn.toggleClass("is-active", locked);
 	}
 
 	/* -------------------------- shared accessors --------------------- */
@@ -287,13 +302,20 @@ export class ColumnExplorerView extends ItemView {
 		}
 		this.selection = validSel;
 
-		renderColumn(this, this.columnsEl, this.app.vault.getRoot(), 0);
-		for (let depth = 0; depth < this.selection.length; depth++) {
-			const f = this.app.vault.getAbstractFileByPath(this.selection[depth]);
-			if (f instanceof TFolder) {
-				renderColumn(this, this.columnsEl, f, depth + 1);
-			} else if (f instanceof TFile && this.plugin.settings.showPreview) {
-				renderPreviewColumn(this, this.columnsEl, f);
+		this.columnsEl.toggleClass("is-locked", this.plugin.settings.panelLocked);
+		if (this.plugin.settings.panelLocked) {
+			// Зафиксированная панель: одна колонка (текущая папка), переходы внутри неё
+			const folder = this.currentFolder();
+			renderColumn(this, this.columnsEl, folder, this.selection.indexOf(folder.path) + 1);
+		} else {
+			renderColumn(this, this.columnsEl, this.app.vault.getRoot(), 0);
+			for (let depth = 0; depth < this.selection.length; depth++) {
+				const f = this.app.vault.getAbstractFileByPath(this.selection[depth]);
+				if (f instanceof TFolder) {
+					renderColumn(this, this.columnsEl, f, depth + 1);
+				} else if (f instanceof TFile && this.plugin.settings.showPreview) {
+					renderPreviewColumn(this, this.columnsEl, f);
+				}
 			}
 		}
 

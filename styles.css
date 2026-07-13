@@ -476,3 +476,19 @@
 	border-radius: 6px;
 	background: var(--background-secondary);
 }
+
+/* ---- v1.5: locked panel (single column) ---- */
+
+.column-explorer-columns.is-locked .column-explorer-column {
+	max-width: none;
+	flex: 1;
+}
+
+.column-explorer-columns.is-locked .column-explorer-resize-handle {
+	display: none;
+}
+
+.column-explorer-toolbar-btn.is-active {
+	color: var(--interactive-accent);
+	background-color: var(--background-modifier-hover);
+}
