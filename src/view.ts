@@ -12,7 +12,7 @@ import {
 	setIcon,
 } from "obsidian";
 import { t } from "./i18n";
-import { lockedColumnVisible, prunePathKeys, remapPathKeys } from "./pure";
+import { desiredPanelWidth, lockedColumnVisible, prunePathKeys, remapPathKeys } from "./pure";
 import { displayName, folderNoteOf, visibleChildren } from "./utils";
 import { renderColumn, renderColumnList } from "./column";
 import { renderPreviewColumn } from "./preview";
@@ -341,8 +341,23 @@ export class ColumnExplorerView extends ItemView {
 		// при клике внутри тех же колонок скролл остаётся на месте
 		const sameColumns = this.columnsKey() === prevKey;
 		window.requestAnimationFrame(() => {
+			this.autoResizePanel();
 			this.columnsEl.scrollLeft = sameColumns ? prevScrollLeft : this.columnsEl.scrollWidth;
 		});
+	}
+
+	/** Авто-ширина панели: подгоняет ширину сайдбара под число открытых колонок. */
+	private autoResizePanel() {
+		if (!this.plugin.settings.autoPanelResize) return;
+		const ws = this.app.workspace;
+		const root: unknown = this.leaf.getRoot();
+		// Вью в центральной области — ширину не трогаем
+		if (root !== ws.leftSplit && root !== ws.rightSplit) return;
+		// setSize — приватный API сайдбара; при его отсутствии тихо выходим
+		const split = root as { collapsed?: boolean; setSize?: (size: number) => void };
+		if (split.collapsed || typeof split.setSize !== "function") return;
+		const count = this.columnsEl.querySelectorAll(".column-explorer-column").length;
+		split.setSize(desiredPanelWidth(Math.max(1, count), this.plugin.settings.columnWidth, window.innerWidth));
 	}
 
 	/** Lock badge in the header of the deepest (in-place navigating) column. */

@@ -108,6 +108,18 @@ export function lockedColumnVisible(depth: number, folderColumns: number, locked
 	return depth < Math.max(1, lockedCount) - 1 || depth === folderColumns - 1;
 }
 
+/** Auto panel resize: the panel never grows past this share of the window. */
+export const MAX_PANEL_WINDOW_RATIO = 0.6;
+
+/**
+ * Panel width that fits `columnCount` columns of `columnWidth` px,
+ * capped at MAX_PANEL_WINDOW_RATIO of the window but never below one column.
+ */
+export function desiredPanelWidth(columnCount: number, columnWidth: number, windowWidth: number): number {
+	const capped = Math.min(columnCount * columnWidth, windowWidth * MAX_PANEL_WINDOW_RATIO);
+	return Math.max(columnWidth, capped);
+}
+
 /**
  * Pattern semantics:
  * - "folder/"  — the folder itself and everything inside it

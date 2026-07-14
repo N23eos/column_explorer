@@ -6,6 +6,7 @@ import {
 	parseExcludePatterns,
 	formatTemplate,
 	lockedColumnVisible,
+	desiredPanelWidth,
 } from "../src/pure";
 
 describe("naturalCompare", () => {
@@ -239,5 +240,36 @@ describe("lockedColumnVisible", () => {
 	test("treats a non-positive locked count as a single column", () => {
 		expect(lockedColumnVisible(0, 3, 0)).toBe(false);
 		expect(lockedColumnVisible(2, 3, 0)).toBe(true);
+	});
+});
+
+describe("desiredPanelWidth", () => {
+	test("width equals column count times column width", () => {
+		// Arrange: 3 columns of 200px, wide window
+		const columnCount = 3;
+		const columnWidth = 200;
+		const windowWidth = 2000;
+
+		// Act
+		const width = desiredPanelWidth(columnCount, columnWidth, windowWidth);
+
+		// Assert
+		expect(width).toBe(600);
+	});
+
+	test("caps at 60% of the window width", () => {
+		// Arrange: 10 columns of 200px would be 2000px, window is 1000px
+		const width = desiredPanelWidth(10, 200, 1000);
+
+		// Assert: capped at 1000 * 0.6
+		expect(width).toBe(600);
+	});
+
+	test("never shrinks below a single column", () => {
+		// Arrange: tiny window makes the cap smaller than one column
+		const width = desiredPanelWidth(1, 300, 400);
+
+		// Assert: one column wins over the 240px cap
+		expect(width).toBe(300);
 	});
 });
