@@ -201,38 +201,33 @@ describe("prunePathKeys", () => {
 });
 
 describe("lockStartDepth", () => {
-	test("returns 0 when nothing is locked", () => {
-		expect(lockStartDepth(["A", "A/B"], null)).toBe(0);
+	test("returns 0 when unlocked", () => {
+		expect(lockStartDepth(3, null)).toBe(0);
 	});
 
-	test("returns 0 when the vault root is locked", () => {
-		expect(lockStartDepth(["A", "A/B"], "/")).toBe(0);
+	test("returns 0 when the chain fits the locked window", () => {
+		expect(lockStartDepth(3, 3)).toBe(0);
+		expect(lockStartDepth(2, 3)).toBe(0);
 	});
 
-	test("returns column depth of the locked folder in the chain", () => {
-		// Arrange
-		const selection = ["A", "A/B", "A/B/C"];
+	test("hides columns to the left when the chain outgrows the window", () => {
+		// Arrange: chain grew to 5 folder columns, window locked at 3
+		const folderColumns = 5;
+		const lockedCount = 3;
 
 		// Act
-		const depth = lockStartDepth(selection, "A/B");
+		const depth = lockStartDepth(folderColumns, lockedCount);
 
-		// Assert: root column is depth 0, "A" is 1, "A/B" is 2
+		// Assert: first two columns are hidden, last three visible
 		expect(depth).toBe(2);
 	});
 
-	test("returns depth past the chain when the last folder is locked", () => {
-		expect(lockStartDepth(["A", "A/B", "A/B/C"], "A/B/C")).toBe(3);
+	test("slides by one for each extra column", () => {
+		expect(lockStartDepth(4, 3)).toBe(1);
+		expect(lockStartDepth(6, 3)).toBe(3);
 	});
 
-	test("returns -1 when the locked folder is not in the chain", () => {
-		expect(lockStartDepth(["A", "A/B"], "X")).toBe(-1);
-	});
-
-	test("returns -1 when the chain is empty but a folder is locked", () => {
-		expect(lockStartDepth([], "A")).toBe(-1);
-	});
-
-	test("does not match a folder that only shares a path prefix", () => {
-		expect(lockStartDepth(["AB"], "A")).toBe(-1);
+	test("treats a non-positive locked count as a single column", () => {
+		expect(lockStartDepth(4, 0)).toBe(3);
 	});
 });

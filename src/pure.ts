@@ -98,15 +98,13 @@ export function movePinnedBefore(
 }
 
 /**
- * First column depth to render when a folder is locked as a temporary root.
- * Root column is depth 0; the folder at selection[i] renders at depth i+1.
- * Returns 0 when nothing (or the vault root) is locked — render everything;
- * -1 when the locked folder is no longer in the chain — caller should unlock.
+ * First column depth to render when the column count is locked: the window
+ * shows only the last `lockedCount` folder columns of the chain.
+ * Returns 0 when unlocked or when the chain fits the window — render everything.
  */
-export function lockStartDepth(selection: string[], lockedPath: string | null): number {
-	if (lockedPath === null || lockedPath === "/") return 0;
-	const i = selection.indexOf(lockedPath);
-	return i === -1 ? -1 : i + 1;
+export function lockStartDepth(folderColumns: number, lockedCount: number | null): number {
+	if (lockedCount === null) return 0;
+	return Math.max(0, folderColumns - Math.max(1, lockedCount));
 }
 
 /**

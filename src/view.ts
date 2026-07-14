@@ -95,7 +95,7 @@ export class ColumnExplorerView extends ItemView {
 		this.addToolbarButton(toolbar, "chevrons-left", t("collapse"), () => { this.selection = []; this.clearMulti(); this.render(); });
 		this.lockBtn = this.addToolbarButton(toolbar, "lock-open", t("lockPanel"), () => {
 			const s = this.plugin.settings;
-			s.lockedFolderPath = s.lockedFolderPath === null ? this.currentFolder().path : null;
+			s.lockedColumnCount = s.lockedColumnCount === null ? this.folderColumnCount() : null;
 			void this.plugin.saveSettings();
 			this.render();
 		});
@@ -140,7 +140,7 @@ export class ColumnExplorerView extends ItemView {
 	}
 
 	private updateLockButton() {
-		const locked = this.plugin.settings.lockedFolderPath !== null;
+		const locked = this.plugin.settings.lockedColumnCount !== null;
 		setIcon(this.lockBtn, locked ? "lock" : "lock-open");
 		this.lockBtn.setAttribute("aria-label", locked ? t("unlockPanel") : t("lockPanel"));
 		this.lockBtn.toggleClass("is-active", locked);
@@ -180,6 +180,15 @@ export class ColumnExplorerView extends ItemView {
 		this.shiftAnchor = null;
 	}
 
+	/** Number of folder columns for the current selection chain (root column included). */
+	private folderColumnCount(): number {
+		for (let i = this.selection.length - 1; i >= 0; i--) {
+			const f = this.app.vault.getAbstractFileByPath(this.selection[i]);
+			if (f instanceof TFolder) return i + 2;
+		}
+		return 1;
+	}
+
 	currentFolder(): TFolder {
 		for (let i = this.selection.length - 1; i >= 0; i--) {
 			const f = this.app.vault.getAbstractFileByPath(this.selection[i]);
@@ -211,12 +220,6 @@ export class ColumnExplorerView extends ItemView {
 		s.pinnedPaths = remapPathKeys(s.pinnedPaths, oldPath, newPath);
 		s.columnSortModes = remapPathKeys(s.columnSortModes, oldPath, newPath);
 		s.folderIcons = remapPathKeys(s.folderIcons, oldPath, newPath);
-		const lp = s.lockedFolderPath;
-		if (lp !== null) {
-			s.lockedFolderPath =
-				lp === oldPath ? newPath :
-				lp.startsWith(oldPath + "/") ? newPath + lp.slice(oldPath.length) : lp;
-		}
 		void this.plugin.saveSettings();
 	}
 
@@ -227,10 +230,6 @@ export class ColumnExplorerView extends ItemView {
 		s.pinnedPaths = prunePathKeys(s.pinnedPaths, deletedPath);
 		s.columnSortModes = prunePathKeys(s.columnSortModes, deletedPath);
 		s.folderIcons = prunePathKeys(s.folderIcons, deletedPath);
-		const lp = s.lockedFolderPath;
-		if (lp !== null && (lp === deletedPath || lp.startsWith(deletedPath + "/"))) {
-			s.lockedFolderPath = null;
-		}
 		void this.plugin.saveSettings();
 	}
 
@@ -313,14 +312,8 @@ export class ColumnExplorerView extends ItemView {
 		}
 		this.selection = validSel;
 
-		// Фиксация папки как временного корня: колонки левее не рендерим.
-		// Если папки больше нет в цепочке (клик выше / удалена) — авто-сброс.
-		let startDepth = lockStartDepth(this.selection, this.plugin.settings.lockedFolderPath);
-		if (startDepth === -1) {
-			this.plugin.settings.lockedFolderPath = null;
-			void this.plugin.saveSettings();
-			startDepth = 0;
-		}
+		// Фиксация числа колонок: окно скользит, видны последние N колонок цепочки
+		const startDepth = lockStartDepth(this.folderColumnCount(), this.plugin.settings.lockedColumnCount);
 		this.updateLockButton();
 		this.columnsEl.toggleClass("is-locked", startDepth > 0);
 
@@ -396,6 +389,12 @@ export class ColumnExplorerView extends ItemView {
 	/* ----------------------------- actions --------------------------- */
 
 	selectItem(f: TAbstractFile, depth: number, e: MouseEvent) {
+		// Клик по колонке левее последней снимает фиксацию числа колонок
+		const s = this.plugin.settings;
+		if (s.lockedColumnCount !== null && depth < this.folderColumnCount() - 1) {
+			s.lockedColumnCount = null;
+			void this.plugin.saveSettings();
+		}
 		this.selection = this.selection.slice(0, depth);
 		this.selection.push(f.path);
 		this.shiftAnchor = f.path;
