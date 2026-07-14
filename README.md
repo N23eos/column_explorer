@@ -1,3 +1,5 @@
+<p align="center"><img src="assets/readme-header.png" alt="" width="480"></p>
+
 # Column Explorer
 
 Browse your Obsidian vault in **Finder-style Miller columns** — click a folder and its contents open in a new column to the right. A full file manager: create, rename, move, drag & drop, multi-select, context menus, folder colors and more.
@@ -94,3 +96,10 @@ The GitHub Action builds and attaches `main.js`, `manifest.json`, `styles.css` t
 ## License
 
 [MIT](LICENSE)
+
+## Support
+
+If this project was useful to you, feel free to support further development:
+
+[![ETH](https://img.shields.io/badge/ETH-0x7777...88C4-blue?logo=ethereum&style=flat-square)](https://etherscan.io/address/0x77777da54702AC8789D53fc7cC6201C29a1A88C4)
+[![Donate](https://img.shields.io/badge/donate-crypto-orange?style=flat-square)](https://etherscan.io/address/0x77777da54702AC8789D53fc7cC6201C29a1A88C4)
