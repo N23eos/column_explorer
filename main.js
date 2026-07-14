@@ -1424,7 +1424,7 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
   /* ----------------------------- actions --------------------------- */
   selectItem(f, depth, e) {
     const s = this.plugin.settings;
-    if (s.lockedColumnCount !== null && depth < this.folderColumnCount() - 1) {
+    if (s.lockedColumnCount !== null && depth === 0) {
       s.lockedColumnCount = null;
       void this.plugin.saveSettings();
     }
