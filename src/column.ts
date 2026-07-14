@@ -92,8 +92,13 @@ export function renderColumn(view: ColumnExplorerView, container: HTMLElement, f
 /** Items rendered per batch — big folders fill in as the user scrolls. */
 const RENDER_CHUNK = 300;
 
+/** Живые сентинел-обсерверы по спискам — отключаем старый при перерендере. */
+const listObservers = new WeakMap<HTMLElement, IntersectionObserver>();
+
 /** (Re)fill a column's list — used both on full render and targeted refresh. */
 export function renderColumnList(view: ColumnExplorerView, list: HTMLElement, folder: TFolder, depth: number) {
+	listObservers.get(list)?.disconnect();
+	listObservers.delete(list);
 	list.empty();
 	const children = view.childrenOf(folder);
 
@@ -123,9 +128,14 @@ export function renderColumnList(view: ColumnExplorerView, list: HTMLElement, fo
 		for (let i = rendered; i < next; i++) batch.appendChild(buildItem(view, children[i], depth, isGrid));
 		rendered = next;
 		list.insertBefore(batch, sentinel);
-		if (rendered >= children.length) { observer.disconnect(); sentinel.remove(); }
+		if (rendered >= children.length) {
+			observer.disconnect();
+			listObservers.delete(list);
+			sentinel.remove();
+		}
 	}, { root: list });
 	observer.observe(sentinel);
+	listObservers.set(list, observer);
 }
 
 function buildItem(view: ColumnExplorerView, f: TAbstractFile, depth: number, isGrid = false): HTMLElement {

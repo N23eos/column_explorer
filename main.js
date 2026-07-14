@@ -1084,17 +1084,20 @@ function renderColumn(view, container, folder, depth) {
   return col;
 }
 var RENDER_CHUNK = 300;
+var listObservers = /* @__PURE__ */ new WeakMap();
 function renderColumnList(view, list, folder, depth) {
-  var _a, _b;
+  var _a, _b, _c;
+  (_a = listObservers.get(list)) == null ? void 0 : _a.disconnect();
+  listObservers.delete(list);
   list.empty();
   const children = view.childrenOf(folder);
-  const countEl = (_a = list.closest(".column-explorer-column")) == null ? void 0 : _a.querySelector(".column-explorer-column-count");
+  const countEl = (_b = list.closest(".column-explorer-column")) == null ? void 0 : _b.querySelector(".column-explorer-column-count");
   countEl == null ? void 0 : countEl.setText(String(children.length));
   if (children.length === 0) {
     list.createDiv({ cls: "column-explorer-empty", text: view.hasFilter() ? t("noResults") : t("empty") });
     return;
   }
-  const isGrid = ((_b = view.plugin.settings.columnViewModes[folder.path]) != null ? _b : "list") === "grid";
+  const isGrid = ((_c = view.plugin.settings.columnViewModes[folder.path]) != null ? _c : "list") === "grid";
   const selectedIdx = children.findIndex((c) => c.path === view.selection[depth]);
   let rendered = Math.min(children.length, Math.max(RENDER_CHUNK, selectedIdx + 1));
   const frag = createFragment();
@@ -1111,10 +1114,12 @@ function renderColumnList(view, list, folder, depth) {
     list.insertBefore(batch, sentinel);
     if (rendered >= children.length) {
       observer.disconnect();
+      listObservers.delete(list);
       sentinel.remove();
     }
   }, { root: list });
   observer.observe(sentinel);
+  listObservers.set(list, observer);
 }
 function buildItem(view, f, depth, isGrid = false) {
   const item = createDiv({ cls: "column-explorer-item", attr: { role: "option" } });
