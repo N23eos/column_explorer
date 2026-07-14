@@ -1,5 +1,6 @@
 import { TAbstractFile, TFile, TFolder, setIcon } from "obsidian";
 import { t } from "./i18n";
+import { splitMatch } from "./pure";
 import { displayName, folderNoteOf, iconFor, isImageFile } from "./utils";
 import { setupColumnDnd } from "./dnd";
 import { showColumnHeaderMenu, showFileMenu, showFolderBackgroundMenu } from "./menus";
@@ -88,6 +89,9 @@ export function renderColumn(view: ColumnExplorerView, container: HTMLElement, f
 	return col;
 }
 
+/** Items rendered per batch — big folders fill in as the user scrolls. */
+const RENDER_CHUNK = 300;
+
 /** (Re)fill a column's list — used both on full render and targeted refresh. */
 export function renderColumnList(view: ColumnExplorerView, list: HTMLElement, folder: TFolder, depth: number) {
 	list.empty();
@@ -102,9 +106,26 @@ export function renderColumnList(view: ColumnExplorerView, list: HTMLElement, fo
 	}
 
 	const isGrid = (view.plugin.settings.columnViewModes[folder.path] ?? "list") === "grid";
+	// Инкрементальный рендер: сразу — первая порция (и как минимум до
+	// выделенного элемента), остальное догружается сентинелом при скролле
+	const selectedIdx = children.findIndex(c => c.path === view.selection[depth]);
+	let rendered = Math.min(children.length, Math.max(RENDER_CHUNK, selectedIdx + 1));
 	const frag = createFragment();
-	for (const child of children) frag.appendChild(buildItem(view, child, depth, isGrid));
+	for (let i = 0; i < rendered; i++) frag.appendChild(buildItem(view, children[i], depth, isGrid));
 	list.appendChild(frag);
+	if (rendered >= children.length) return;
+
+	const sentinel = list.createDiv({ cls: "column-explorer-load-more" });
+	const observer = new IntersectionObserver((entries) => {
+		if (!entries.some(entry => entry.isIntersecting)) return;
+		const next = Math.min(children.length, rendered + RENDER_CHUNK);
+		const batch = createFragment();
+		for (let i = rendered; i < next; i++) batch.appendChild(buildItem(view, children[i], depth, isGrid));
+		rendered = next;
+		list.insertBefore(batch, sentinel);
+		if (rendered >= children.length) { observer.disconnect(); sentinel.remove(); }
+	}, { root: list });
+	observer.observe(sentinel);
 }
 
 function buildItem(view: ColumnExplorerView, f: TAbstractFile, depth: number, isGrid = false): HTMLElement {
@@ -142,7 +163,17 @@ function buildItem(view: ColumnExplorerView, f: TAbstractFile, depth: number, is
 		setIcon(iconEl, customIcon ?? iconFor(f));
 	}
 
-	item.createDiv({ cls: "column-explorer-item-title", text: displayName(f) });
+	const title = item.createDiv({ cls: "column-explorer-item-title" });
+	const name = displayName(f);
+	// Фильтр применяется только к файлам — папки показываются всегда
+	const match = view.hasFilter() && f instanceof TFile ? splitMatch(name, view.filterQuery()) : null;
+	if (match) {
+		title.appendText(match[0]);
+		title.createSpan({ cls: "column-explorer-match", text: match[1] });
+		title.appendText(match[2]);
+	} else {
+		title.setText(name);
+	}
 
 	if (view.plugin.settings.pinnedPaths[f.path] !== undefined) {
 		const pin = item.createDiv({ cls: "column-explorer-item-pin" });

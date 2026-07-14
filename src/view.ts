@@ -4,6 +4,7 @@ import {
 	TAbstractFile,
 	TFile,
 	TFolder,
+	Platform,
 	ViewStateResult,
 	WorkspaceLeaf,
 	Keymap,
@@ -17,7 +18,7 @@ import { displayName, folderNoteOf, visibleChildren } from "./utils";
 import { renderColumn, renderColumnList } from "./column";
 import { renderPreviewColumn } from "./preview";
 import { showSortMenu } from "./menus";
-import { ConfirmModal } from "./modals";
+import { ConfirmModal, QuickLookModal } from "./modals";
 import { trashFiles } from "./fileops";
 import type ColumnExplorerPlugin from "./main";
 
@@ -51,6 +52,11 @@ export class ColumnExplorerView extends ItemView {
 	private dirtyFolders: Set<string> = new Set();
 	private fullRenderPending = false;
 	private flushRefresh = debounce(() => this.doRefresh(), 60, true);
+	/** Дебаунс поиска: полный render на каждую букву лагает на больших vault */
+	private applyFilter = debounce(() => {
+		this.filter = this.searchInput.value.toLowerCase().trim();
+		this.render();
+	}, 150, true);
 
 	constructor(leaf: WorkspaceLeaf, plugin: ColumnExplorerPlugin) {
 		super(leaf);
@@ -100,17 +106,25 @@ export class ColumnExplorerView extends ItemView {
 			this.render();
 		});
 		this.updateLockButton();
+		// На телефоне всегда одна колонка — фиксация числа колонок не нужна
+		if (Platform.isMobile) this.lockBtn.hide();
 
 		this.searchInput = toolbar.createEl("input", {
 			type: "search", cls: "column-explorer-search",
-			attr: { placeholder: t("search") },
+			attr: { placeholder: t("search"), "aria-label": t("search") },
 		});
-		this.registerDomEvent(this.searchInput, "input", () => {
-			this.filter = this.searchInput.value.toLowerCase().trim();
-			this.render();
+		this.registerDomEvent(this.searchInput, "input", () => this.applyFilter());
+		this.registerDomEvent(this.searchInput, "keydown", (e) => {
+			if (e.key !== "Escape") return;
+			e.preventDefault();
+			this.clearFilter();
+			this.columnsEl.focus();
 		});
 
-		this.breadcrumbsEl = container.createDiv({ cls: "column-explorer-breadcrumbs" });
+		this.breadcrumbsEl = container.createDiv({
+			cls: "column-explorer-breadcrumbs",
+			attr: { role: "navigation", "aria-label": "Breadcrumbs" },
+		});
 
 		this.columnsEl = container.createDiv({ cls: "column-explorer-columns" });
 		this.columnsEl.tabIndex = 0;
@@ -160,6 +174,13 @@ export class ColumnExplorerView extends ItemView {
 	}
 
 	hasFilter(): boolean { return this.filter.length > 0; }
+	filterQuery(): string { return this.filter; }
+
+	private clearFilter() {
+		this.filter = "";
+		this.searchInput.value = "";
+		this.render();
+	}
 	isRenaming(path: string): boolean { return this.renamingPath === path; }
 
 	selectedFilePath(): string | null {
@@ -315,7 +336,8 @@ export class ColumnExplorerView extends ItemView {
 		// Фиксация числа колонок: первые N−1 колонок заморожены на месте,
 		// последняя всегда показывает самую глубокую папку цепочки —
 		// переходы вглубь происходят внутри неё, промежуточные колонки скрыты
-		const lockedCount = this.plugin.settings.lockedColumnCount;
+		// На телефоне экран узкий — всегда показываем только самую глубокую колонку
+		const lockedCount = Platform.isMobile ? 1 : this.plugin.settings.lockedColumnCount;
 		const folderCols = this.folderColumnCount();
 		const hasGap = lockedCount !== null && folderCols > lockedCount;
 		this.updateLockButton();
@@ -333,7 +355,7 @@ export class ColumnExplorerView extends ItemView {
 				renderPreviewColumn(this, this.columnsEl, f);
 			}
 		}
-		if (hasGap) this.markLockedColumn();
+		if (hasGap && !Platform.isMobile) this.markLockedColumn();
 
 		this.renderBreadcrumbs();
 		this.restoreScrollTops(scrollTops);
@@ -348,7 +370,7 @@ export class ColumnExplorerView extends ItemView {
 
 	/** Авто-ширина панели: подгоняет ширину сайдбара под число открытых колонок. */
 	private autoResizePanel() {
-		if (!this.plugin.settings.autoPanelResize) return;
+		if (!this.plugin.settings.autoPanelResize || Platform.isMobile) return;
 		const ws = this.app.workspace;
 		const root: unknown = this.leaf.getRoot();
 		// Вью в центральной области — ширину не трогаем
@@ -453,7 +475,7 @@ export class ColumnExplorerView extends ItemView {
 
 	revealFile(file: TFile | null) {
 		if (!file) return;
-		if (this.filter) { this.filter = ""; this.searchInput.value = ""; }
+		if (this.hasFilter()) { this.filter = ""; this.searchInput.value = ""; }
 		const chain: string[] = [];
 		let cur: TAbstractFile | null = file;
 		while (cur && cur.parent) {
@@ -605,6 +627,14 @@ export class ColumnExplorerView extends ItemView {
 			} else if (f instanceof TFile && e.key === "Enter") {
 				void this.app.workspace.getLeaf(false).openFile(f);
 			}
+		} else if (e.key === " ") {
+			// Quick Look: как в Finder — пробел открывает превью выделенного файла
+			e.preventDefault();
+			const f = selectedPath ? this.app.vault.getAbstractFileByPath(selectedPath) : null;
+			if (f instanceof TFile) new QuickLookModal(this.app, this, f).open();
+		} else if (e.key === "Escape" && this.hasFilter()) {
+			e.preventDefault();
+			this.clearFilter();
 		} else if (e.key === "F2") {
 			e.preventDefault();
 			const f = selectedPath ? this.app.vault.getAbstractFileByPath(selectedPath) : null;

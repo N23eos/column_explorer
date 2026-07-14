@@ -496,3 +496,40 @@
 	color: var(--interactive-accent);
 	background-color: var(--background-modifier-hover);
 }
+
+/* Filter match highlight */
+.column-explorer-match {
+	color: var(--text-accent);
+	font-weight: var(--font-semibold);
+}
+
+/* Incremental render sentinel — needs height so the observer can see it */
+.column-explorer-load-more {
+	height: 8px;
+	flex-shrink: 0;
+}
+
+/* Undo link inside the "items moved" notice */
+.column-explorer-undo-link {
+	font-weight: var(--font-semibold);
+}
+
+/* Quick Look modal */
+.column-explorer-quicklook {
+	max-width: min(720px, 90vw);
+}
+
+.column-explorer-quicklook .column-explorer-preview-image {
+	max-height: 60vh;
+}
+
+/* Mobile: full-width columns, no resize handles */
+.is-mobile .column-explorer-column {
+	min-width: 100%;
+	flex-basis: 100%;
+	max-width: none;
+}
+
+.is-mobile .column-explorer-resize-handle {
+	display: none;
+}

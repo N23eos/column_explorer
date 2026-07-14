@@ -7,6 +7,7 @@ import {
 	formatTemplate,
 	lockedColumnVisible,
 	desiredPanelWidth,
+	splitMatch,
 } from "../src/pure";
 
 describe("naturalCompare", () => {
@@ -271,5 +272,28 @@ describe("desiredPanelWidth", () => {
 
 		// Assert: one column wins over the 240px cap
 		expect(width).toBe(300);
+	});
+});
+
+describe("splitMatch", () => {
+	test("splits the name around a case-insensitive match", () => {
+		// Arrange + Act
+		const parts = splitMatch("My Project Notes", "project");
+
+		// Assert
+		expect(parts).toEqual(["My ", "Project", " Notes"]);
+	});
+
+	test("returns null when the query is absent", () => {
+		expect(splitMatch("Notes", "xyz")).toBeNull();
+	});
+
+	test("returns null for an empty query", () => {
+		expect(splitMatch("Notes", "")).toBeNull();
+	});
+
+	test("matches at the very start and end", () => {
+		expect(splitMatch("note", "no")).toEqual(["", "no", "te"]);
+		expect(splitMatch("note", "te")).toEqual(["no", "te", ""]);
 	});
 });

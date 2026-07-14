@@ -2,8 +2,19 @@
  * Pure helpers with no Obsidian dependency — unit-testable in isolation.
  */
 
+// Один коллатор на модуль: localeCompare с опциями создаёт его на каждое сравнение
+const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+
 export function naturalCompare(a: string, b: string): number {
-	return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+	return collator.compare(a, b);
+}
+
+/** Split `name` around the first case-insensitive occurrence of `query`; null when absent. */
+export function splitMatch(name: string, query: string): [string, string, string] | null {
+	if (!query) return null;
+	const idx = name.toLowerCase().indexOf(query.toLowerCase());
+	if (idx === -1) return null;
+	return [name.slice(0, idx), name.slice(idx, idx + query.length), name.slice(idx + query.length)];
 }
 
 export function humanSize(bytes: number): string {

@@ -11,7 +11,11 @@ const VIDEO_EXTENSIONS = ["mp4", "mov", "webm", "ogv"];
 export function renderPreviewColumn(view: ColumnExplorerView, container: HTMLElement, file: TFile) {
 	const col = container.createDiv({ cls: "column-explorer-column column-explorer-preview" });
 	const inner = col.createDiv({ cls: "column-explorer-preview-inner" });
+	renderPreviewContent(view, inner, file);
+}
 
+/** Shared preview body — used by the preview column and the Quick Look modal. */
+export function renderPreviewContent(view: ColumnExplorerView, inner: HTMLElement, file: TFile) {
 	if (!renderMediaPreview(view, inner, file)) {
 		const big = inner.createDiv({ cls: "column-explorer-preview-icon" });
 		setIcon(big, iconFor(file));

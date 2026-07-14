@@ -1,12 +1,16 @@
 import { App, Notice, TFile, TFolder, normalizePath } from "obsidian";
 import { t } from "./i18n";
 
+const UNDO_NOTICE_MS = 8000;
+
+interface MoveRecord { from: string; to: string }
+
 /**
  * Move a set of paths into a target folder. Shared by drag & drop and
  * the "Move to folder…" action. Returns the number of items moved.
  */
 export async function moveFiles(app: App, paths: string[], target: TFolder): Promise<number> {
-	let moved = 0;
+	const moves: MoveRecord[] = [];
 	for (const path of paths) {
 		const src = app.vault.getAbstractFileByPath(path);
 		if (!src || src.path === target.path) continue;
@@ -21,10 +25,32 @@ export async function moveFiles(app: App, paths: string[], target: TFolder): Pro
 			continue;
 		}
 		await app.fileManager.renameFile(src, dest);
-		moved++;
+		moves.push({ from: path, to: dest });
 	}
-	if (moved > 1) new Notice(t("itemsMoved", { n: moved }));
-	return moved;
+	if (moves.length > 0) showUndoMoveNotice(app, moves);
+	return moves.length;
+}
+
+/** Notice with an inline "Undo" action that moves the files back. */
+function showUndoMoveNotice(app: App, moves: MoveRecord[]) {
+	const frag = createFragment();
+	frag.createSpan({ text: t("itemsMoved", { n: moves.length }) + " " });
+	const undoBtn = frag.createEl("a", { text: t("undo"), cls: "column-explorer-undo-link" });
+	const notice = new Notice(frag, UNDO_NOTICE_MS);
+	undoBtn.addEventListener("click", () => {
+		notice.hide();
+		void undoMoves(app, moves);
+	});
+}
+
+async function undoMoves(app: App, moves: MoveRecord[]) {
+	for (const move of moves) {
+		const f = app.vault.getAbstractFileByPath(move.to);
+		// Файл мог быть удалён/переименован, а исходное имя — занято заново
+		if (f && !app.vault.getAbstractFileByPath(move.from)) {
+			await app.fileManager.renameFile(f, move.from);
+		}
+	}
 }
 
 export async function duplicateFile(app: App, f: TFile): Promise<void> {

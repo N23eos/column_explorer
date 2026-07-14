@@ -1,5 +1,7 @@
-import { App, FuzzyMatch, FuzzySuggestModal, Modal, TFolder, getIconIds, setIcon } from "obsidian";
+import { App, FuzzyMatch, FuzzySuggestModal, Modal, TFile, TFolder, getIconIds, setIcon } from "obsidian";
 import { t } from "./i18n";
+import { renderPreviewContent } from "./preview";
+import type { ColumnExplorerView } from "./view";
 
 export class ConfirmModal extends Modal {
 	constructor(app: App, private message: string, private onConfirm: () => void) {
@@ -13,6 +15,20 @@ export class ConfirmModal extends Modal {
 		ok.addEventListener("click", () => { this.close(); this.onConfirm(); });
 		const cancel = row.createEl("button", { text: t("cancel") });
 		cancel.addEventListener("click", () => this.close());
+	}
+	onClose() { this.contentEl.empty(); }
+}
+
+/** Quick Look (как в Finder): пробел открывает превью, пробел/Esc закрывают. */
+export class QuickLookModal extends Modal {
+	constructor(app: App, private view: ColumnExplorerView, private file: TFile) {
+		super(app);
+	}
+	onOpen() {
+		this.modalEl.addClass("column-explorer-quicklook");
+		const inner = this.contentEl.createDiv({ cls: "column-explorer-preview-inner" });
+		renderPreviewContent(this.view, inner, this.file);
+		this.scope.register([], " ", () => { this.close(); return false; });
 	}
 	onClose() { this.contentEl.empty(); }
 }
