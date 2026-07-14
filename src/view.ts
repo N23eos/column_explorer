@@ -12,7 +12,7 @@ import {
 	setIcon,
 } from "obsidian";
 import { t } from "./i18n";
-import { prunePathKeys, remapPathKeys } from "./pure";
+import { lockStartDepth, prunePathKeys, remapPathKeys } from "./pure";
 import { displayName, folderNoteOf, visibleChildren } from "./utils";
 import { renderColumn, renderColumnList } from "./column";
 import { renderPreviewColumn } from "./preview";
@@ -43,6 +43,7 @@ export class ColumnExplorerView extends ItemView {
 	private breadcrumbsEl!: HTMLElement;
 	private searchInput!: HTMLInputElement;
 	private renamingPath: string | null = null;
+	private lockBtn!: HTMLElement;
 	private typeaheadBuffer = "";
 	private typeaheadTimer = 0;
 
@@ -92,6 +93,13 @@ export class ColumnExplorerView extends ItemView {
 		this.addToolbarButton(toolbar, "locate", t("reveal"), () => this.revealFile(this.app.workspace.getActiveFile()));
 		this.addToolbarButton(toolbar, "arrow-up-narrow-wide", t("sort"), (e) => showSortMenu(this, e));
 		this.addToolbarButton(toolbar, "chevrons-left", t("collapse"), () => { this.selection = []; this.clearMulti(); this.render(); });
+		this.lockBtn = this.addToolbarButton(toolbar, "lock-open", t("lockPanel"), () => {
+			const s = this.plugin.settings;
+			s.lockedColumnCount = s.lockedColumnCount === null ? this.folderColumnCount() : null;
+			void this.plugin.saveSettings();
+			this.render();
+		});
+		this.updateLockButton();
 
 		this.searchInput = toolbar.createEl("input", {
 			type: "search", cls: "column-explorer-search",
@@ -124,10 +132,18 @@ export class ColumnExplorerView extends ItemView {
 		this.render();
 	}
 
-	private addToolbarButton(parent: HTMLElement, icon: string, tooltip: string, onClick: (e: MouseEvent) => void) {
+	private addToolbarButton(parent: HTMLElement, icon: string, tooltip: string, onClick: (e: MouseEvent) => void): HTMLElement {
 		const btn = parent.createDiv({ cls: "clickable-icon column-explorer-toolbar-btn", attr: { "aria-label": tooltip } });
 		setIcon(btn, icon);
 		this.registerDomEvent(btn, "click", onClick);
+		return btn;
+	}
+
+	private updateLockButton() {
+		const locked = this.plugin.settings.lockedColumnCount !== null;
+		setIcon(this.lockBtn, locked ? "lock" : "lock-open");
+		this.lockBtn.setAttribute("aria-label", locked ? t("unlockPanel") : t("lockPanel"));
+		this.lockBtn.toggleClass("is-active", locked);
 	}
 
 	/* -------------------------- shared accessors --------------------- */
@@ -162,6 +178,15 @@ export class ColumnExplorerView extends ItemView {
 		this.multiSel.clear();
 		this.multiSelDepth = -1;
 		this.shiftAnchor = null;
+	}
+
+	/** Number of folder columns for the current selection chain (root column included). */
+	private folderColumnCount(): number {
+		for (let i = this.selection.length - 1; i >= 0; i--) {
+			const f = this.app.vault.getAbstractFileByPath(this.selection[i]);
+			if (f instanceof TFolder) return i + 2;
+		}
+		return 1;
 	}
 
 	currentFolder(): TFolder {
@@ -287,8 +312,14 @@ export class ColumnExplorerView extends ItemView {
 		}
 		this.selection = validSel;
 
-		renderColumn(this, this.columnsEl, this.app.vault.getRoot(), 0);
+		// Фиксация числа колонок: окно скользит, видны последние N колонок цепочки
+		const startDepth = lockStartDepth(this.folderColumnCount(), this.plugin.settings.lockedColumnCount);
+		this.updateLockButton();
+		this.columnsEl.toggleClass("is-locked", startDepth > 0);
+
+		if (startDepth === 0) renderColumn(this, this.columnsEl, this.app.vault.getRoot(), 0);
 		for (let depth = 0; depth < this.selection.length; depth++) {
+			if (depth + 1 < startDepth) continue;
 			const f = this.app.vault.getAbstractFileByPath(this.selection[depth]);
 			if (f instanceof TFolder) {
 				renderColumn(this, this.columnsEl, f, depth + 1);
@@ -296,6 +327,7 @@ export class ColumnExplorerView extends ItemView {
 				renderPreviewColumn(this, this.columnsEl, f);
 			}
 		}
+		if (startDepth > 0) this.markLockedColumn();
 
 		this.renderBreadcrumbs();
 		this.restoreScrollTops(scrollTops);
@@ -305,6 +337,17 @@ export class ColumnExplorerView extends ItemView {
 		window.requestAnimationFrame(() => {
 			this.columnsEl.scrollLeft = sameColumns ? prevScrollLeft : this.columnsEl.scrollWidth;
 		});
+	}
+
+	/** Lock badge in the header of the first visible (temporary root) column. */
+	private markLockedColumn() {
+		const col = this.columnsEl.querySelector<HTMLElement>(".column-explorer-column");
+		const header = col?.querySelector<HTMLElement>(".column-explorer-column-header");
+		if (!col || !header) return;
+		col.addClass("is-locked-root");
+		const badge = createDiv({ cls: "column-explorer-lock-badge" });
+		setIcon(badge, "lock");
+		header.prepend(badge);
 	}
 
 	private renderBreadcrumbs() {
@@ -346,6 +389,12 @@ export class ColumnExplorerView extends ItemView {
 	/* ----------------------------- actions --------------------------- */
 
 	selectItem(f: TAbstractFile, depth: number, e: MouseEvent) {
+		// Клик по колонке левее последней снимает фиксацию числа колонок
+		const s = this.plugin.settings;
+		if (s.lockedColumnCount !== null && depth < this.folderColumnCount() - 1) {
+			s.lockedColumnCount = null;
+			void this.plugin.saveSettings();
+		}
 		this.selection = this.selection.slice(0, depth);
 		this.selection.push(f.path);
 		this.shiftAnchor = f.path;

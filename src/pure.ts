@@ -98,6 +98,16 @@ export function movePinnedBefore(
 }
 
 /**
+ * First column depth to render when the column count is locked: the window
+ * shows only the last `lockedCount` folder columns of the chain.
+ * Returns 0 when unlocked or when the chain fits the window — render everything.
+ */
+export function lockStartDepth(folderColumns: number, lockedCount: number | null): number {
+	if (lockedCount === null) return 0;
+	return Math.max(0, folderColumns - Math.max(1, lockedCount));
+}
+
+/**
  * Pattern semantics:
  * - "folder/"  — the folder itself and everything inside it
  * - "*.tmp"    — glob matched against the file name (not the full path)

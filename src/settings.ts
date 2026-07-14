@@ -28,6 +28,8 @@ export interface ColumnExplorerSettings {
 	/** Custom folder icons (lucide icon ids). */
 	folderIcons: Record<string, string>;
 	openFolderNote: boolean;
+	/** Locked column count: only the last N columns of the chain are shown. */
+	lockedColumnCount: number | null;
 }
 
 export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
@@ -46,6 +48,7 @@ export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
 	columnSortModes: {},
 	folderIcons: {},
 	openFolderNote: false,
+	lockedColumnCount: null,
 };
 
 export const MIN_COLUMN_WIDTH = 140;

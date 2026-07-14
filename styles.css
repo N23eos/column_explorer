@@ -476,3 +476,23 @@
 	border-radius: 6px;
 	background: var(--background-secondary);
 }
+
+/* ---- v1.5: folder locked as temporary root ---- */
+
+.column-explorer-lock-badge {
+	display: flex;
+	align-items: center;
+	margin-right: 4px;
+	color: var(--interactive-accent);
+	flex-shrink: 0;
+}
+
+.column-explorer-lock-badge svg {
+	width: 12px;
+	height: 12px;
+}
+
+.column-explorer-toolbar-btn.is-active {
+	color: var(--interactive-accent);
+	background-color: var(--background-modifier-hover);
+}

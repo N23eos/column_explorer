@@ -97,6 +97,10 @@ function movePinnedBefore(pinned, dragPath, targetPath) {
   });
   return result;
 }
+function lockStartDepth(folderColumns, lockedCount) {
+  if (lockedCount === null) return 0;
+  return Math.max(0, folderColumns - Math.max(1, lockedCount));
+}
 function matchesExcludePatterns(path, patterns) {
   var _a;
   if (patterns.length === 0) return false;
@@ -195,7 +199,9 @@ var STRINGS = {
     folderIconReset: "Reset folder icon",
     iconPlaceholder: "Choose an icon\u2026",
     setFolderNote: "Open folder notes",
-    setFolderNoteDesc: "Selecting a folder also opens the note with the same name inside it, when one exists."
+    setFolderNoteDesc: "Selecting a folder also opens the note with the same name inside it, when one exists.",
+    lockPanel: "Lock column count",
+    unlockPanel: "Unlock columns"
   },
   ru: {
     newNote: "\u041D\u043E\u0432\u0430\u044F \u0437\u0430\u043C\u0435\u0442\u043A\u0430",
@@ -277,7 +283,9 @@ var STRINGS = {
     folderIconReset: "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443 \u043F\u0430\u043F\u043A\u0438",
     iconPlaceholder: "\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0438\u043A\u043E\u043D\u043A\u0443\u2026",
     setFolderNote: "\u041E\u0442\u043A\u0440\u044B\u0432\u0430\u0442\u044C \u0437\u0430\u043C\u0435\u0442\u043A\u0438 \u043F\u0430\u043F\u043E\u043A",
-    setFolderNoteDesc: "\u0412\u044B\u0431\u043E\u0440 \u043F\u0430\u043F\u043A\u0438 \u0442\u0430\u043A\u0436\u0435 \u043E\u0442\u043A\u0440\u044B\u0432\u0430\u0435\u0442 \u0437\u0430\u043C\u0435\u0442\u043A\u0443 \u0441 \u0435\u0451 \u0438\u043C\u0435\u043D\u0435\u043C \u0432\u043D\u0443\u0442\u0440\u0438, \u0435\u0441\u043B\u0438 \u043E\u043D\u0430 \u0435\u0441\u0442\u044C."
+    setFolderNoteDesc: "\u0412\u044B\u0431\u043E\u0440 \u043F\u0430\u043F\u043A\u0438 \u0442\u0430\u043A\u0436\u0435 \u043E\u0442\u043A\u0440\u044B\u0432\u0430\u0435\u0442 \u0437\u0430\u043C\u0435\u0442\u043A\u0443 \u0441 \u0435\u0451 \u0438\u043C\u0435\u043D\u0435\u043C \u0432\u043D\u0443\u0442\u0440\u0438, \u0435\u0441\u043B\u0438 \u043E\u043D\u0430 \u0435\u0441\u0442\u044C.",
+    lockPanel: "\u0417\u0430\u0444\u0438\u043A\u0441\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0447\u0438\u0441\u043B\u043E \u043A\u043E\u043B\u043E\u043D\u043E\u043A",
+    unlockPanel: "\u0421\u043D\u044F\u0442\u044C \u0444\u0438\u043A\u0441\u0430\u0446\u0438\u044E \u043A\u043E\u043B\u043E\u043D\u043E\u043A"
   }
 };
 function t(key, vars) {
@@ -305,7 +313,8 @@ var DEFAULT_SETTINGS = {
   pinnedPaths: {},
   columnSortModes: {},
   folderIcons: {},
-  openFolderNote: false
+  openFolderNote: false,
+  lockedColumnCount: null
 };
 var MIN_COLUMN_WIDTH = 140;
 var MAX_COLUMN_WIDTH = 500;
@@ -1147,6 +1156,13 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
       this.clearMulti();
       this.render();
     });
+    this.lockBtn = this.addToolbarButton(toolbar, "lock-open", t("lockPanel"), () => {
+      const s = this.plugin.settings;
+      s.lockedColumnCount = s.lockedColumnCount === null ? this.folderColumnCount() : null;
+      void this.plugin.saveSettings();
+      this.render();
+    });
+    this.updateLockButton();
     this.searchInput = toolbar.createEl("input", {
       type: "search",
       cls: "column-explorer-search",
@@ -1181,6 +1197,13 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     const btn = parent.createDiv({ cls: "clickable-icon column-explorer-toolbar-btn", attr: { "aria-label": tooltip } });
     (0, import_obsidian10.setIcon)(btn, icon);
     this.registerDomEvent(btn, "click", onClick);
+    return btn;
+  }
+  updateLockButton() {
+    const locked = this.plugin.settings.lockedColumnCount !== null;
+    (0, import_obsidian10.setIcon)(this.lockBtn, locked ? "lock" : "lock-open");
+    this.lockBtn.setAttribute("aria-label", locked ? t("unlockPanel") : t("lockPanel"));
+    this.lockBtn.toggleClass("is-active", locked);
   }
   /* -------------------------- shared accessors --------------------- */
   /** Visible (exclude-filtered, sorted, search-filtered) children of a folder. */
@@ -1213,6 +1236,14 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     this.multiSel.clear();
     this.multiSelDepth = -1;
     this.shiftAnchor = null;
+  }
+  /** Number of folder columns for the current selection chain (root column included). */
+  folderColumnCount() {
+    for (let i = this.selection.length - 1; i >= 0; i--) {
+      const f = this.app.vault.getAbstractFileByPath(this.selection[i]);
+      if (f instanceof import_obsidian10.TFolder) return i + 2;
+    }
+    return 1;
   }
   currentFolder() {
     for (let i = this.selection.length - 1; i >= 0; i--) {
@@ -1325,8 +1356,12 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
       else break;
     }
     this.selection = validSel;
-    renderColumn(this, this.columnsEl, this.app.vault.getRoot(), 0);
+    const startDepth = lockStartDepth(this.folderColumnCount(), this.plugin.settings.lockedColumnCount);
+    this.updateLockButton();
+    this.columnsEl.toggleClass("is-locked", startDepth > 0);
+    if (startDepth === 0) renderColumn(this, this.columnsEl, this.app.vault.getRoot(), 0);
     for (let depth = 0; depth < this.selection.length; depth++) {
+      if (depth + 1 < startDepth) continue;
       const f = this.app.vault.getAbstractFileByPath(this.selection[depth]);
       if (f instanceof import_obsidian10.TFolder) {
         renderColumn(this, this.columnsEl, f, depth + 1);
@@ -1334,12 +1369,23 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
         renderPreviewColumn(this, this.columnsEl, f);
       }
     }
+    if (startDepth > 0) this.markLockedColumn();
     this.renderBreadcrumbs();
     this.restoreScrollTops(scrollTops);
     const sameColumns = this.columnsKey() === prevKey;
     window.requestAnimationFrame(() => {
       this.columnsEl.scrollLeft = sameColumns ? prevScrollLeft : this.columnsEl.scrollWidth;
     });
+  }
+  /** Lock badge in the header of the first visible (temporary root) column. */
+  markLockedColumn() {
+    const col = this.columnsEl.querySelector(".column-explorer-column");
+    const header = col == null ? void 0 : col.querySelector(".column-explorer-column-header");
+    if (!col || !header) return;
+    col.addClass("is-locked-root");
+    const badge = createDiv({ cls: "column-explorer-lock-badge" });
+    (0, import_obsidian10.setIcon)(badge, "lock");
+    header.prepend(badge);
   }
   renderBreadcrumbs() {
     this.breadcrumbsEl.empty();
@@ -1377,6 +1423,11 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
   }
   /* ----------------------------- actions --------------------------- */
   selectItem(f, depth, e) {
+    const s = this.plugin.settings;
+    if (s.lockedColumnCount !== null && depth < this.folderColumnCount() - 1) {
+      s.lockedColumnCount = null;
+      void this.plugin.saveSettings();
+    }
     this.selection = this.selection.slice(0, depth);
     this.selection.push(f.path);
     this.shiftAnchor = f.path;

@@ -5,6 +5,7 @@ import {
 	matchesExcludePatterns,
 	parseExcludePatterns,
 	formatTemplate,
+	lockStartDepth,
 } from "../src/pure";
 
 describe("naturalCompare", () => {
@@ -196,5 +197,37 @@ describe("prunePathKeys", () => {
 	test("keeps keys that only share a prefix string", () => {
 		const record = { "ab": "red", "a": "blue" };
 		expect(prunePathKeys(record, "a")).toEqual({ "ab": "red" });
+	});
+});
+
+describe("lockStartDepth", () => {
+	test("returns 0 when unlocked", () => {
+		expect(lockStartDepth(3, null)).toBe(0);
+	});
+
+	test("returns 0 when the chain fits the locked window", () => {
+		expect(lockStartDepth(3, 3)).toBe(0);
+		expect(lockStartDepth(2, 3)).toBe(0);
+	});
+
+	test("hides columns to the left when the chain outgrows the window", () => {
+		// Arrange: chain grew to 5 folder columns, window locked at 3
+		const folderColumns = 5;
+		const lockedCount = 3;
+
+		// Act
+		const depth = lockStartDepth(folderColumns, lockedCount);
+
+		// Assert: first two columns are hidden, last three visible
+		expect(depth).toBe(2);
+	});
+
+	test("slides by one for each extra column", () => {
+		expect(lockStartDepth(4, 3)).toBe(1);
+		expect(lockStartDepth(6, 3)).toBe(3);
+	});
+
+	test("treats a non-positive locked count as a single column", () => {
+		expect(lockStartDepth(4, 0)).toBe(3);
 	});
 });
