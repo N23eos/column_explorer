@@ -97,9 +97,9 @@ function movePinnedBefore(pinned, dragPath, targetPath) {
   });
   return result;
 }
-function lockStartDepth(folderColumns, lockedCount) {
-  if (lockedCount === null) return 0;
-  return Math.max(0, folderColumns - Math.max(1, lockedCount));
+function lockedColumnVisible(depth, folderColumns, lockedCount) {
+  if (lockedCount === null) return true;
+  return depth < Math.max(1, lockedCount) - 1 || depth === folderColumns - 1;
 }
 function matchesExcludePatterns(path, patterns) {
   var _a;
@@ -1356,20 +1356,24 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
       else break;
     }
     this.selection = validSel;
-    const startDepth = lockStartDepth(this.folderColumnCount(), this.plugin.settings.lockedColumnCount);
+    const lockedCount = this.plugin.settings.lockedColumnCount;
+    const folderCols = this.folderColumnCount();
+    const hasGap = lockedCount !== null && folderCols > lockedCount;
     this.updateLockButton();
-    this.columnsEl.toggleClass("is-locked", startDepth > 0);
-    if (startDepth === 0) renderColumn(this, this.columnsEl, this.app.vault.getRoot(), 0);
+    this.columnsEl.toggleClass("is-locked", hasGap);
+    if (lockedColumnVisible(0, folderCols, lockedCount)) {
+      renderColumn(this, this.columnsEl, this.app.vault.getRoot(), 0);
+    }
     for (let depth = 0; depth < this.selection.length; depth++) {
-      if (depth + 1 < startDepth) continue;
       const f = this.app.vault.getAbstractFileByPath(this.selection[depth]);
       if (f instanceof import_obsidian10.TFolder) {
+        if (!lockedColumnVisible(depth + 1, folderCols, lockedCount)) continue;
         renderColumn(this, this.columnsEl, f, depth + 1);
       } else if (f instanceof import_obsidian10.TFile && this.plugin.settings.showPreview) {
         renderPreviewColumn(this, this.columnsEl, f);
       }
     }
-    if (startDepth > 0) this.markLockedColumn();
+    if (hasGap) this.markLockedColumn();
     this.renderBreadcrumbs();
     this.restoreScrollTops(scrollTops);
     const sameColumns = this.columnsKey() === prevKey;
@@ -1377,9 +1381,10 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
       this.columnsEl.scrollLeft = sameColumns ? prevScrollLeft : this.columnsEl.scrollWidth;
     });
   }
-  /** Lock badge in the header of the first visible (temporary root) column. */
+  /** Lock badge in the header of the deepest (in-place navigating) column. */
   markLockedColumn() {
-    const col = this.columnsEl.querySelector(".column-explorer-column");
+    const cols = this.columnsEl.querySelectorAll(".column-explorer-column[data-folder-path]");
+    const col = cols[cols.length - 1];
     const header = col == null ? void 0 : col.querySelector(".column-explorer-column-header");
     if (!col || !header) return;
     col.addClass("is-locked-root");

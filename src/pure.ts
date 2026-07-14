@@ -98,13 +98,14 @@ export function movePinnedBefore(
 }
 
 /**
- * First column depth to render when the column count is locked: the window
- * shows only the last `lockedCount` folder columns of the chain.
- * Returns 0 when unlocked or when the chain fits the window — render everything.
+ * Whether a folder column is visible when the column count is locked.
+ * The first `lockedCount − 1` columns stay frozen in place, the last slot
+ * always shows the deepest folder of the chain (navigation happens in it);
+ * intermediate columns between them are hidden.
  */
-export function lockStartDepth(folderColumns: number, lockedCount: number | null): number {
-	if (lockedCount === null) return 0;
-	return Math.max(0, folderColumns - Math.max(1, lockedCount));
+export function lockedColumnVisible(depth: number, folderColumns: number, lockedCount: number | null): boolean {
+	if (lockedCount === null) return true;
+	return depth < Math.max(1, lockedCount) - 1 || depth === folderColumns - 1;
 }
 
 /**

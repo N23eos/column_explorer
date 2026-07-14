@@ -12,7 +12,7 @@ import {
 	setIcon,
 } from "obsidian";
 import { t } from "./i18n";
-import { lockStartDepth, prunePathKeys, remapPathKeys } from "./pure";
+import { lockedColumnVisible, prunePathKeys, remapPathKeys } from "./pure";
 import { displayName, folderNoteOf, visibleChildren } from "./utils";
 import { renderColumn, renderColumnList } from "./column";
 import { renderPreviewColumn } from "./preview";
@@ -312,22 +312,28 @@ export class ColumnExplorerView extends ItemView {
 		}
 		this.selection = validSel;
 
-		// Фиксация числа колонок: окно скользит, видны последние N колонок цепочки
-		const startDepth = lockStartDepth(this.folderColumnCount(), this.plugin.settings.lockedColumnCount);
+		// Фиксация числа колонок: первые N−1 колонок заморожены на месте,
+		// последняя всегда показывает самую глубокую папку цепочки —
+		// переходы вглубь происходят внутри неё, промежуточные колонки скрыты
+		const lockedCount = this.plugin.settings.lockedColumnCount;
+		const folderCols = this.folderColumnCount();
+		const hasGap = lockedCount !== null && folderCols > lockedCount;
 		this.updateLockButton();
-		this.columnsEl.toggleClass("is-locked", startDepth > 0);
+		this.columnsEl.toggleClass("is-locked", hasGap);
 
-		if (startDepth === 0) renderColumn(this, this.columnsEl, this.app.vault.getRoot(), 0);
+		if (lockedColumnVisible(0, folderCols, lockedCount)) {
+			renderColumn(this, this.columnsEl, this.app.vault.getRoot(), 0);
+		}
 		for (let depth = 0; depth < this.selection.length; depth++) {
-			if (depth + 1 < startDepth) continue;
 			const f = this.app.vault.getAbstractFileByPath(this.selection[depth]);
 			if (f instanceof TFolder) {
+				if (!lockedColumnVisible(depth + 1, folderCols, lockedCount)) continue;
 				renderColumn(this, this.columnsEl, f, depth + 1);
 			} else if (f instanceof TFile && this.plugin.settings.showPreview) {
 				renderPreviewColumn(this, this.columnsEl, f);
 			}
 		}
-		if (startDepth > 0) this.markLockedColumn();
+		if (hasGap) this.markLockedColumn();
 
 		this.renderBreadcrumbs();
 		this.restoreScrollTops(scrollTops);
@@ -339,9 +345,10 @@ export class ColumnExplorerView extends ItemView {
 		});
 	}
 
-	/** Lock badge in the header of the first visible (temporary root) column. */
+	/** Lock badge in the header of the deepest (in-place navigating) column. */
 	private markLockedColumn() {
-		const col = this.columnsEl.querySelector<HTMLElement>(".column-explorer-column");
+		const cols = this.columnsEl.querySelectorAll<HTMLElement>(".column-explorer-column[data-folder-path]");
+		const col = cols[cols.length - 1];
 		const header = col?.querySelector<HTMLElement>(".column-explorer-column-header");
 		if (!col || !header) return;
 		col.addClass("is-locked-root");
