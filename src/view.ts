@@ -396,9 +396,9 @@ export class ColumnExplorerView extends ItemView {
 	/* ----------------------------- actions --------------------------- */
 
 	selectItem(f: TAbstractFile, depth: number, e: MouseEvent) {
-		// Клик по колонке левее последней снимает фиксацию числа колонок
+		// Клик по первой (крайней левой) колонке снимает фиксацию числа колонок
 		const s = this.plugin.settings;
-		if (s.lockedColumnCount !== null && depth < this.folderColumnCount() - 1) {
+		if (s.lockedColumnCount !== null && depth === 0) {
 			s.lockedColumnCount = null;
 			void this.plugin.saveSettings();
 		}
