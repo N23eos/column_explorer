@@ -477,15 +477,19 @@
 	background: var(--background-secondary);
 }
 
-/* ---- v1.5: locked panel (single column) ---- */
+/* ---- v1.5: folder locked as temporary root ---- */
 
-.column-explorer-columns.is-locked .column-explorer-column {
-	max-width: none;
-	flex: 1;
+.column-explorer-lock-badge {
+	display: flex;
+	align-items: center;
+	margin-right: 4px;
+	color: var(--interactive-accent);
+	flex-shrink: 0;
 }
 
-.column-explorer-columns.is-locked .column-explorer-resize-handle {
-	display: none;
+.column-explorer-lock-badge svg {
+	width: 12px;
+	height: 12px;
 }
 
 .column-explorer-toolbar-btn.is-active {

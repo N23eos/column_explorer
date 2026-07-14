@@ -28,8 +28,8 @@ export interface ColumnExplorerSettings {
 	/** Custom folder icons (lucide icon ids). */
 	folderIcons: Record<string, string>;
 	openFolderNote: boolean;
-	/** Locked panel: render a single column, navigate in place. */
-	panelLocked: boolean;
+	/** Folder locked as a temporary root: columns to its left are hidden. */
+	lockedFolderPath: string | null;
 }
 
 export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
@@ -48,7 +48,7 @@ export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
 	columnSortModes: {},
 	folderIcons: {},
 	openFolderNote: false,
-	panelLocked: false,
+	lockedFolderPath: null,
 };
 
 export const MIN_COLUMN_WIDTH = 140;

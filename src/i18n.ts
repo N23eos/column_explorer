@@ -40,7 +40,7 @@ const STRINGS: Record<string, Record<string, string>> = {
 		folderIcon: "Folder icon…", folderIconReset: "Reset folder icon",
 		iconPlaceholder: "Choose an icon…",
 		setFolderNote: "Open folder notes", setFolderNoteDesc: "Selecting a folder also opens the note with the same name inside it, when one exists.",
-		lockPanel: "Lock panel (single column)", unlockPanel: "Unlock panel",
+		lockPanel: "Lock current folder as root", unlockPanel: "Unlock folder",
 	},
 	ru: {
 		newNote: "Новая заметка", newFolder: "Новая папка", reveal: "Показать активный файл",
@@ -80,7 +80,7 @@ const STRINGS: Record<string, Record<string, string>> = {
 		folderIcon: "Иконка папки…", folderIconReset: "Сбросить иконку папки",
 		iconPlaceholder: "Выберите иконку…",
 		setFolderNote: "Открывать заметки папок", setFolderNoteDesc: "Выбор папки также открывает заметку с её именем внутри, если она есть.",
-		lockPanel: "Зафиксировать панель (одна колонка)", unlockPanel: "Снять фиксацию панели",
+		lockPanel: "Зафиксировать текущую папку как корень", unlockPanel: "Снять фиксацию папки",
 	},
 };
 
