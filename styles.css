@@ -22,9 +22,9 @@
 }
 
 .column-explorer-column {
-	min-width: 200px;
-	max-width: 280px;
-	flex: 1 0 200px;
+	/* Фиксированная ширина: flex-grow маскировал бы изменение ширины ручкой */
+	width: var(--ce-col-width, 200px);
+	flex: 0 0 var(--ce-col-width, 200px);
 	display: flex;
 	flex-direction: column;
 	border-right: 1px solid var(--background-modifier-border);
@@ -178,6 +178,9 @@
 .column-explorer-preview {
 	align-items: center;
 	justify-content: flex-start;
+	/* Превью шире обычной колонки — раньше это давал flex-grow */
+	width: 280px;
+	flex: 0 0 280px;
 }
 
 .column-explorer-preview-inner {
@@ -220,11 +223,6 @@
 	height: 24px;
 	font-size: var(--font-ui-smaller);
 	margin-left: auto;
-}
-
-.column-explorer-column {
-	min-width: var(--ce-col-width, 200px);
-	flex-basis: var(--ce-col-width, 200px);
 }
 
 .column-explorer-item.is-multi-selected {
@@ -525,9 +523,8 @@
 
 /* Mobile: full-width columns, no resize handles */
 .is-mobile .column-explorer-column {
-	min-width: 100%;
-	flex-basis: 100%;
-	max-width: none;
+	width: 100%;
+	flex: 0 0 100%;
 }
 
 .is-mobile .column-explorer-resize-handle {

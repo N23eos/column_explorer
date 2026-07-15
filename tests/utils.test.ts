@@ -245,33 +245,33 @@ describe("lockedColumnVisible", () => {
 });
 
 describe("desiredPanelWidth", () => {
-	test("width equals column count times column width", () => {
-		// Arrange: 3 columns of 200px, wide window
-		const columnCount = 3;
-		const columnWidth = 200;
+	test("returns the content width when it fits", () => {
+		// Arrange: columns sum to 600px, wide window
+		const contentWidth = 600;
 		const windowWidth = 2000;
+		const minWidth = 140;
 
 		// Act
-		const width = desiredPanelWidth(columnCount, columnWidth, windowWidth);
+		const width = desiredPanelWidth(contentWidth, windowWidth, minWidth);
 
 		// Assert
 		expect(width).toBe(600);
 	});
 
 	test("caps at 60% of the window width", () => {
-		// Arrange: 10 columns of 200px would be 2000px, window is 1000px
-		const width = desiredPanelWidth(10, 200, 1000);
+		// Arrange: 2000px of columns, window is 1000px
+		const width = desiredPanelWidth(2000, 1000, 140);
 
 		// Assert: capped at 1000 * 0.6
 		expect(width).toBe(600);
 	});
 
-	test("never shrinks below a single column", () => {
-		// Arrange: tiny window makes the cap smaller than one column
-		const width = desiredPanelWidth(1, 300, 400);
+	test("never shrinks below the minimum width", () => {
+		// Arrange: content narrower than the minimum column width
+		const width = desiredPanelWidth(100, 2000, 140);
 
-		// Assert: one column wins over the 240px cap
-		expect(width).toBe(300);
+		// Assert: floor wins
+		expect(width).toBe(140);
 	});
 });
 

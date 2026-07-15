@@ -16,6 +16,9 @@ export function renderColumn(view: ColumnExplorerView, container: HTMLElement, f
 	const col = container.createDiv({ cls: "column-explorer-column" });
 	col.dataset.depth = String(depth);
 	col.dataset.folderPath = folder.path;
+	// Индивидуальная ширина колонки перекрывает дефолтную из настроек
+	const customWidth = view.plugin.settings.columnWidths[folder.path];
+	if (customWidth) col.style.setProperty("--ce-col-width", customWidth + "px");
 
 	const header = col.createDiv({ cls: "column-explorer-column-header" });
 	header.createSpan({ cls: "column-explorer-column-title", text: folder.isRoot() ? view.app.vault.getName() : folder.name });
@@ -85,7 +88,7 @@ export function renderColumn(view: ColumnExplorerView, container: HTMLElement, f
 
 	setupColumnDnd(view, list, folder, depth);
 	renderColumnList(view, list, folder, depth);
-	addResizeHandle(view, col);
+	addResizeHandle(view, col, folder.path);
 	return col;
 }
 
@@ -199,23 +202,38 @@ function buildItem(view: ColumnExplorerView, f: TAbstractFile, depth: number, is
 	return item;
 }
 
-function addResizeHandle(view: ColumnExplorerView, col: HTMLElement) {
+/** Ручка на правом крае: тянет ширину ИМЕННО этой колонки, dblclick — сброс. */
+function addResizeHandle(view: ColumnExplorerView, col: HTMLElement, folderPath: string) {
 	const handle = col.createDiv({ cls: "column-explorer-resize-handle" });
 	handle.addEventListener("mousedown", (e: MouseEvent) => {
 		e.preventDefault();
 		const startX = e.clientX;
-		const startWidth = view.plugin.settings.columnWidth;
+		const startWidth = col.offsetWidth;
+		let width = startWidth;
 		const onMove = (ev: MouseEvent) => {
-			const width = Math.min(MAX_COLUMN_WIDTH, Math.max(MIN_COLUMN_WIDTH, startWidth + ev.clientX - startX));
-			view.plugin.settings.columnWidth = width;
-			view.applyColumnWidth();
+			width = Math.min(MAX_COLUMN_WIDTH, Math.max(MIN_COLUMN_WIDTH, startWidth + ev.clientX - startX));
+			col.style.setProperty("--ce-col-width", width + "px");
+			// Панель в авто-режиме следует за колонкой прямо во время драга
+			view.autoResizePanel();
 		};
 		const onUp = () => {
 			activeDocument.removeEventListener("mousemove", onMove);
 			activeDocument.removeEventListener("mouseup", onUp);
+			if (width === startWidth) return;
+			const s = view.plugin.settings;
+			s.columnWidths = { ...s.columnWidths, [folderPath]: width };
 			void view.plugin.saveSettings();
 		};
 		activeDocument.addEventListener("mousemove", onMove);
 		activeDocument.addEventListener("mouseup", onUp);
+	});
+	handle.addEventListener("dblclick", () => {
+		const s = view.plugin.settings;
+		const rest = { ...s.columnWidths };
+		delete rest[folderPath];
+		s.columnWidths = rest;
+		void view.plugin.saveSettings();
+		col.style.removeProperty("--ce-col-width");
+		view.autoResizePanel();
 	});
 }

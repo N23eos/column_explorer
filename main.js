@@ -109,9 +109,9 @@ function lockedColumnVisible(depth, folderColumns, lockedCount) {
   return depth < Math.max(1, lockedCount) - 1 || depth === folderColumns - 1;
 }
 var MAX_PANEL_WINDOW_RATIO = 0.6;
-function desiredPanelWidth(columnCount, columnWidth, windowWidth) {
-  const capped = Math.min(columnCount * columnWidth, windowWidth * MAX_PANEL_WINDOW_RATIO);
-  return Math.max(columnWidth, capped);
+function desiredPanelWidth(contentWidth, windowWidth, minWidth) {
+  const capped = Math.min(contentWidth, windowWidth * MAX_PANEL_WINDOW_RATIO);
+  return Math.max(minWidth, capped);
 }
 function matchesExcludePatterns(path, patterns) {
   var _a;
@@ -182,8 +182,8 @@ var STRINGS = {
     setMdPreviewDesc: "Render the beginning of Markdown notes in the preview column.",
     setConfirmDelete: "Confirm before deleting",
     setConfirmDeleteDesc: "Ask for confirmation before moving files to trash.",
-    setColWidth: "Minimum column width",
-    setColWidthDesc: "In pixels. Columns can also be resized by dragging their right edge.",
+    setColWidth: "Default column width",
+    setColWidthDesc: "In pixels. Drag a column's right edge to resize that column; double-click the edge to reset it.",
     setAutoPanel: "Auto-resize panel",
     setAutoPanelDesc: "Grow and shrink the sidebar panel to fit all open columns, keeping the column width fixed.",
     setSort: "Default sort order",
@@ -269,8 +269,8 @@ var STRINGS = {
     setMdPreviewDesc: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u043D\u0430\u0447\u0430\u043B\u043E Markdown-\u0437\u0430\u043C\u0435\u0442\u043A\u0438 \u0432 \u043A\u043E\u043B\u043E\u043D\u043A\u0435 \u043F\u0440\u0435\u0432\u044C\u044E.",
     setConfirmDelete: "\u041F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0430\u0442\u044C \u0443\u0434\u0430\u043B\u0435\u043D\u0438\u0435",
     setConfirmDeleteDesc: "\u0421\u043F\u0440\u0430\u0448\u0438\u0432\u0430\u0442\u044C \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u0438\u0435 \u043F\u0435\u0440\u0435\u0434 \u043F\u0435\u0440\u0435\u043C\u0435\u0449\u0435\u043D\u0438\u0435\u043C \u0432 \u043A\u043E\u0440\u0437\u0438\u043D\u0443.",
-    setColWidth: "\u041C\u0438\u043D\u0438\u043C\u0430\u043B\u044C\u043D\u0430\u044F \u0448\u0438\u0440\u0438\u043D\u0430 \u043A\u043E\u043B\u043E\u043D\u043A\u0438",
-    setColWidthDesc: "\u0412 \u043F\u0438\u043A\u0441\u0435\u043B\u044F\u0445. \u041A\u043E\u043B\u043E\u043D\u043A\u0438 \u0442\u0430\u043A\u0436\u0435 \u043C\u043E\u0436\u043D\u043E \u0442\u044F\u043D\u0443\u0442\u044C \u0437\u0430 \u043F\u0440\u0430\u0432\u044B\u0439 \u043A\u0440\u0430\u0439.",
+    setColWidth: "\u0428\u0438\u0440\u0438\u043D\u0430 \u043A\u043E\u043B\u043E\u043D\u043A\u0438 \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E",
+    setColWidthDesc: "\u0412 \u043F\u0438\u043A\u0441\u0435\u043B\u044F\u0445. \u041F\u0440\u0430\u0432\u044B\u0439 \u043A\u0440\u0430\u0439 \u043A\u043E\u043B\u043E\u043D\u043A\u0438: \u043F\u0435\u0440\u0435\u0442\u0430\u0449\u0438\u0442\u044C \u2014 \u0438\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u0448\u0438\u0440\u0438\u043D\u0443 \u044D\u0442\u043E\u0439 \u043A\u043E\u043B\u043E\u043D\u043A\u0438, \u0434\u0432\u043E\u0439\u043D\u043E\u0439 \u043A\u043B\u0438\u043A \u2014 \u0441\u0431\u0440\u043E\u0441\u0438\u0442\u044C.",
     setAutoPanel: "\u0410\u0432\u0442\u043E-\u0448\u0438\u0440\u0438\u043D\u0430 \u043F\u0430\u043D\u0435\u043B\u0438",
     setAutoPanelDesc: "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0440\u0430\u0441\u0448\u0438\u0440\u044F\u0442\u044C \u0438 \u0441\u0443\u0436\u0430\u0442\u044C \u0431\u043E\u043A\u043E\u0432\u0443\u044E \u043F\u0430\u043D\u0435\u043B\u044C \u043F\u043E\u0434 \u043E\u0442\u043A\u0440\u044B\u0442\u044B\u0435 \u043A\u043E\u043B\u043E\u043D\u043A\u0438, \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u044F \u0448\u0438\u0440\u0438\u043D\u0443 \u043A\u043E\u043B\u043E\u043D\u043E\u043A.",
     setSort: "\u0421\u043E\u0440\u0442\u0438\u0440\u043E\u0432\u043A\u0430 \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E",
@@ -324,6 +324,7 @@ var DEFAULT_SETTINGS = {
   confirmDelete: true,
   autoReveal: false,
   columnWidth: 200,
+  columnWidths: {},
   autoPanelResize: true,
   sortMode: "name-asc",
   excludePatterns: "",
@@ -1012,6 +1013,8 @@ function renderColumn(view, container, folder, depth) {
   const col = container.createDiv({ cls: "column-explorer-column" });
   col.dataset.depth = String(depth);
   col.dataset.folderPath = folder.path;
+  const customWidth = view.plugin.settings.columnWidths[folder.path];
+  if (customWidth) col.style.setProperty("--ce-col-width", customWidth + "px");
   const header = col.createDiv({ cls: "column-explorer-column-header" });
   header.createSpan({ cls: "column-explorer-column-title", text: folder.isRoot() ? view.app.vault.getName() : folder.name });
   header.createSpan({ cls: "column-explorer-column-count" });
@@ -1080,7 +1083,7 @@ function renderColumn(view, container, folder, depth) {
   });
   setupColumnDnd(view, list, folder, depth);
   renderColumnList(view, list, folder, depth);
-  addResizeHandle(view, col);
+  addResizeHandle(view, col, folder.path);
   return col;
 }
 var RENDER_CHUNK = 300;
@@ -1173,24 +1176,37 @@ function buildItem(view, f, depth, isGrid = false) {
   }
   return item;
 }
-function addResizeHandle(view, col) {
+function addResizeHandle(view, col, folderPath) {
   const handle = col.createDiv({ cls: "column-explorer-resize-handle" });
   handle.addEventListener("mousedown", (e) => {
     e.preventDefault();
     const startX = e.clientX;
-    const startWidth = view.plugin.settings.columnWidth;
+    const startWidth = col.offsetWidth;
+    let width = startWidth;
     const onMove = (ev) => {
-      const width = Math.min(MAX_COLUMN_WIDTH, Math.max(MIN_COLUMN_WIDTH, startWidth + ev.clientX - startX));
-      view.plugin.settings.columnWidth = width;
-      view.applyColumnWidth();
+      width = Math.min(MAX_COLUMN_WIDTH, Math.max(MIN_COLUMN_WIDTH, startWidth + ev.clientX - startX));
+      col.style.setProperty("--ce-col-width", width + "px");
+      view.autoResizePanel();
     };
     const onUp = () => {
       activeDocument.removeEventListener("mousemove", onMove);
       activeDocument.removeEventListener("mouseup", onUp);
+      if (width === startWidth) return;
+      const s = view.plugin.settings;
+      s.columnWidths = { ...s.columnWidths, [folderPath]: width };
       void view.plugin.saveSettings();
     };
     activeDocument.addEventListener("mousemove", onMove);
     activeDocument.addEventListener("mouseup", onUp);
+  });
+  handle.addEventListener("dblclick", () => {
+    const s = view.plugin.settings;
+    const rest = { ...s.columnWidths };
+    delete rest[folderPath];
+    s.columnWidths = rest;
+    void view.plugin.saveSettings();
+    col.style.removeProperty("--ce-col-width");
+    view.autoResizePanel();
   });
 }
 
@@ -1391,6 +1407,7 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     s.pinnedPaths = remapPathKeys(s.pinnedPaths, oldPath, newPath);
     s.columnSortModes = remapPathKeys(s.columnSortModes, oldPath, newPath);
     s.folderIcons = remapPathKeys(s.folderIcons, oldPath, newPath);
+    s.columnWidths = remapPathKeys(s.columnWidths, oldPath, newPath);
     void this.plugin.saveSettings();
   }
   prunePathRecords(deletedPath) {
@@ -1400,6 +1417,7 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     s.pinnedPaths = prunePathKeys(s.pinnedPaths, deletedPath);
     s.columnSortModes = prunePathKeys(s.columnSortModes, deletedPath);
     s.folderIcons = prunePathKeys(s.folderIcons, deletedPath);
+    s.columnWidths = prunePathKeys(s.columnWidths, deletedPath);
     void this.plugin.saveSettings();
   }
   /* ------------------------------ render --------------------------- */
@@ -1501,7 +1519,7 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
       this.columnsEl.scrollLeft = sameColumns ? prevScrollLeft : this.columnsEl.scrollWidth;
     });
   }
-  /** Авто-ширина панели: подгоняет ширину сайдбара под число открытых колонок. */
+  /** Авто-ширина панели: подгоняет ширину сайдбара под суммарную ширину колонок. */
   autoResizePanel() {
     if (!this.plugin.settings.autoPanelResize || import_obsidian10.Platform.isMobile) return;
     const ws = this.app.workspace;
@@ -1509,8 +1527,10 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     if (root !== ws.leftSplit && root !== ws.rightSplit) return;
     const split = root;
     if (split.collapsed || typeof split.setSize !== "function") return;
-    const count = this.columnsEl.querySelectorAll(".column-explorer-column").length;
-    split.setSize(desiredPanelWidth(Math.max(1, count), this.plugin.settings.columnWidth, window.innerWidth));
+    const cols = Array.from(this.columnsEl.querySelectorAll(".column-explorer-column"));
+    const contentWidth = cols.reduce((sum, col) => sum + col.offsetWidth, 0);
+    if (contentWidth === 0) return;
+    split.setSize(desiredPanelWidth(contentWidth, window.innerWidth, MIN_COLUMN_WIDTH));
   }
   /** Lock badge in the header of the deepest (in-place navigating) column. */
   markLockedColumn() {

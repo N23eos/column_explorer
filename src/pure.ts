@@ -123,12 +123,12 @@ export function lockedColumnVisible(depth: number, folderColumns: number, locked
 export const MAX_PANEL_WINDOW_RATIO = 0.6;
 
 /**
- * Panel width that fits `columnCount` columns of `columnWidth` px,
- * capped at MAX_PANEL_WINDOW_RATIO of the window but never below one column.
+ * Panel width that fits `contentWidth` px of columns, capped at
+ * MAX_PANEL_WINDOW_RATIO of the window but never below `minWidth`.
  */
-export function desiredPanelWidth(columnCount: number, columnWidth: number, windowWidth: number): number {
-	const capped = Math.min(columnCount * columnWidth, windowWidth * MAX_PANEL_WINDOW_RATIO);
-	return Math.max(columnWidth, capped);
+export function desiredPanelWidth(contentWidth: number, windowWidth: number, minWidth: number): number {
+	const capped = Math.min(contentWidth, windowWidth * MAX_PANEL_WINDOW_RATIO);
+	return Math.max(minWidth, capped);
 }
 
 /**

@@ -16,7 +16,10 @@ export interface ColumnExplorerSettings {
 	showMarkdownPreview: boolean;
 	confirmDelete: boolean;
 	autoReveal: boolean;
+	/** Default column width; individual columns can override it. */
 	columnWidth: number;
+	/** Per-folder column width overrides (path → px), set by dragging the edge. */
+	columnWidths: Record<string, number>;
 	/** Auto-resize the sidebar panel to fit all open columns. */
 	autoPanelResize: boolean;
 	sortMode: SortMode;
@@ -42,6 +45,7 @@ export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
 	confirmDelete: true,
 	autoReveal: false,
 	columnWidth: 200,
+	columnWidths: {},
 	autoPanelResize: true,
 	sortMode: "name-asc",
 	excludePatterns: "",

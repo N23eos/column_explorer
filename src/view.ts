@@ -15,6 +15,7 @@ import {
 import { t } from "./i18n";
 import { desiredPanelWidth, lockedColumnVisible, prunePathKeys, remapPathKeys } from "./pure";
 import { displayName, folderNoteOf, visibleChildren } from "./utils";
+import { MIN_COLUMN_WIDTH } from "./settings";
 import { renderColumn, renderColumnList } from "./column";
 import { renderPreviewColumn } from "./preview";
 import { showSortMenu } from "./menus";
@@ -241,6 +242,7 @@ export class ColumnExplorerView extends ItemView {
 		s.pinnedPaths = remapPathKeys(s.pinnedPaths, oldPath, newPath);
 		s.columnSortModes = remapPathKeys(s.columnSortModes, oldPath, newPath);
 		s.folderIcons = remapPathKeys(s.folderIcons, oldPath, newPath);
+		s.columnWidths = remapPathKeys(s.columnWidths, oldPath, newPath);
 		void this.plugin.saveSettings();
 	}
 
@@ -251,6 +253,7 @@ export class ColumnExplorerView extends ItemView {
 		s.pinnedPaths = prunePathKeys(s.pinnedPaths, deletedPath);
 		s.columnSortModes = prunePathKeys(s.columnSortModes, deletedPath);
 		s.folderIcons = prunePathKeys(s.folderIcons, deletedPath);
+		s.columnWidths = prunePathKeys(s.columnWidths, deletedPath);
 		void this.plugin.saveSettings();
 	}
 
@@ -368,8 +371,8 @@ export class ColumnExplorerView extends ItemView {
 		});
 	}
 
-	/** Авто-ширина панели: подгоняет ширину сайдбара под число открытых колонок. */
-	private autoResizePanel() {
+	/** Авто-ширина панели: подгоняет ширину сайдбара под суммарную ширину колонок. */
+	autoResizePanel() {
 		if (!this.plugin.settings.autoPanelResize || Platform.isMobile) return;
 		const ws = this.app.workspace;
 		const root: unknown = this.leaf.getRoot();
@@ -378,8 +381,10 @@ export class ColumnExplorerView extends ItemView {
 		// setSize — приватный API сайдбара; при его отсутствии тихо выходим
 		const split = root as { collapsed?: boolean; setSize?: (size: number) => void };
 		if (split.collapsed || typeof split.setSize !== "function") return;
-		const count = this.columnsEl.querySelectorAll(".column-explorer-column").length;
-		split.setSize(desiredPanelWidth(Math.max(1, count), this.plugin.settings.columnWidth, window.innerWidth));
+		const cols = Array.from(this.columnsEl.querySelectorAll<HTMLElement>(".column-explorer-column"));
+		const contentWidth = cols.reduce((sum, col) => sum + col.offsetWidth, 0);
+		if (contentWidth === 0) return;
+		split.setSize(desiredPanelWidth(contentWidth, window.innerWidth, MIN_COLUMN_WIDTH));
 	}
 
 	/** Lock badge in the header of the deepest (in-place navigating) column. */
