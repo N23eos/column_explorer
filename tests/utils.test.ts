@@ -5,7 +5,10 @@ import {
 	matchesExcludePatterns,
 	parseExcludePatterns,
 	formatTemplate,
-	lockStartDepth,
+	lockedColumnVisible,
+	desiredPanelWidth,
+	splitMatch,
+	parseDragPaths,
 } from "../src/pure";
 
 describe("naturalCompare", () => {
@@ -200,34 +203,116 @@ describe("prunePathKeys", () => {
 	});
 });
 
-describe("lockStartDepth", () => {
-	test("returns 0 when unlocked", () => {
-		expect(lockStartDepth(3, null)).toBe(0);
+describe("lockedColumnVisible", () => {
+	test("shows every column when unlocked", () => {
+		expect(lockedColumnVisible(0, 4, null)).toBe(true);
+		expect(lockedColumnVisible(3, 4, null)).toBe(true);
 	});
 
-	test("returns 0 when the chain fits the locked window", () => {
-		expect(lockStartDepth(3, 3)).toBe(0);
-		expect(lockStartDepth(2, 3)).toBe(0);
+	test("shows everything while the chain fits the locked count", () => {
+		// Arrange: locked at 3 columns, chain still has 3
+		const folderColumns = 3;
+		const lockedCount = 3;
+
+		// Act + Assert: depths 0..2 all visible
+		expect(lockedColumnVisible(0, folderColumns, lockedCount)).toBe(true);
+		expect(lockedColumnVisible(1, folderColumns, lockedCount)).toBe(true);
+		expect(lockedColumnVisible(2, folderColumns, lockedCount)).toBe(true);
 	});
 
-	test("hides columns to the left when the chain outgrows the window", () => {
-		// Arrange: chain grew to 5 folder columns, window locked at 3
+	test("freezes the prefix and shows the deepest column when the chain outgrows the lock", () => {
+		// Arrange: locked at 3, chain grew to 5 folder columns
 		const folderColumns = 5;
 		const lockedCount = 3;
 
-		// Act
-		const depth = lockStartDepth(folderColumns, lockedCount);
-
-		// Assert: first two columns are hidden, last three visible
-		expect(depth).toBe(2);
+		// Assert: first two frozen, intermediate hidden, deepest visible
+		expect(lockedColumnVisible(0, folderColumns, lockedCount)).toBe(true);
+		expect(lockedColumnVisible(1, folderColumns, lockedCount)).toBe(true);
+		expect(lockedColumnVisible(2, folderColumns, lockedCount)).toBe(false);
+		expect(lockedColumnVisible(3, folderColumns, lockedCount)).toBe(false);
+		expect(lockedColumnVisible(4, folderColumns, lockedCount)).toBe(true);
 	});
 
-	test("slides by one for each extra column", () => {
-		expect(lockStartDepth(4, 3)).toBe(1);
-		expect(lockStartDepth(6, 3)).toBe(3);
+	test("locked at a single column navigates in place", () => {
+		expect(lockedColumnVisible(0, 3, 1)).toBe(false);
+		expect(lockedColumnVisible(1, 3, 1)).toBe(false);
+		expect(lockedColumnVisible(2, 3, 1)).toBe(true);
 	});
 
 	test("treats a non-positive locked count as a single column", () => {
-		expect(lockStartDepth(4, 0)).toBe(3);
+		expect(lockedColumnVisible(0, 3, 0)).toBe(false);
+		expect(lockedColumnVisible(2, 3, 0)).toBe(true);
+	});
+});
+
+describe("desiredPanelWidth", () => {
+	test("returns the content width when it fits", () => {
+		// Arrange: columns sum to 600px, wide window
+		const contentWidth = 600;
+		const windowWidth = 2000;
+		const minWidth = 140;
+
+		// Act
+		const width = desiredPanelWidth(contentWidth, windowWidth, minWidth);
+
+		// Assert
+		expect(width).toBe(600);
+	});
+
+	test("caps at 60% of the window width", () => {
+		// Arrange: 2000px of columns, window is 1000px
+		const width = desiredPanelWidth(2000, 1000, 140);
+
+		// Assert: capped at 1000 * 0.6
+		expect(width).toBe(600);
+	});
+
+	test("never shrinks below the minimum width", () => {
+		// Arrange: content narrower than the minimum column width
+		const width = desiredPanelWidth(100, 2000, 140);
+
+		// Assert: floor wins
+		expect(width).toBe(140);
+	});
+});
+
+describe("splitMatch", () => {
+	test("splits the name around a case-insensitive match", () => {
+		// Arrange + Act
+		const parts = splitMatch("My Project Notes", "project");
+
+		// Assert
+		expect(parts).toEqual(["My ", "Project", " Notes"]);
+	});
+
+	test("returns null when the query is absent", () => {
+		expect(splitMatch("Notes", "xyz")).toBeNull();
+	});
+
+	test("returns null for an empty query", () => {
+		expect(splitMatch("Notes", "")).toBeNull();
+	});
+
+	test("matches at the very start and end", () => {
+		expect(splitMatch("note", "no")).toEqual(["", "no", "te"]);
+		expect(splitMatch("note", "te")).toEqual(["no", "te", ""]);
+	});
+});
+
+describe("parseDragPaths", () => {
+	test("parses a JSON array of paths", () => {
+		expect(parseDragPaths('["a/b.md","c.md"]')).toEqual(["a/b.md", "c.md"]);
+	});
+
+	test("falls back to the raw string when not JSON", () => {
+		expect(parseDragPaths("notes/file.md")).toEqual(["notes/file.md"]);
+	});
+
+	test("falls back to the raw string for non-array JSON", () => {
+		expect(parseDragPaths('{"x":1}')).toEqual(['{"x":1}']);
+	});
+
+	test("returns empty list for empty input", () => {
+		expect(parseDragPaths("")).toEqual([]);
 	});
 });

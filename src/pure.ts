@@ -2,8 +2,19 @@
  * Pure helpers with no Obsidian dependency — unit-testable in isolation.
  */
 
+// Один коллатор на модуль: localeCompare с опциями создаёт его на каждое сравнение
+const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: "base" });
+
 export function naturalCompare(a: string, b: string): number {
-	return a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" });
+	return collator.compare(a, b);
+}
+
+/** Split `name` around the first case-insensitive occurrence of `query`; null when absent. */
+export function splitMatch(name: string, query: string): [string, string, string] | null {
+	if (!query) return null;
+	const idx = name.toLowerCase().indexOf(query.toLowerCase());
+	if (idx === -1) return null;
+	return [name.slice(0, idx), name.slice(idx, idx + query.length), name.slice(idx + query.length)];
 }
 
 export function humanSize(bytes: number): string {
@@ -98,13 +109,37 @@ export function movePinnedBefore(
 }
 
 /**
- * First column depth to render when the column count is locked: the window
- * shows only the last `lockedCount` folder columns of the chain.
- * Returns 0 when unlocked or when the chain fits the window — render everything.
+ * Whether a folder column is visible when the column count is locked.
+ * The first `lockedCount − 1` columns stay frozen in place, the last slot
+ * always shows the deepest folder of the chain (navigation happens in it);
+ * intermediate columns between them are hidden.
  */
-export function lockStartDepth(folderColumns: number, lockedCount: number | null): number {
-	if (lockedCount === null) return 0;
-	return Math.max(0, folderColumns - Math.max(1, lockedCount));
+export function lockedColumnVisible(depth: number, folderColumns: number, lockedCount: number | null): boolean {
+	if (lockedCount === null) return true;
+	return depth < Math.max(1, lockedCount) - 1 || depth === folderColumns - 1;
+}
+
+/** Parse a drag payload: JSON array of vault paths, or a single raw path. */
+export function parseDragPaths(raw: string): string[] {
+	if (!raw) return [];
+	try {
+		const parsed: unknown = JSON.parse(raw);
+		return Array.isArray(parsed) ? parsed.map(String) : [raw];
+	} catch {
+		return [raw];
+	}
+}
+
+/** Auto panel resize: the panel never grows past this share of the window. */
+export const MAX_PANEL_WINDOW_RATIO = 0.6;
+
+/**
+ * Panel width that fits `contentWidth` px of columns, capped at
+ * MAX_PANEL_WINDOW_RATIO of the window but never below `minWidth`.
+ */
+export function desiredPanelWidth(contentWidth: number, windowWidth: number, minWidth: number): number {
+	const capped = Math.min(contentWidth, windowWidth * MAX_PANEL_WINDOW_RATIO);
+	return Math.max(minWidth, capped);
 }
 
 /**

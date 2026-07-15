@@ -16,7 +16,12 @@ export interface ColumnExplorerSettings {
 	showMarkdownPreview: boolean;
 	confirmDelete: boolean;
 	autoReveal: boolean;
+	/** Default column width; individual columns can override it. */
 	columnWidth: number;
+	/** Per-folder column width overrides (path → px), set by dragging the edge. */
+	columnWidths: Record<string, number>;
+	/** Auto-resize the sidebar panel to fit all open columns. */
+	autoPanelResize: boolean;
 	sortMode: SortMode;
 	excludePatterns: string;
 	folderColors: Record<string, FolderColorKey>;
@@ -40,6 +45,8 @@ export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
 	confirmDelete: true,
 	autoReveal: false,
 	columnWidth: 200,
+	columnWidths: {},
+	autoPanelResize: true,
 	sortMode: "name-asc",
 	excludePatterns: "",
 	folderColors: {},
@@ -82,6 +89,7 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 			{ name: t("setAutoReveal"), desc: t("setAutoRevealDesc"), control: { type: "toggle", key: "autoReveal" } },
 			{ name: t("setFolderNote"), desc: t("setFolderNoteDesc"), control: { type: "toggle", key: "openFolderNote" } },
 			{ name: t("setConfirmDelete"), desc: t("setConfirmDeleteDesc"), control: { type: "toggle", key: "confirmDelete" } },
+			{ name: t("setAutoPanel"), desc: t("setAutoPanelDesc"), control: { type: "toggle", key: "autoPanelResize" } },
 			{
 				name: t("setColWidth"), desc: t("setColWidthDesc"),
 				control: { type: "slider", key: "columnWidth", min: MIN_COLUMN_WIDTH, max: MAX_COLUMN_WIDTH, step: 10 },
@@ -135,6 +143,9 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl).setName(t("setConfirmDelete")).setDesc(t("setConfirmDeleteDesc"))
 			.addToggle(tg => tg.setValue(s.confirmDelete).onChange(async (v) => { s.confirmDelete = v; await save(); }));
+
+		new Setting(containerEl).setName(t("setAutoPanel")).setDesc(t("setAutoPanelDesc"))
+			.addToggle(tg => tg.setValue(s.autoPanelResize).onChange(async (v) => { s.autoPanelResize = v; await save(); }));
 
 		new Setting(containerEl).setName(t("setColWidth")).setDesc(t("setColWidthDesc"))
 			.addSlider(sl => sl.setLimits(MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH, 10)

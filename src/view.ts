@@ -4,6 +4,7 @@ import {
 	TAbstractFile,
 	TFile,
 	TFolder,
+	Platform,
 	ViewStateResult,
 	WorkspaceLeaf,
 	Keymap,
@@ -12,12 +13,13 @@ import {
 	setIcon,
 } from "obsidian";
 import { t } from "./i18n";
-import { lockStartDepth, prunePathKeys, remapPathKeys } from "./pure";
+import { desiredPanelWidth, lockedColumnVisible, prunePathKeys, remapPathKeys } from "./pure";
 import { displayName, folderNoteOf, visibleChildren } from "./utils";
+import { MIN_COLUMN_WIDTH } from "./settings";
 import { renderColumn, renderColumnList } from "./column";
 import { renderPreviewColumn } from "./preview";
 import { showSortMenu } from "./menus";
-import { ConfirmModal } from "./modals";
+import { ConfirmModal, QuickLookModal } from "./modals";
 import { trashFiles } from "./fileops";
 import type ColumnExplorerPlugin from "./main";
 
@@ -51,6 +53,11 @@ export class ColumnExplorerView extends ItemView {
 	private dirtyFolders: Set<string> = new Set();
 	private fullRenderPending = false;
 	private flushRefresh = debounce(() => this.doRefresh(), 60, true);
+	/** Дебаунс поиска: полный render на каждую букву лагает на больших vault */
+	private applyFilter = debounce(() => {
+		this.filter = this.searchInput.value.toLowerCase().trim();
+		this.render();
+	}, 150, true);
 
 	constructor(leaf: WorkspaceLeaf, plugin: ColumnExplorerPlugin) {
 		super(leaf);
@@ -100,17 +107,25 @@ export class ColumnExplorerView extends ItemView {
 			this.render();
 		});
 		this.updateLockButton();
+		// На телефоне всегда одна колонка — фиксация числа колонок не нужна
+		if (Platform.isMobile) this.lockBtn.hide();
 
 		this.searchInput = toolbar.createEl("input", {
 			type: "search", cls: "column-explorer-search",
-			attr: { placeholder: t("search") },
+			attr: { placeholder: t("search"), "aria-label": t("search") },
 		});
-		this.registerDomEvent(this.searchInput, "input", () => {
-			this.filter = this.searchInput.value.toLowerCase().trim();
-			this.render();
+		this.registerDomEvent(this.searchInput, "input", () => this.applyFilter());
+		this.registerDomEvent(this.searchInput, "keydown", (e) => {
+			if (e.key !== "Escape") return;
+			e.preventDefault();
+			this.clearFilter();
+			this.columnsEl.focus();
 		});
 
-		this.breadcrumbsEl = container.createDiv({ cls: "column-explorer-breadcrumbs" });
+		this.breadcrumbsEl = container.createDiv({
+			cls: "column-explorer-breadcrumbs",
+			attr: { role: "navigation", "aria-label": "Breadcrumbs" },
+		});
 
 		this.columnsEl = container.createDiv({ cls: "column-explorer-columns" });
 		this.columnsEl.tabIndex = 0;
@@ -160,6 +175,13 @@ export class ColumnExplorerView extends ItemView {
 	}
 
 	hasFilter(): boolean { return this.filter.length > 0; }
+	filterQuery(): string { return this.filter; }
+
+	private clearFilter() {
+		this.filter = "";
+		this.searchInput.value = "";
+		this.render();
+	}
 	isRenaming(path: string): boolean { return this.renamingPath === path; }
 
 	selectedFilePath(): string | null {
@@ -220,6 +242,7 @@ export class ColumnExplorerView extends ItemView {
 		s.pinnedPaths = remapPathKeys(s.pinnedPaths, oldPath, newPath);
 		s.columnSortModes = remapPathKeys(s.columnSortModes, oldPath, newPath);
 		s.folderIcons = remapPathKeys(s.folderIcons, oldPath, newPath);
+		s.columnWidths = remapPathKeys(s.columnWidths, oldPath, newPath);
 		void this.plugin.saveSettings();
 	}
 
@@ -230,6 +253,7 @@ export class ColumnExplorerView extends ItemView {
 		s.pinnedPaths = prunePathKeys(s.pinnedPaths, deletedPath);
 		s.columnSortModes = prunePathKeys(s.columnSortModes, deletedPath);
 		s.folderIcons = prunePathKeys(s.folderIcons, deletedPath);
+		s.columnWidths = prunePathKeys(s.columnWidths, deletedPath);
 		void this.plugin.saveSettings();
 	}
 
@@ -312,22 +336,29 @@ export class ColumnExplorerView extends ItemView {
 		}
 		this.selection = validSel;
 
-		// Фиксация числа колонок: окно скользит, видны последние N колонок цепочки
-		const startDepth = lockStartDepth(this.folderColumnCount(), this.plugin.settings.lockedColumnCount);
+		// Фиксация числа колонок: первые N−1 колонок заморожены на месте,
+		// последняя всегда показывает самую глубокую папку цепочки —
+		// переходы вглубь происходят внутри неё, промежуточные колонки скрыты
+		// На телефоне экран узкий — всегда показываем только самую глубокую колонку
+		const lockedCount = Platform.isMobile ? 1 : this.plugin.settings.lockedColumnCount;
+		const folderCols = this.folderColumnCount();
+		const hasGap = lockedCount !== null && folderCols > lockedCount;
 		this.updateLockButton();
-		this.columnsEl.toggleClass("is-locked", startDepth > 0);
+		this.columnsEl.toggleClass("is-locked", hasGap);
 
-		if (startDepth === 0) renderColumn(this, this.columnsEl, this.app.vault.getRoot(), 0);
+		if (lockedColumnVisible(0, folderCols, lockedCount)) {
+			renderColumn(this, this.columnsEl, this.app.vault.getRoot(), 0);
+		}
 		for (let depth = 0; depth < this.selection.length; depth++) {
-			if (depth + 1 < startDepth) continue;
 			const f = this.app.vault.getAbstractFileByPath(this.selection[depth]);
 			if (f instanceof TFolder) {
+				if (!lockedColumnVisible(depth + 1, folderCols, lockedCount)) continue;
 				renderColumn(this, this.columnsEl, f, depth + 1);
 			} else if (f instanceof TFile && this.plugin.settings.showPreview) {
 				renderPreviewColumn(this, this.columnsEl, f);
 			}
 		}
-		if (startDepth > 0) this.markLockedColumn();
+		if (hasGap && !Platform.isMobile) this.markLockedColumn();
 
 		this.renderBreadcrumbs();
 		this.restoreScrollTops(scrollTops);
@@ -335,13 +366,31 @@ export class ColumnExplorerView extends ItemView {
 		// при клике внутри тех же колонок скролл остаётся на месте
 		const sameColumns = this.columnsKey() === prevKey;
 		window.requestAnimationFrame(() => {
+			this.autoResizePanel();
 			this.columnsEl.scrollLeft = sameColumns ? prevScrollLeft : this.columnsEl.scrollWidth;
 		});
 	}
 
-	/** Lock badge in the header of the first visible (temporary root) column. */
+	/** Авто-ширина панели: подгоняет ширину сайдбара под суммарную ширину колонок. */
+	autoResizePanel() {
+		if (!this.plugin.settings.autoPanelResize || Platform.isMobile) return;
+		const ws = this.app.workspace;
+		const root: unknown = this.leaf.getRoot();
+		// Вью в центральной области — ширину не трогаем
+		if (root !== ws.leftSplit && root !== ws.rightSplit) return;
+		// setSize — приватный API сайдбара; при его отсутствии тихо выходим
+		const split = root as { collapsed?: boolean; setSize?: (size: number) => void };
+		if (split.collapsed || typeof split.setSize !== "function") return;
+		const cols = Array.from(this.columnsEl.querySelectorAll<HTMLElement>(".column-explorer-column"));
+		const contentWidth = cols.reduce((sum, col) => sum + col.offsetWidth, 0);
+		if (contentWidth === 0) return;
+		split.setSize(desiredPanelWidth(contentWidth, window.innerWidth, MIN_COLUMN_WIDTH));
+	}
+
+	/** Lock badge in the header of the deepest (in-place navigating) column. */
 	private markLockedColumn() {
-		const col = this.columnsEl.querySelector<HTMLElement>(".column-explorer-column");
+		const cols = this.columnsEl.querySelectorAll<HTMLElement>(".column-explorer-column[data-folder-path]");
+		const col = cols[cols.length - 1];
 		const header = col?.querySelector<HTMLElement>(".column-explorer-column-header");
 		if (!col || !header) return;
 		col.addClass("is-locked-root");
@@ -389,9 +438,10 @@ export class ColumnExplorerView extends ItemView {
 	/* ----------------------------- actions --------------------------- */
 
 	selectItem(f: TAbstractFile, depth: number, e: MouseEvent) {
-		// Клик по колонке левее последней снимает фиксацию числа колонок
+		// Фиксацию снимает только клик по самой левой колонке;
+		// клики по остальным — обычная навигация, замок держится
 		const s = this.plugin.settings;
-		if (s.lockedColumnCount !== null && depth < this.folderColumnCount() - 1) {
+		if (s.lockedColumnCount !== null && depth === 0 && this.folderColumnCount() > 1) {
 			s.lockedColumnCount = null;
 			void this.plugin.saveSettings();
 		}
@@ -431,7 +481,7 @@ export class ColumnExplorerView extends ItemView {
 
 	revealFile(file: TFile | null) {
 		if (!file) return;
-		if (this.filter) { this.filter = ""; this.searchInput.value = ""; }
+		if (this.hasFilter()) { this.filter = ""; this.searchInput.value = ""; }
 		const chain: string[] = [];
 		let cur: TAbstractFile | null = file;
 		while (cur && cur.parent) {
@@ -583,6 +633,14 @@ export class ColumnExplorerView extends ItemView {
 			} else if (f instanceof TFile && e.key === "Enter") {
 				void this.app.workspace.getLeaf(false).openFile(f);
 			}
+		} else if (e.key === " ") {
+			// Quick Look: как в Finder — пробел открывает превью выделенного файла
+			e.preventDefault();
+			const f = selectedPath ? this.app.vault.getAbstractFileByPath(selectedPath) : null;
+			if (f instanceof TFile) new QuickLookModal(this.app, this, f).open();
+		} else if (e.key === "Escape" && this.hasFilter()) {
+			e.preventDefault();
+			this.clearFilter();
 		} else if (e.key === "F2") {
 			e.preventDefault();
 			const f = selectedPath ? this.app.vault.getAbstractFileByPath(selectedPath) : null;
