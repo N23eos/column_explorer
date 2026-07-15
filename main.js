@@ -108,6 +108,15 @@ function lockedColumnVisible(depth, folderColumns, lockedCount) {
   if (lockedCount === null) return true;
   return depth < Math.max(1, lockedCount) - 1 || depth === folderColumns - 1;
 }
+function parseDragPaths(raw) {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.map(String) : [raw];
+  } catch (e) {
+    return [raw];
+  }
+}
 var MAX_PANEL_WINDOW_RATIO = 0.6;
 function desiredPanelWidth(contentWidth, windowWidth, minWidth) {
   const capped = Math.min(contentWidth, windowWidth * MAX_PANEL_WINDOW_RATIO);
@@ -588,6 +597,7 @@ async function trashFiles(app, paths) {
 }
 
 // src/dnd.ts
+var activeDragPaths = null;
 function itemUnderEvent(listEl, e) {
   var _a;
   const target = e.target;
@@ -614,7 +624,7 @@ function setupColumnDnd(view, listEl, columnFolder, depth) {
     const f = app.vault.getAbstractFileByPath(item.dataset.path);
     if (!f) return;
     const paths = view.dragPayload(f, depth);
-    (_a = e.dataTransfer) == null ? void 0 : _a.setData("text/plain", JSON.stringify(paths));
+    activeDragPaths = paths;
     if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
     try {
       const dragManager = app.dragManager;
@@ -624,6 +634,11 @@ function setupColumnDnd(view, listEl, columnFolder, depth) {
       }
     } catch (e2) {
     }
+    (_a = e.dataTransfer) == null ? void 0 : _a.setData("text/plain", JSON.stringify(paths));
+  });
+  listEl.addEventListener("dragend", () => {
+    activeDragPaths = null;
+    setHighlight(null);
   });
   listEl.addEventListener("dragover", (e) => {
     e.preventDefault();
@@ -636,20 +651,14 @@ function setupColumnDnd(view, listEl, columnFolder, depth) {
     if (!listEl.contains(e.relatedTarget)) setHighlight(null);
   });
   listEl.addEventListener("drop", (e) => {
-    var _a, _b;
+    var _a, _b, _c;
     e.preventDefault();
     e.stopPropagation();
     const dropFolder = (_a = folderForItem(app, itemUnderEvent(listEl, e))) != null ? _a : columnFolder;
     setHighlight(null);
-    const raw = (_b = e.dataTransfer) == null ? void 0 : _b.getData("text/plain");
-    if (!raw) return;
-    let paths;
-    try {
-      const parsed = JSON.parse(raw);
-      paths = Array.isArray(parsed) ? parsed.map(String) : [raw];
-    } catch (e2) {
-      paths = [raw];
-    }
+    const paths = activeDragPaths != null ? activeDragPaths : parseDragPaths((_c = (_b = e.dataTransfer) == null ? void 0 : _b.getData("text/plain")) != null ? _c : "");
+    activeDragPaths = null;
+    if (paths.length === 0) return;
     if (paths.length === 1 && reorderPinned(view, paths[0], itemUnderEvent(listEl, e))) return;
     void moveFiles(app, paths, dropFolder).then(() => view.clearMulti());
   });
@@ -1580,7 +1589,7 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
   /* ----------------------------- actions --------------------------- */
   selectItem(f, depth, e) {
     const s = this.plugin.settings;
-    if (s.lockedColumnCount !== null && depth < this.folderColumnCount() - 1) {
+    if (s.lockedColumnCount !== null && depth === 0 && this.folderColumnCount() > 1) {
       s.lockedColumnCount = null;
       void this.plugin.saveSettings();
     }

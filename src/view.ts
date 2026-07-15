@@ -438,9 +438,10 @@ export class ColumnExplorerView extends ItemView {
 	/* ----------------------------- actions --------------------------- */
 
 	selectItem(f: TAbstractFile, depth: number, e: MouseEvent) {
-		// Клик по колонке левее последней снимает фиксацию числа колонок
+		// Фиксацию снимает только клик по самой левой колонке;
+		// клики по остальным — обычная навигация, замок держится
 		const s = this.plugin.settings;
-		if (s.lockedColumnCount !== null && depth < this.folderColumnCount() - 1) {
+		if (s.lockedColumnCount !== null && depth === 0 && this.folderColumnCount() > 1) {
 			s.lockedColumnCount = null;
 			void this.plugin.saveSettings();
 		}
