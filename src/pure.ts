@@ -119,6 +119,17 @@ export function lockedColumnVisible(depth: number, folderColumns: number, locked
 	return depth < Math.max(1, lockedCount) - 1 || depth === folderColumns - 1;
 }
 
+/** Parse a drag payload: JSON array of vault paths, or a single raw path. */
+export function parseDragPaths(raw: string): string[] {
+	if (!raw) return [];
+	try {
+		const parsed: unknown = JSON.parse(raw);
+		return Array.isArray(parsed) ? parsed.map(String) : [raw];
+	} catch {
+		return [raw];
+	}
+}
+
 /** Auto panel resize: the panel never grows past this share of the window. */
 export const MAX_PANEL_WINDOW_RATIO = 0.6;
 

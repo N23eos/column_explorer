@@ -1,7 +1,15 @@
 import { App, TFile, TFolder } from "obsidian";
 import { moveFiles } from "./fileops";
-import { movePinnedBefore } from "./pure";
+import { movePinnedBefore, parseDragPaths } from "./pure";
 import type { ColumnExplorerView } from "./view";
+
+/**
+ * Пути текущего внутреннего перетаскивания. Интеграция с dragManager
+ * Obsidian может перезаписать text/plain в dataTransfer, поэтому для
+ * перемещений между колонками полагаемся на своё состояние; dataTransfer —
+ * только fallback для перетаскиваний извне.
+ */
+let activeDragPaths: string[] | null = null;
 
 interface DragManagerLike {
 	dragFile: (e: DragEvent, f: TFile) => unknown;
@@ -43,7 +51,7 @@ export function setupColumnDnd(view: ColumnExplorerView, listEl: HTMLElement, co
 		const f = app.vault.getAbstractFileByPath(item.dataset.path);
 		if (!f) return;
 		const paths = view.dragPayload(f, depth);
-		e.dataTransfer?.setData("text/plain", JSON.stringify(paths));
+		activeDragPaths = paths;
 		if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
 		// Интеграция с нативным drag&drop Obsidian (вставка ссылки в редактор).
 		// Приватный API — оборачиваем в try, чтобы поломка в будущих версиях
@@ -57,6 +65,13 @@ export function setupColumnDnd(view: ColumnExplorerView, listEl: HTMLElement, co
 				dragManager.onDragStart(e, dragData);
 			}
 		} catch { /* ignore */ }
+		// Свой payload — после dragManager: он мог перезаписать text/plain
+		e.dataTransfer?.setData("text/plain", JSON.stringify(paths));
+	});
+
+	listEl.addEventListener("dragend", () => {
+		activeDragPaths = null;
+		setHighlight(null);
 	});
 
 	listEl.addEventListener("dragover", (e: DragEvent) => {
@@ -76,15 +91,10 @@ export function setupColumnDnd(view: ColumnExplorerView, listEl: HTMLElement, co
 		e.stopPropagation();
 		const dropFolder = folderForItem(app, itemUnderEvent(listEl, e)) ?? columnFolder;
 		setHighlight(null);
-		const raw = e.dataTransfer?.getData("text/plain");
-		if (!raw) return;
-		let paths: string[];
-		try {
-			const parsed: unknown = JSON.parse(raw);
-			paths = Array.isArray(parsed) ? parsed.map(String) : [raw];
-		} catch {
-			paths = [raw];
-		}
+		// Внутренний драг — из состояния; dataTransfer только для внешних
+		const paths = activeDragPaths ?? parseDragPaths(e.dataTransfer?.getData("text/plain") ?? "");
+		activeDragPaths = null;
+		if (paths.length === 0) return;
 		if (paths.length === 1 && reorderPinned(view, paths[0], itemUnderEvent(listEl, e))) return;
 		void moveFiles(app, paths, dropFolder).then(() => view.clearMulti());
 	});

@@ -8,6 +8,7 @@ import {
 	lockedColumnVisible,
 	desiredPanelWidth,
 	splitMatch,
+	parseDragPaths,
 } from "../src/pure";
 
 describe("naturalCompare", () => {
@@ -295,5 +296,23 @@ describe("splitMatch", () => {
 	test("matches at the very start and end", () => {
 		expect(splitMatch("note", "no")).toEqual(["", "no", "te"]);
 		expect(splitMatch("note", "te")).toEqual(["no", "te", ""]);
+	});
+});
+
+describe("parseDragPaths", () => {
+	test("parses a JSON array of paths", () => {
+		expect(parseDragPaths('["a/b.md","c.md"]')).toEqual(["a/b.md", "c.md"]);
+	});
+
+	test("falls back to the raw string when not JSON", () => {
+		expect(parseDragPaths("notes/file.md")).toEqual(["notes/file.md"]);
+	});
+
+	test("falls back to the raw string for non-array JSON", () => {
+		expect(parseDragPaths('{"x":1}')).toEqual(['{"x":1}']);
+	});
+
+	test("returns empty list for empty input", () => {
+		expect(parseDragPaths("")).toEqual([]);
 	});
 });
