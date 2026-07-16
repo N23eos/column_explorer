@@ -4,11 +4,7 @@
 
 Browse your Obsidian vault in **Finder-style Miller columns** — click a folder and its contents open in a new column to the right. A full file manager: create, rename, move, drag & drop, multi-select, context menus, folder colors and more.
 
-![Column Explorer — list view with folder colors and breadcrumbs](docs/screenshot-1.jpg)
-
-Every column can switch between a compact list and an icon grid — the choice is remembered per folder:
-
-![Column Explorer — icon view per column](docs/screenshot-2.jpg)
+![Column Explorer — Miller columns with folder colors, icons and breadcrumbs](docs/screenshot.jpg)
 
 ## Features
 
