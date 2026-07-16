@@ -1,4 +1,4 @@
-<p align="center"><img src="assets/readme-header.png" alt="" width="160"></p>
+
 
 # Column Explorer
 
