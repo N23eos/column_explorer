@@ -483,13 +483,8 @@ export class ColumnExplorerView extends ItemView {
 	}
 
 	selectItem(f: TAbstractFile, depth: number, e: MouseEvent) {
-		// Фиксацию снимает только клик по самой левой колонке;
-		// клики по остальным — обычная навигация, замок держится
-		const s = this.plugin.settings;
-		if (s.lockedColumnCount !== null && depth === 0 && this.folderColumnCount() > 1) {
-			s.lockedColumnCount = null;
-			void this.plugin.saveSettings();
-		}
+		// Фиксация снимается только вручную кнопкой в тулбаре —
+		// навигация (включая клики в первой колонке) замок не трогает
 		this.selection = this.selection.slice(0, depth);
 		this.selection.push(f.path);
 		this.shiftAnchor = f.path;

@@ -1767,11 +1767,6 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     this.render();
   }
   selectItem(f, depth, e) {
-    const s = this.plugin.settings;
-    if (s.lockedColumnCount !== null && depth === 0 && this.folderColumnCount() > 1) {
-      s.lockedColumnCount = null;
-      void this.plugin.saveSettings();
-    }
     this.selection = this.selection.slice(0, depth);
     this.selection.push(f.path);
     this.shiftAnchor = f.path;
