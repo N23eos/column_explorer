@@ -35,6 +35,8 @@ export interface ColumnExplorerSettings {
 	openFolderNote: boolean;
 	/** Locked column count: only the last N columns of the chain are shown. */
 	lockedColumnCount: number | null;
+	/** How many entries the virtual "Recent files" column shows. */
+	recentFilesCount: number;
 }
 
 export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
@@ -56,7 +58,12 @@ export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
 	folderIcons: {},
 	openFolderNote: false,
 	lockedColumnCount: null,
+	recentFilesCount: 10,
 };
+
+export const MIN_RECENT_FILES = 5;
+/** Obsidian's own recent-file tracker stores at most 25 markdown paths. */
+export const MAX_RECENT_FILES = 25;
 
 export const MIN_COLUMN_WIDTH = 140;
 export const MAX_COLUMN_WIDTH = 500;
@@ -95,6 +102,10 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 			{
 				name: t("setColWidth"), desc: t("setColWidthDesc"),
 				control: { type: "slider", key: "columnWidth", min: MIN_COLUMN_WIDTH, max: MAX_COLUMN_WIDTH, step: 10 },
+			},
+			{
+				name: t("setRecentCount"), desc: t("setRecentCountDesc"),
+				control: { type: "slider", key: "recentFilesCount", min: MIN_RECENT_FILES, max: MAX_RECENT_FILES, step: 1 },
 			},
 			{ name: t("setExclude"), desc: t("setExcludeDesc"), control: { type: "text", key: "excludePatterns" } },
 		];
@@ -153,6 +164,11 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 			.addSlider(sl => sl.setLimits(MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH, 10)
 				.setValue(s.columnWidth)
 				.onChange(async (v) => { s.columnWidth = v; await save(); }));
+
+		new Setting(containerEl).setName(t("setRecentCount")).setDesc(t("setRecentCountDesc"))
+			.addSlider(sl => sl.setLimits(MIN_RECENT_FILES, MAX_RECENT_FILES, 1)
+				.setValue(s.recentFilesCount)
+				.onChange(async (v) => { s.recentFilesCount = v; await save(); }));
 
 		new Setting(containerEl).setName(t("setExclude")).setDesc(t("setExcludeDesc"))
 			.addText(txt => txt.setValue(s.excludePatterns)

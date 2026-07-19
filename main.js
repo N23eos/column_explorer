@@ -132,6 +132,15 @@ function availablePath(folderPath, fileName, taken) {
   while (taken.has(`${prefix}${base} ${counter}${ext}`)) counter++;
   return `${prefix}${base} ${counter}${ext}`;
 }
+var RECENTS_PATH = "::recents::";
+function takeFirstExisting(paths, exists, limit) {
+  const result = [];
+  for (const path of paths) {
+    if (result.length >= limit) break;
+    if (exists(path)) result.push(path);
+  }
+  return result;
+}
 function matchesExcludePatterns(path, patterns) {
   var _a;
   if (patterns.length === 0) return false;
@@ -237,7 +246,10 @@ var STRINGS = {
     setFolderNote: "Open folder notes",
     setFolderNoteDesc: "Selecting a folder also opens the note with the same name inside it, when one exists.",
     lockPanel: "Lock column count",
-    unlockPanel: "Unlock columns"
+    unlockPanel: "Unlock columns",
+    recents: "Recents",
+    setRecentCount: "Recent files count",
+    setRecentCountDesc: "How many files the \u201CRecents\u201D column shows."
   },
   ru: {
     newNote: "\u041D\u043E\u0432\u0430\u044F \u0437\u0430\u043C\u0435\u0442\u043A\u0430",
@@ -326,7 +338,10 @@ var STRINGS = {
     setFolderNote: "\u041E\u0442\u043A\u0440\u044B\u0432\u0430\u0442\u044C \u0437\u0430\u043C\u0435\u0442\u043A\u0438 \u043F\u0430\u043F\u043E\u043A",
     setFolderNoteDesc: "\u0412\u044B\u0431\u043E\u0440 \u043F\u0430\u043F\u043A\u0438 \u0442\u0430\u043A\u0436\u0435 \u043E\u0442\u043A\u0440\u044B\u0432\u0430\u0435\u0442 \u0437\u0430\u043C\u0435\u0442\u043A\u0443 \u0441 \u0435\u0451 \u0438\u043C\u0435\u043D\u0435\u043C \u0432\u043D\u0443\u0442\u0440\u0438, \u0435\u0441\u043B\u0438 \u043E\u043D\u0430 \u0435\u0441\u0442\u044C.",
     lockPanel: "\u0417\u0430\u0444\u0438\u043A\u0441\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0447\u0438\u0441\u043B\u043E \u043A\u043E\u043B\u043E\u043D\u043E\u043A",
-    unlockPanel: "\u0421\u043D\u044F\u0442\u044C \u0444\u0438\u043A\u0441\u0430\u0446\u0438\u044E \u043A\u043E\u043B\u043E\u043D\u043E\u043A"
+    unlockPanel: "\u0421\u043D\u044F\u0442\u044C \u0444\u0438\u043A\u0441\u0430\u0446\u0438\u044E \u043A\u043E\u043B\u043E\u043D\u043E\u043A",
+    recents: "\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435",
+    setRecentCount: "\u0427\u0438\u0441\u043B\u043E \u043D\u0435\u0434\u0430\u0432\u043D\u0438\u0445 \u0444\u0430\u0439\u043B\u043E\u0432",
+    setRecentCountDesc: "\u0421\u043A\u043E\u043B\u044C\u043A\u043E \u0444\u0430\u0439\u043B\u043E\u0432 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u0432 \u043A\u043E\u043B\u043E\u043D\u043A\u0435 \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435\xBB."
   }
 };
 function t(key, vars) {
@@ -357,8 +372,11 @@ var DEFAULT_SETTINGS = {
   columnSortModes: {},
   folderIcons: {},
   openFolderNote: false,
-  lockedColumnCount: null
+  lockedColumnCount: null,
+  recentFilesCount: 10
 };
+var MIN_RECENT_FILES = 5;
+var MAX_RECENT_FILES = 25;
 var MIN_COLUMN_WIDTH = 140;
 var MAX_COLUMN_WIDTH = 500;
 var ROOT_COLUMN_EXTRA_WIDTH = 60;
@@ -398,6 +416,11 @@ var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
         name: t("setColWidth"),
         desc: t("setColWidthDesc"),
         control: { type: "slider", key: "columnWidth", min: MIN_COLUMN_WIDTH, max: MAX_COLUMN_WIDTH, step: 10 }
+      },
+      {
+        name: t("setRecentCount"),
+        desc: t("setRecentCountDesc"),
+        control: { type: "slider", key: "recentFilesCount", min: MIN_RECENT_FILES, max: MAX_RECENT_FILES, step: 1 }
       },
       { name: t("setExclude"), desc: t("setExcludeDesc"), control: { type: "text", key: "excludePatterns" } }
     ];
@@ -456,6 +479,10 @@ var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
     }));
     new import_obsidian2.Setting(containerEl).setName(t("setColWidth")).setDesc(t("setColWidthDesc")).addSlider((sl) => sl.setLimits(MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH, 10).setValue(s.columnWidth).onChange(async (v) => {
       s.columnWidth = v;
+      await save();
+    }));
+    new import_obsidian2.Setting(containerEl).setName(t("setRecentCount")).setDesc(t("setRecentCountDesc")).addSlider((sl) => sl.setLimits(MIN_RECENT_FILES, MAX_RECENT_FILES, 1).setValue(s.recentFilesCount).onChange(async (v) => {
+      s.recentFilesCount = v;
       await save();
     }));
     new import_obsidian2.Setting(containerEl).setName(t("setExclude")).setDesc(t("setExcludeDesc")).addText((txt) => txt.setValue(s.excludePatterns).onChange(async (v) => {
@@ -1092,6 +1119,11 @@ function renderColumn(view, container, folder, depth) {
       }
       return;
     }
+    if (hit.path === RECENTS_PATH) {
+      view.clearMulti();
+      view.selectRecents();
+      return;
+    }
     const f = view.app.vault.getAbstractFileByPath(hit.path);
     if (!f || view.isRenaming(hit.path)) return;
     if (e.ctrlKey || e.metaKey) {
@@ -1138,6 +1170,7 @@ function renderColumnList(view, list, folder, depth) {
   (_a = listObservers.get(list)) == null ? void 0 : _a.disconnect();
   listObservers.delete(list);
   list.empty();
+  if (folder.isRoot() && depth === 0) list.appendChild(buildRecentsItem(view));
   const children = view.childrenOf(folder);
   const countEl = (_b = list.closest(".column-explorer-column")) == null ? void 0 : _b.querySelector(".column-explorer-column-count");
   countEl == null ? void 0 : countEl.setText(String(children.length));
@@ -1220,6 +1253,66 @@ function buildItem(view, f, depth, isGrid = false) {
     item.createDiv({ cls: "column-explorer-item-ext", text: f.extension });
   }
   return item;
+}
+function buildRecentsItem(view) {
+  const item = createDiv({ cls: "column-explorer-item column-explorer-recents", attr: { role: "option" } });
+  item.dataset.path = RECENTS_PATH;
+  const selected = view.selection[0] === RECENTS_PATH;
+  item.setAttribute("aria-selected", String(selected));
+  if (selected) item.addClass("is-selected");
+  if (selected && view.selection.length > 1) item.addClass("is-ancestor");
+  const iconEl = item.createDiv({ cls: "column-explorer-item-icon" });
+  (0, import_obsidian9.setIcon)(iconEl, "history");
+  item.createDiv({ cls: "column-explorer-item-title", text: t("recents") });
+  const chev = item.createDiv({ cls: "column-explorer-item-chevron" });
+  (0, import_obsidian9.setIcon)(chev, "chevron-right");
+  return item;
+}
+function renderRecentsColumn(view, container) {
+  const col = container.createDiv({ cls: "column-explorer-column" });
+  col.dataset.depth = "1";
+  col.dataset.folderPath = RECENTS_PATH;
+  const customWidth = view.plugin.settings.columnWidths[RECENTS_PATH];
+  if (customWidth) col.style.setProperty("--ce-col-width", customWidth + "px");
+  const header = col.createDiv({ cls: "column-explorer-column-header" });
+  header.createSpan({ cls: "column-explorer-column-title", text: t("recents") });
+  const countEl = header.createSpan({ cls: "column-explorer-column-count" });
+  const list = col.createDiv({ cls: "column-explorer-list", attr: { role: "listbox" } });
+  const files = view.recentFiles();
+  countEl.setText(String(files.length));
+  if (files.length === 0) {
+    list.createDiv({ cls: "column-explorer-empty", text: t("empty") });
+  } else {
+    for (const f of files) list.appendChild(buildItem(view, f, 1));
+  }
+  list.addEventListener("click", (e) => {
+    const hit = itemFromEvent(e);
+    const f = hit ? view.app.vault.getAbstractFileByPath(hit.path) : null;
+    if (f instanceof import_obsidian9.TFile) {
+      view.clearMulti();
+      view.selectItem(f, 1, e);
+    }
+  });
+  list.addEventListener("auxclick", (e) => {
+    if (e.button !== 1) return;
+    const hit = itemFromEvent(e);
+    const f = hit ? view.app.vault.getAbstractFileByPath(hit.path) : null;
+    if (f instanceof import_obsidian9.TFile) void view.app.workspace.getLeaf("tab").openFile(f);
+  });
+  list.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+    const hit = itemFromEvent(e);
+    const f = hit ? view.app.vault.getAbstractFileByPath(hit.path) : null;
+    if (f) showFileMenu(view, e, f, 1);
+  });
+  list.addEventListener("dragstart", (e) => {
+    var _a;
+    const hit = itemFromEvent(e);
+    const f = hit ? view.app.vault.getAbstractFileByPath(hit.path) : null;
+    if (f) (_a = e.dataTransfer) == null ? void 0 : _a.setData("text/plain", JSON.stringify([f.path]));
+  });
+  addResizeHandle(view, col, RECENTS_PATH);
+  return col;
 }
 function addResizeHandle(view, col, folderPath) {
   const handle = col.createDiv({ cls: "column-explorer-resize-handle" });
@@ -1533,13 +1626,19 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     this.columnsEl.empty();
     this.applyColumnWidth();
     const validSel = [];
-    let parent = this.app.vault.getRoot();
-    for (const path of this.selection) {
-      const f = this.app.vault.getAbstractFileByPath(path);
-      if (!f || f.parent !== parent) break;
-      validSel.push(path);
-      if (f instanceof import_obsidian10.TFolder) parent = f;
-      else break;
+    if (this.selection[0] === RECENTS_PATH) {
+      validSel.push(RECENTS_PATH);
+      const filePath = this.selection[1];
+      if (filePath && this.app.vault.getAbstractFileByPath(filePath) instanceof import_obsidian10.TFile) validSel.push(filePath);
+    } else {
+      let parent = this.app.vault.getRoot();
+      for (const path of this.selection) {
+        const f = this.app.vault.getAbstractFileByPath(path);
+        if (!f || f.parent !== parent) break;
+        validSel.push(path);
+        if (f instanceof import_obsidian10.TFolder) parent = f;
+        else break;
+      }
     }
     this.selection = validSel;
     const lockedCount = import_obsidian10.Platform.isMobile ? 1 : this.plugin.settings.lockedColumnCount;
@@ -1550,13 +1649,19 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     if (lockedColumnVisible(0, folderCols, lockedCount)) {
       renderColumn(this, this.columnsEl, this.app.vault.getRoot(), 0);
     }
-    for (let depth = 0; depth < this.selection.length; depth++) {
-      const f = this.app.vault.getAbstractFileByPath(this.selection[depth]);
-      if (f instanceof import_obsidian10.TFolder) {
-        if (!lockedColumnVisible(depth + 1, folderCols, lockedCount)) continue;
-        renderColumn(this, this.columnsEl, f, depth + 1);
-      } else if (f instanceof import_obsidian10.TFile && this.plugin.settings.showPreview) {
-        renderPreviewColumn(this, this.columnsEl, f);
+    if (this.selection[0] === RECENTS_PATH) {
+      renderRecentsColumn(this, this.columnsEl);
+      const f = this.selection[1] ? this.app.vault.getAbstractFileByPath(this.selection[1]) : null;
+      if (f instanceof import_obsidian10.TFile && this.plugin.settings.showPreview) renderPreviewColumn(this, this.columnsEl, f);
+    } else {
+      for (let depth = 0; depth < this.selection.length; depth++) {
+        const f = this.app.vault.getAbstractFileByPath(this.selection[depth]);
+        if (f instanceof import_obsidian10.TFolder) {
+          if (!lockedColumnVisible(depth + 1, folderCols, lockedCount)) continue;
+          renderColumn(this, this.columnsEl, f, depth + 1);
+        } else if (f instanceof import_obsidian10.TFile && this.plugin.settings.showPreview) {
+          renderPreviewColumn(this, this.columnsEl, f);
+        }
       }
     }
     if (hasGap && !import_obsidian10.Platform.isMobile) this.markLockedColumn();
@@ -1613,7 +1718,8 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     this.selection.forEach((path, i) => {
       var _a;
       const f = this.app.vault.getAbstractFileByPath(path);
-      addSegment(f ? displayName(f) : (_a = path.split("/").pop()) != null ? _a : path, i + 1, i === this.selection.length - 1);
+      const label = f ? displayName(f) : path === RECENTS_PATH ? t("recents") : (_a = path.split("/").pop()) != null ? _a : path;
+      addSegment(label, i + 1, i === this.selection.length - 1);
     });
   }
   /** Cheap highlight update on active-leaf-change — no full re-render. */
@@ -1627,6 +1733,39 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     item == null ? void 0 : item.addClass("is-active-file");
   }
   /* ----------------------------- actions --------------------------- */
+  /**
+   * Последние открытые файлы. Приватный getRecentFiles умеет maxCount
+   * больше 10, публичный getLastOpenFiles режет до 10 — он же fallback
+   * на случай поломки приватного API в будущих версиях.
+   */
+  recentFiles() {
+    var _a, _b;
+    const limit = this.plugin.settings.recentFilesCount;
+    let paths;
+    try {
+      const ws = this.app.workspace;
+      paths = (_b = (_a = ws.getRecentFiles) == null ? void 0 : _a.call(ws, {
+        showMarkdown: true,
+        showNonAttachments: true,
+        showNonImageAttachments: true,
+        showImages: true,
+        maxCount: limit
+      })) != null ? _b : this.app.workspace.getLastOpenFiles();
+    } catch (e) {
+      paths = this.app.workspace.getLastOpenFiles();
+    }
+    const isFile = (p) => this.app.vault.getAbstractFileByPath(p) instanceof import_obsidian10.TFile;
+    return takeFirstExisting(paths, isFile, limit).flatMap((p) => {
+      const f = this.app.vault.getAbstractFileByPath(p);
+      return f instanceof import_obsidian10.TFile ? [f] : [];
+    });
+  }
+  selectRecents() {
+    this.selection = [RECENTS_PATH];
+    this.clearMulti();
+    this.persistState();
+    this.render();
+  }
   selectItem(f, depth, e) {
     const s = this.plugin.settings;
     if (s.lockedColumnCount !== null && depth === 0 && this.folderColumnCount() > 1) {

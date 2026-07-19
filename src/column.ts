@@ -1,6 +1,6 @@
 import { TAbstractFile, TFile, TFolder, setIcon } from "obsidian";
 import { t } from "./i18n";
-import { splitMatch } from "./pure";
+import { RECENTS_PATH, splitMatch } from "./pure";
 import { displayName, folderNoteOf, iconFor, isImageFile } from "./utils";
 import { setupColumnDnd } from "./dnd";
 import { showColumnHeaderMenu, showFileMenu, showFolderBackgroundMenu } from "./menus";
@@ -56,6 +56,7 @@ export function renderColumn(view: ColumnExplorerView, container: HTMLElement, f
 			if (e.target === list) { view.clearMulti(); view.render(); }
 			return;
 		}
+		if (hit.path === RECENTS_PATH) { view.clearMulti(); view.selectRecents(); return; }
 		const f = view.app.vault.getAbstractFileByPath(hit.path);
 		if (!f || view.isRenaming(hit.path)) return;
 		if (e.ctrlKey || e.metaKey) { view.toggleMulti(f, depth); return; }
@@ -105,6 +106,8 @@ export function renderColumnList(view: ColumnExplorerView, list: HTMLElement, fo
 	listObservers.get(list)?.disconnect();
 	listObservers.delete(list);
 	list.empty();
+	// Виртуальный пункт «Недавние» — всегда первым в корневой колонке
+	if (folder.isRoot() && depth === 0) list.appendChild(buildRecentsItem(view));
 	const children = view.childrenOf(folder);
 
 	const countEl = list.closest(".column-explorer-column")?.querySelector(".column-explorer-column-count");
@@ -202,6 +205,75 @@ function buildItem(view: ColumnExplorerView, f: TAbstractFile, depth: number, is
 		item.createDiv({ cls: "column-explorer-item-ext", text: f.extension });
 	}
 	return item;
+}
+
+/** Виртуальный пункт «Недавние» вверху корневой колонки. */
+function buildRecentsItem(view: ColumnExplorerView): HTMLElement {
+	const item = createDiv({ cls: "column-explorer-item column-explorer-recents", attr: { role: "option" } });
+	item.dataset.path = RECENTS_PATH;
+	const selected = view.selection[0] === RECENTS_PATH;
+	item.setAttribute("aria-selected", String(selected));
+	if (selected) item.addClass("is-selected");
+	if (selected && view.selection.length > 1) item.addClass("is-ancestor");
+	const iconEl = item.createDiv({ cls: "column-explorer-item-icon" });
+	setIcon(iconEl, "history");
+	item.createDiv({ cls: "column-explorer-item-title", text: t("recents") });
+	const chev = item.createDiv({ cls: "column-explorer-item-chevron" });
+	setIcon(chev, "chevron-right");
+	return item;
+}
+
+/**
+ * Виртуальная колонка «Недавние»: последние открытые файлы. Вглубь не
+ * ведёт, drop и inline-rename не принимает; клик открывает файл, тащить
+ * файлы ИЗ неё в обычные колонки можно.
+ */
+export function renderRecentsColumn(view: ColumnExplorerView, container: HTMLElement) {
+	const col = container.createDiv({ cls: "column-explorer-column" });
+	col.dataset.depth = "1";
+	col.dataset.folderPath = RECENTS_PATH;
+	const customWidth = view.plugin.settings.columnWidths[RECENTS_PATH];
+	if (customWidth) col.style.setProperty("--ce-col-width", customWidth + "px");
+
+	const header = col.createDiv({ cls: "column-explorer-column-header" });
+	header.createSpan({ cls: "column-explorer-column-title", text: t("recents") });
+	const countEl = header.createSpan({ cls: "column-explorer-column-count" });
+
+	const list = col.createDiv({ cls: "column-explorer-list", attr: { role: "listbox" } });
+	const files = view.recentFiles();
+	countEl.setText(String(files.length));
+	if (files.length === 0) {
+		list.createDiv({ cls: "column-explorer-empty", text: t("empty") });
+	} else {
+		for (const f of files) list.appendChild(buildItem(view, f, 1));
+	}
+
+	list.addEventListener("click", (e) => {
+		const hit = itemFromEvent(e);
+		const f = hit ? view.app.vault.getAbstractFileByPath(hit.path) : null;
+		if (f instanceof TFile) { view.clearMulti(); view.selectItem(f, 1, e); }
+	});
+	list.addEventListener("auxclick", (e) => {
+		if (e.button !== 1) return;
+		const hit = itemFromEvent(e);
+		const f = hit ? view.app.vault.getAbstractFileByPath(hit.path) : null;
+		if (f instanceof TFile) void view.app.workspace.getLeaf("tab").openFile(f);
+	});
+	list.addEventListener("contextmenu", (e) => {
+		e.preventDefault();
+		const hit = itemFromEvent(e);
+		const f = hit ? view.app.vault.getAbstractFileByPath(hit.path) : null;
+		if (f) showFileMenu(view, e, f, 1);
+	});
+	// Только dragstart: перетащить файл в обычную колонку — payload через
+	// dataTransfer, drop-приёма у «Недавних» нет
+	list.addEventListener("dragstart", (e: DragEvent) => {
+		const hit = itemFromEvent(e);
+		const f = hit ? view.app.vault.getAbstractFileByPath(hit.path) : null;
+		if (f) e.dataTransfer?.setData("text/plain", JSON.stringify([f.path]));
+	});
+	addResizeHandle(view, col, RECENTS_PATH);
+	return col;
 }
 
 /** Ручка на правом крае: тянет ширину ИМЕННО этой колонки, dblclick — сброс. */

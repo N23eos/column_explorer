@@ -10,6 +10,7 @@ import {
 	splitMatch,
 	parseDragPaths,
 	availablePath,
+	takeFirstExisting,
 } from "../src/pure";
 
 describe("naturalCompare", () => {
@@ -348,5 +349,27 @@ describe("availablePath", () => {
 	test("handles names without an extension", () => {
 		const taken = new Set(["docs/README"]);
 		expect(availablePath("docs", "README", taken)).toBe("docs/README 1");
+	});
+});
+
+describe("takeFirstExisting", () => {
+	test("keeps order and drops paths that do not exist", () => {
+		// Arrange
+		const exists = (p: string) => p !== "gone.md";
+
+		// Act
+		const result = takeFirstExisting(["a.md", "gone.md", "b.md"], exists, 10);
+
+		// Assert
+		expect(result).toEqual(["a.md", "b.md"]);
+	});
+
+	test("caps the result at the limit after filtering", () => {
+		const result = takeFirstExisting(["a", "b", "c", "d"], () => true, 2);
+		expect(result).toEqual(["a", "b"]);
+	});
+
+	test("returns empty array for empty input", () => {
+		expect(takeFirstExisting([], () => true, 10)).toEqual([]);
 	});
 });

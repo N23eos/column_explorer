@@ -158,6 +158,22 @@ export function availablePath(folderPath: string, fileName: string, taken: Reado
 }
 
 /**
+ * Sentinel "path" of the virtual Recents column. Colons are illegal in
+ * Obsidian file names, so it can never collide with a real vault path.
+ */
+export const RECENTS_PATH = "::recents::";
+
+/** First `limit` paths that pass the `exists` check, original order kept. */
+export function takeFirstExisting(paths: string[], exists: (path: string) => boolean, limit: number): string[] {
+	const result: string[] = [];
+	for (const path of paths) {
+		if (result.length >= limit) break;
+		if (exists(path)) result.push(path);
+	}
+	return result;
+}
+
+/**
  * Pattern semantics:
  * - "folder/"  — the folder itself and everything inside it
  * - "*.tmp"    — glob matched against the file name (not the full path)

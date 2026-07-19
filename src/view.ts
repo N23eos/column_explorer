@@ -13,10 +13,10 @@ import {
 	setIcon,
 } from "obsidian";
 import { t } from "./i18n";
-import { desiredPanelWidth, lockedColumnVisible, prunePathKeys, remapPathKeys } from "./pure";
+import { RECENTS_PATH, desiredPanelWidth, lockedColumnVisible, prunePathKeys, remapPathKeys, takeFirstExisting } from "./pure";
 import { displayName, folderNoteOf, visibleChildren } from "./utils";
 import { MIN_COLUMN_WIDTH } from "./settings";
-import { renderColumn, renderColumnList } from "./column";
+import { renderColumn, renderColumnList, renderRecentsColumn } from "./column";
 import { renderPreviewColumn } from "./preview";
 import { showSortMenu } from "./menus";
 import { ConfirmModal, QuickLookModal } from "./modals";
@@ -327,12 +327,19 @@ export class ColumnExplorerView extends ItemView {
 		this.applyColumnWidth();
 
 		const validSel: string[] = [];
-		let parent: TFolder = this.app.vault.getRoot();
-		for (const path of this.selection) {
-			const f = this.app.vault.getAbstractFileByPath(path);
-			if (!f || f.parent !== parent) break;
-			validSel.push(path);
-			if (f instanceof TFolder) parent = f; else break;
+		if (this.selection[0] === RECENTS_PATH) {
+			// Виртуальная колонка «Недавние»: сентинел + опционально выбранный файл
+			validSel.push(RECENTS_PATH);
+			const filePath = this.selection[1];
+			if (filePath && this.app.vault.getAbstractFileByPath(filePath) instanceof TFile) validSel.push(filePath);
+		} else {
+			let parent: TFolder = this.app.vault.getRoot();
+			for (const path of this.selection) {
+				const f = this.app.vault.getAbstractFileByPath(path);
+				if (!f || f.parent !== parent) break;
+				validSel.push(path);
+				if (f instanceof TFolder) parent = f; else break;
+			}
 		}
 		this.selection = validSel;
 
@@ -349,13 +356,19 @@ export class ColumnExplorerView extends ItemView {
 		if (lockedColumnVisible(0, folderCols, lockedCount)) {
 			renderColumn(this, this.columnsEl, this.app.vault.getRoot(), 0);
 		}
-		for (let depth = 0; depth < this.selection.length; depth++) {
-			const f = this.app.vault.getAbstractFileByPath(this.selection[depth]);
-			if (f instanceof TFolder) {
-				if (!lockedColumnVisible(depth + 1, folderCols, lockedCount)) continue;
-				renderColumn(this, this.columnsEl, f, depth + 1);
-			} else if (f instanceof TFile && this.plugin.settings.showPreview) {
-				renderPreviewColumn(this, this.columnsEl, f);
+		if (this.selection[0] === RECENTS_PATH) {
+			renderRecentsColumn(this, this.columnsEl);
+			const f = this.selection[1] ? this.app.vault.getAbstractFileByPath(this.selection[1]) : null;
+			if (f instanceof TFile && this.plugin.settings.showPreview) renderPreviewColumn(this, this.columnsEl, f);
+		} else {
+			for (let depth = 0; depth < this.selection.length; depth++) {
+				const f = this.app.vault.getAbstractFileByPath(this.selection[depth]);
+				if (f instanceof TFolder) {
+					if (!lockedColumnVisible(depth + 1, folderCols, lockedCount)) continue;
+					renderColumn(this, this.columnsEl, f, depth + 1);
+				} else if (f instanceof TFile && this.plugin.settings.showPreview) {
+					renderPreviewColumn(this, this.columnsEl, f);
+				}
 			}
 		}
 		if (hasGap && !Platform.isMobile) this.markLockedColumn();
@@ -419,7 +432,8 @@ export class ColumnExplorerView extends ItemView {
 		addSegment(this.app.vault.getName(), 0, this.selection.length === 0);
 		this.selection.forEach((path, i) => {
 			const f = this.app.vault.getAbstractFileByPath(path);
-			addSegment(f ? displayName(f) : path.split("/").pop() ?? path, i + 1, i === this.selection.length - 1);
+			const label = f ? displayName(f) : path === RECENTS_PATH ? t("recents") : path.split("/").pop() ?? path;
+			addSegment(label, i + 1, i === this.selection.length - 1);
 		});
 	}
 
@@ -436,6 +450,37 @@ export class ColumnExplorerView extends ItemView {
 	}
 
 	/* ----------------------------- actions --------------------------- */
+
+	/**
+	 * Последние открытые файлы. Приватный getRecentFiles умеет maxCount
+	 * больше 10, публичный getLastOpenFiles режет до 10 — он же fallback
+	 * на случай поломки приватного API в будущих версиях.
+	 */
+	recentFiles(): TFile[] {
+		const limit = this.plugin.settings.recentFilesCount;
+		let paths: string[];
+		try {
+			const ws = this.app.workspace as unknown as { getRecentFiles?: (opts: object) => string[] };
+			paths = ws.getRecentFiles?.({
+				showMarkdown: true, showNonAttachments: true,
+				showNonImageAttachments: true, showImages: true, maxCount: limit,
+			}) ?? this.app.workspace.getLastOpenFiles();
+		} catch {
+			paths = this.app.workspace.getLastOpenFiles();
+		}
+		const isFile = (p: string) => this.app.vault.getAbstractFileByPath(p) instanceof TFile;
+		return takeFirstExisting(paths, isFile, limit).flatMap((p) => {
+			const f = this.app.vault.getAbstractFileByPath(p);
+			return f instanceof TFile ? [f] : [];
+		});
+	}
+
+	selectRecents() {
+		this.selection = [RECENTS_PATH];
+		this.clearMulti();
+		this.persistState();
+		this.render();
+	}
 
 	selectItem(f: TAbstractFile, depth: number, e: MouseEvent) {
 		// Фиксацию снимает только клик по самой левой колонке;

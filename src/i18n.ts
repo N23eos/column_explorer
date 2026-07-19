@@ -44,6 +44,8 @@ const STRINGS: Record<string, Record<string, string>> = {
 		iconPlaceholder: "Choose an icon…",
 		setFolderNote: "Open folder notes", setFolderNoteDesc: "Selecting a folder also opens the note with the same name inside it, when one exists.",
 		lockPanel: "Lock column count", unlockPanel: "Unlock columns",
+		recents: "Recents",
+		setRecentCount: "Recent files count", setRecentCountDesc: "How many files the “Recents” column shows.",
 	},
 	ru: {
 		newNote: "Новая заметка", newFolder: "Новая папка", reveal: "Показать активный файл",
@@ -87,6 +89,8 @@ const STRINGS: Record<string, Record<string, string>> = {
 		iconPlaceholder: "Выберите иконку…",
 		setFolderNote: "Открывать заметки папок", setFolderNoteDesc: "Выбор папки также открывает заметку с её именем внутри, если она есть.",
 		lockPanel: "Зафиксировать число колонок", unlockPanel: "Снять фиксацию колонок",
+		recents: "Недавние",
+		setRecentCount: "Число недавних файлов", setRecentCountDesc: "Сколько файлов показывать в колонке «Недавние».",
 	},
 };
 
