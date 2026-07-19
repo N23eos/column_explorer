@@ -1468,6 +1468,11 @@ function renderFileListColumn(view, container, title, files, sentinelPath, depth
   list.addEventListener("click", (e) => {
     const hit = itemFromEvent(e);
     const f = hit ? view.app.vault.getAbstractFileByPath(hit.path) : null;
+    if (f instanceof import_obsidian9.TFolder) {
+      view.clearMulti();
+      view.revealFile(f);
+      return;
+    }
     if (f instanceof import_obsidian9.TFile) {
       view.clearMulti();
       view.selectItem(f, depth, e);
@@ -1900,7 +1905,7 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
       renderFileListColumn(this, this.columnsEl, t("recents"), this.recentFiles(), RECENTS_PATH, 1);
       previewOf(this.selection[1]);
     } else if (special === "bookmarks") {
-      renderFileListColumn(this, this.columnsEl, t("bookmarks"), this.bookmarkedFiles(), BOOKMARKS_PATH, 1);
+      renderFileListColumn(this, this.columnsEl, t("bookmarks"), this.bookmarkedItems(), BOOKMARKS_PATH, 1);
       previewOf(this.selection[1]);
     } else if (special === "calendar") {
       renderCalendarColumn(this, this.columnsEl);
@@ -2079,18 +2084,18 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
       return null;
     }
   }
-  /** Файлы из закладок; группы разворачиваются, не-файлы пропускаются. */
-  bookmarkedFiles() {
+  /** Файлы и папки из закладок; группы разворачиваются плоско. */
+  bookmarkedItems() {
     var _a;
     const flatten = (items) => items.flatMap(
       (it) => {
         var _a2;
-        return it.type === "group" ? flatten((_a2 = it.items) != null ? _a2 : []) : it.type === "file" && it.path ? [it.path] : [];
+        return it.type === "group" ? flatten((_a2 = it.items) != null ? _a2 : []) : (it.type === "file" || it.type === "folder") && it.path ? [it.path] : [];
       }
     );
     return flatten((_a = this.bookmarkItems()) != null ? _a : []).flatMap((p) => {
       const f = this.app.vault.getAbstractFileByPath(p);
-      return f instanceof import_obsidian10.TFile ? [f] : [];
+      return f ? [f] : [];
     });
   }
   selectItem(f, depth, e) {

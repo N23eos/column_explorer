@@ -248,7 +248,7 @@ function buildSpecialItem(view: ColumnExplorerView, path: string, icon: string, 
  */
 export function renderFileListColumn(
 	view: ColumnExplorerView, container: HTMLElement,
-	title: string, files: TFile[], sentinelPath: string, depth: number
+	title: string, files: TAbstractFile[], sentinelPath: string, depth: number
 ) {
 	const col = container.createDiv({ cls: "column-explorer-column" });
 	col.dataset.depth = String(depth);
@@ -271,6 +271,8 @@ export function renderFileListColumn(
 	list.addEventListener("click", (e) => {
 		const hit = itemFromEvent(e);
 		const f = hit ? view.app.vault.getAbstractFileByPath(hit.path) : null;
+		// Папка-закладка — прыжок к ней в обычных колонках
+		if (f instanceof TFolder) { view.clearMulti(); view.revealFile(f); return; }
 		if (f instanceof TFile) { view.clearMulti(); view.selectItem(f, depth, e); }
 	});
 	list.addEventListener("auxclick", (e) => {

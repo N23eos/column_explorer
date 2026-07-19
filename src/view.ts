@@ -383,7 +383,7 @@ export class ColumnExplorerView extends ItemView {
 			renderFileListColumn(this, this.columnsEl, t("recents"), this.recentFiles(), RECENTS_PATH, 1);
 			previewOf(this.selection[1]);
 		} else if (special === "bookmarks") {
-			renderFileListColumn(this, this.columnsEl, t("bookmarks"), this.bookmarkedFiles(), BOOKMARKS_PATH, 1);
+			renderFileListColumn(this, this.columnsEl, t("bookmarks"), this.bookmarkedItems(), BOOKMARKS_PATH, 1);
 			previewOf(this.selection[1]);
 		} else if (special === "calendar") {
 			renderCalendarColumn(this, this.columnsEl);
@@ -593,14 +593,15 @@ export class ColumnExplorerView extends ItemView {
 		}
 	}
 
-	/** Файлы из закладок; группы разворачиваются, не-файлы пропускаются. */
-	bookmarkedFiles(): TFile[] {
+	/** Файлы и папки из закладок; группы разворачиваются плоско. */
+	bookmarkedItems(): TAbstractFile[] {
 		const flatten = (items: BookmarkItemLike[]): string[] => items.flatMap((it) =>
-			it.type === "group" ? flatten(it.items ?? []) : it.type === "file" && it.path ? [it.path] : []
+			it.type === "group" ? flatten(it.items ?? [])
+				: (it.type === "file" || it.type === "folder") && it.path ? [it.path] : []
 		);
 		return flatten(this.bookmarkItems() ?? []).flatMap((p) => {
 			const f = this.app.vault.getAbstractFileByPath(p);
-			return f instanceof TFile ? [f] : [];
+			return f ? [f] : [];
 		});
 	}
 
@@ -641,7 +642,7 @@ export class ColumnExplorerView extends ItemView {
 		this.render();
 	}
 
-	revealFile(file: TFile | null) {
+	revealFile(file: TAbstractFile | null) {
 		if (!file) return;
 		if (this.hasFilter()) { this.filter = ""; this.searchInput.value = ""; }
 		const chain: string[] = [];
