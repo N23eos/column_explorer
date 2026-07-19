@@ -6,11 +6,8 @@ Browse your Obsidian vault in **Finder-style Miller columns** — click a folder
 
 ![Column Explorer — Miller columns with Recents and Calendar rows, folder colors and breadcrumbs](docs/screenshot-1.jpg)
 
-![Column Explorer — calendar column with per-day created-note counts](docs/screenshot-2.jpg)
-
 ![Column Explorer — icon grid view with special items](docs/screenshot-3.jpg)
 
-![Column Explorer — special items settings](docs/screenshot-4.jpg)
 
 ## Highlights
 
