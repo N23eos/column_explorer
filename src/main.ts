@@ -1,6 +1,7 @@
 import { Plugin } from "obsidian";
 import { t } from "./i18n";
-import { ColumnExplorerSettings, ColumnExplorerSettingTab, DEFAULT_SETTINGS } from "./settings";
+import { pushRecent, remapPathList } from "./pure";
+import { ColumnExplorerSettings, ColumnExplorerSettingTab, DEFAULT_SETTINGS, MAX_RECENT_FILES } from "./settings";
 import { ColumnExplorerView, VIEW_TYPE_COLUMNS } from "./view";
 
 export default class ColumnExplorerPlugin extends Plugin {
@@ -8,6 +9,28 @@ export default class ColumnExplorerPlugin extends Plugin {
 
 	async onload() {
 		await this.loadSettings();
+
+		// Свой трекер недавних: встроенный в Obsidian хранит максимум 25 md.
+		// Первый запуск — засев из него, дальше копим сами (кап 50)
+		if (this.settings.recentFiles.length === 0) {
+			this.settings.recentFiles = this.app.workspace.getLastOpenFiles();
+		}
+		this.registerEvent(this.app.workspace.on("file-open", (f) => {
+			if (!f) return;
+			this.settings.recentFiles = pushRecent(this.settings.recentFiles, f.path, MAX_RECENT_FILES);
+			void this.saveSettings();
+			this.getView()?.refreshRecentsColumn();
+		}));
+		this.registerEvent(this.app.vault.on("rename", (f, oldPath) => {
+			this.settings.recentFiles = remapPathList(this.settings.recentFiles, oldPath, f.path);
+			void this.saveSettings();
+		}));
+		this.registerEvent(this.app.vault.on("delete", (f) => {
+			this.settings.recentFiles = this.settings.recentFiles.filter(
+				(p) => p !== f.path && !p.startsWith(f.path + "/")
+			);
+			void this.saveSettings();
+		}));
 
 		this.registerView(VIEW_TYPE_COLUMNS, (leaf) => new ColumnExplorerView(leaf, this));
 		this.addSettingTab(new ColumnExplorerSettingTab(this.app, this));

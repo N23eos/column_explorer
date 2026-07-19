@@ -327,7 +327,7 @@ export class ColumnExplorerView extends ItemView {
 		this.applyColumnWidth();
 
 		const validSel: string[] = [];
-		if (this.selection[0] === RECENTS_PATH) {
+		if (this.selection[0] === RECENTS_PATH && this.plugin.settings.showRecents) {
 			// Виртуальная колонка «Недавние»: сентинел + опционально выбранный файл
 			validSel.push(RECENTS_PATH);
 			const filePath = this.selection[1];
@@ -451,28 +451,19 @@ export class ColumnExplorerView extends ItemView {
 
 	/* ----------------------------- actions --------------------------- */
 
-	/**
-	 * Последние открытые файлы. Приватный getRecentFiles умеет maxCount
-	 * больше 10, публичный getLastOpenFiles режет до 10 — он же fallback
-	 * на случай поломки приватного API в будущих версиях.
-	 */
+	/** Последние открытые файлы из собственного трекера (main.ts). */
 	recentFiles(): TFile[] {
-		const limit = this.plugin.settings.recentFilesCount;
-		let paths: string[];
-		try {
-			const ws = this.app.workspace as unknown as { getRecentFiles?: (opts: object) => string[] };
-			paths = ws.getRecentFiles?.({
-				showMarkdown: true, showNonAttachments: true,
-				showNonImageAttachments: true, showImages: true, maxCount: limit,
-			}) ?? this.app.workspace.getLastOpenFiles();
-		} catch {
-			paths = this.app.workspace.getLastOpenFiles();
-		}
+		const s = this.plugin.settings;
 		const isFile = (p: string) => this.app.vault.getAbstractFileByPath(p) instanceof TFile;
-		return takeFirstExisting(paths, isFile, limit).flatMap((p) => {
+		return takeFirstExisting(s.recentFiles, isFile, s.recentFilesCount).flatMap((p) => {
 			const f = this.app.vault.getAbstractFileByPath(p);
 			return f instanceof TFile ? [f] : [];
 		});
+	}
+
+	/** Перерисовать открытую колонку «Недавние» (файл открыли где-то ещё). */
+	refreshRecentsColumn() {
+		if (this.selection[0] === RECENTS_PATH) this.render();
 	}
 
 	selectRecents() {

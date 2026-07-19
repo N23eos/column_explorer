@@ -133,6 +133,16 @@ function availablePath(folderPath, fileName, taken) {
   return `${prefix}${base} ${counter}${ext}`;
 }
 var RECENTS_PATH = "::recents::";
+function pushRecent(list, path, limit) {
+  return [path, ...list.filter((p) => p !== path)].slice(0, limit);
+}
+function remapPathList(list, oldPath, newPath) {
+  return list.map((p) => {
+    if (p === oldPath) return newPath;
+    if (p.startsWith(oldPath + "/")) return newPath + p.slice(oldPath.length);
+    return p;
+  });
+}
 function takeFirstExisting(paths, exists, limit) {
   const result = [];
   for (const path of paths) {
@@ -249,7 +259,21 @@ var STRINGS = {
     unlockPanel: "Unlock columns",
     recents: "Recents",
     setRecentCount: "Recent files count",
-    setRecentCountDesc: "How many files the \u201CRecents\u201D column shows."
+    setRecentCountDesc: "How many files the \u201CRecents\u201D column shows.",
+    headAppearance: "Appearance",
+    headBehavior: "Behavior",
+    headColumns: "Columns",
+    headRecents: "Recent files",
+    setShowRecents: "Show recents",
+    setShowRecentsDesc: "Show the recents row at the top of the first column.",
+    resetWidths: "Reset all column widths",
+    resetWidthsDesc: "Forget individually dragged widths and use the default width everywhere.",
+    widthsReset: "Column widths reset",
+    reset: "Reset",
+    clearRecents: "Clear recent files",
+    clearRecentsDesc: "Remove all entries from the recents list.",
+    recentsCleared: "Recent files cleared",
+    clear: "Clear"
   },
   ru: {
     newNote: "\u041D\u043E\u0432\u0430\u044F \u0437\u0430\u043C\u0435\u0442\u043A\u0430",
@@ -341,7 +365,21 @@ var STRINGS = {
     unlockPanel: "\u0421\u043D\u044F\u0442\u044C \u0444\u0438\u043A\u0441\u0430\u0446\u0438\u044E \u043A\u043E\u043B\u043E\u043D\u043E\u043A",
     recents: "\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435",
     setRecentCount: "\u0427\u0438\u0441\u043B\u043E \u043D\u0435\u0434\u0430\u0432\u043D\u0438\u0445 \u0444\u0430\u0439\u043B\u043E\u0432",
-    setRecentCountDesc: "\u0421\u043A\u043E\u043B\u044C\u043A\u043E \u0444\u0430\u0439\u043B\u043E\u0432 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u0432 \u043A\u043E\u043B\u043E\u043D\u043A\u0435 \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435\xBB."
+    setRecentCountDesc: "\u0421\u043A\u043E\u043B\u044C\u043A\u043E \u0444\u0430\u0439\u043B\u043E\u0432 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u0432 \u043A\u043E\u043B\u043E\u043D\u043A\u0435 \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435\xBB.",
+    headAppearance: "\u0412\u0438\u0434",
+    headBehavior: "\u041F\u043E\u0432\u0435\u0434\u0435\u043D\u0438\u0435",
+    headColumns: "\u041A\u043E\u043B\u043E\u043D\u043A\u0438",
+    headRecents: "\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435 \u0444\u0430\u0439\u043B\u044B",
+    setShowRecents: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435\xBB",
+    setShowRecentsDesc: "\u041F\u0443\u043D\u043A\u0442 \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435\xBB \u0432\u0432\u0435\u0440\u0445\u0443 \u043F\u0435\u0440\u0432\u043E\u0439 \u043A\u043E\u043B\u043E\u043D\u043A\u0438.",
+    resetWidths: "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u0448\u0438\u0440\u0438\u043D\u044B \u0432\u0441\u0435\u0445 \u043A\u043E\u043B\u043E\u043D\u043E\u043A",
+    resetWidthsDesc: "\u0417\u0430\u0431\u044B\u0442\u044C \u0438\u043D\u0434\u0438\u0432\u0438\u0434\u0443\u0430\u043B\u044C\u043D\u043E \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u043D\u044B\u0435 \u0448\u0438\u0440\u0438\u043D\u044B \u0438 \u0432\u0435\u0440\u043D\u0443\u0442\u044C \u0432\u0441\u0435\u043C \u043A\u043E\u043B\u043E\u043D\u043A\u0430\u043C \u0448\u0438\u0440\u0438\u043D\u0443 \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E.",
+    widthsReset: "\u0428\u0438\u0440\u0438\u043D\u044B \u043A\u043E\u043B\u043E\u043D\u043E\u043A \u0441\u0431\u0440\u043E\u0448\u0435\u043D\u044B",
+    reset: "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C",
+    clearRecents: "\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u044C \u043D\u0435\u0434\u0430\u0432\u043D\u0438\u0435",
+    clearRecentsDesc: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0432\u0441\u0435 \u0437\u0430\u043F\u0438\u0441\u0438 \u0438\u0437 \u0441\u043F\u0438\u0441\u043A\u0430 \u043D\u0435\u0434\u0430\u0432\u043D\u0438\u0445.",
+    recentsCleared: "\u0421\u043F\u0438\u0441\u043E\u043A \u043D\u0435\u0434\u0430\u0432\u043D\u0438\u0445 \u043E\u0447\u0438\u0449\u0435\u043D",
+    clear: "\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u044C"
   }
 };
 function t(key, vars) {
@@ -373,10 +411,12 @@ var DEFAULT_SETTINGS = {
   folderIcons: {},
   openFolderNote: false,
   lockedColumnCount: null,
-  recentFilesCount: 10
+  recentFilesCount: 10,
+  recentFiles: [],
+  showRecents: true
 };
 var MIN_RECENT_FILES = 5;
-var MAX_RECENT_FILES = 25;
+var MAX_RECENT_FILES = 50;
 var MIN_COLUMN_WIDTH = 140;
 var MAX_COLUMN_WIDTH = 500;
 var ROOT_COLUMN_EXTRA_WIDTH = 60;
@@ -392,38 +432,79 @@ var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
   getSettingDefinitions() {
     return [
       {
-        name: t("setSort"),
-        control: {
-          type: "dropdown",
-          key: "sortMode",
-          options: {
-            "name-asc": t("sortNameAsc"),
-            "name-desc": t("sortNameDesc"),
-            "mtime-desc": t("sortMtimeDesc"),
-            "mtime-asc": t("sortMtimeAsc")
-          }
-        }
-      },
-      { name: t("setFoldersFirst"), desc: t("setFoldersFirstDesc"), control: { type: "toggle", key: "foldersFirst" } },
-      { name: t("setShowExt"), desc: t("setShowExtDesc"), control: { type: "toggle", key: "showExtensions" } },
-      { name: t("setPreview"), desc: t("setPreviewDesc"), control: { type: "toggle", key: "showPreview" } },
-      { name: t("setMdPreview"), desc: t("setMdPreviewDesc"), control: { type: "toggle", key: "showMarkdownPreview" } },
-      { name: t("setAutoReveal"), desc: t("setAutoRevealDesc"), control: { type: "toggle", key: "autoReveal" } },
-      { name: t("setFolderNote"), desc: t("setFolderNoteDesc"), control: { type: "toggle", key: "openFolderNote" } },
-      { name: t("setConfirmDelete"), desc: t("setConfirmDeleteDesc"), control: { type: "toggle", key: "confirmDelete" } },
-      { name: t("setAutoPanel"), desc: t("setAutoPanelDesc"), control: { type: "toggle", key: "autoPanelResize" } },
-      {
-        name: t("setColWidth"),
-        desc: t("setColWidthDesc"),
-        control: { type: "slider", key: "columnWidth", min: MIN_COLUMN_WIDTH, max: MAX_COLUMN_WIDTH, step: 10 }
+        type: "group",
+        heading: t("headAppearance"),
+        items: [
+          { name: t("setFoldersFirst"), desc: t("setFoldersFirstDesc"), control: { type: "toggle", key: "foldersFirst" } },
+          { name: t("setShowExt"), desc: t("setShowExtDesc"), control: { type: "toggle", key: "showExtensions" } },
+          { name: t("setPreview"), desc: t("setPreviewDesc"), control: { type: "toggle", key: "showPreview" } },
+          { name: t("setMdPreview"), desc: t("setMdPreviewDesc"), control: { type: "toggle", key: "showMarkdownPreview" } }
+        ]
       },
       {
-        name: t("setRecentCount"),
-        desc: t("setRecentCountDesc"),
-        control: { type: "slider", key: "recentFilesCount", min: MIN_RECENT_FILES, max: MAX_RECENT_FILES, step: 1 }
+        type: "group",
+        heading: t("headBehavior"),
+        items: [
+          {
+            name: t("setSort"),
+            control: {
+              type: "dropdown",
+              key: "sortMode",
+              options: {
+                "name-asc": t("sortNameAsc"),
+                "name-desc": t("sortNameDesc"),
+                "mtime-desc": t("sortMtimeDesc"),
+                "mtime-asc": t("sortMtimeAsc")
+              }
+            }
+          },
+          { name: t("setAutoReveal"), desc: t("setAutoRevealDesc"), control: { type: "toggle", key: "autoReveal" } },
+          { name: t("setFolderNote"), desc: t("setFolderNoteDesc"), control: { type: "toggle", key: "openFolderNote" } },
+          { name: t("setConfirmDelete"), desc: t("setConfirmDeleteDesc"), control: { type: "toggle", key: "confirmDelete" } },
+          { name: t("setExclude"), desc: t("setExcludeDesc"), control: { type: "text", key: "excludePatterns" } }
+        ]
       },
-      { name: t("setExclude"), desc: t("setExcludeDesc"), control: { type: "text", key: "excludePatterns" } }
+      {
+        type: "group",
+        heading: t("headColumns"),
+        items: [
+          { name: t("setAutoPanel"), desc: t("setAutoPanelDesc"), control: { type: "toggle", key: "autoPanelResize" } },
+          {
+            name: t("setColWidth"),
+            desc: t("setColWidthDesc"),
+            control: { type: "slider", key: "columnWidth", min: MIN_COLUMN_WIDTH, max: MAX_COLUMN_WIDTH, step: 10 }
+          },
+          { name: t("resetWidths"), desc: t("resetWidthsDesc"), action: () => void this.resetColumnWidths() }
+        ]
+      },
+      {
+        type: "group",
+        heading: t("headRecents"),
+        items: [
+          { name: t("setShowRecents"), desc: t("setShowRecentsDesc"), control: { type: "toggle", key: "showRecents" } },
+          {
+            name: t("setRecentCount"),
+            desc: t("setRecentCountDesc"),
+            control: { type: "slider", key: "recentFilesCount", min: MIN_RECENT_FILES, max: MAX_RECENT_FILES, step: 1 }
+          },
+          { name: t("clearRecents"), desc: t("clearRecentsDesc"), action: () => void this.clearRecents() }
+        ]
+      }
     ];
+  }
+  async resetColumnWidths() {
+    var _a;
+    this.plugin.settings.columnWidths = {};
+    await this.plugin.saveSettings();
+    (_a = this.plugin.getView()) == null ? void 0 : _a.render();
+    new import_obsidian2.Notice(t("widthsReset"));
+  }
+  async clearRecents() {
+    var _a;
+    this.plugin.settings.recentFiles = [];
+    await this.plugin.saveSettings();
+    (_a = this.plugin.getView()) == null ? void 0 : _a.render();
+    new import_obsidian2.Notice(t("recentsCleared"));
   }
   /** Self-contained override — avoids calling the 1.13-only base implementation. */
   async setControlValue(key, value) {
@@ -441,10 +522,7 @@ var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
       await this.plugin.saveSettings();
       (_a = this.plugin.getView()) == null ? void 0 : _a.render();
     };
-    new import_obsidian2.Setting(containerEl).setName(t("setSort")).addDropdown((d) => d.addOption("name-asc", t("sortNameAsc")).addOption("name-desc", t("sortNameDesc")).addOption("mtime-desc", t("sortMtimeDesc")).addOption("mtime-asc", t("sortMtimeAsc")).setValue(s.sortMode).onChange(async (v) => {
-      s.sortMode = v;
-      await save();
-    }));
+    new import_obsidian2.Setting(containerEl).setName(t("headAppearance")).setHeading();
     new import_obsidian2.Setting(containerEl).setName(t("setFoldersFirst")).setDesc(t("setFoldersFirstDesc")).addToggle((tg) => tg.setValue(s.foldersFirst).onChange(async (v) => {
       s.foldersFirst = v;
       await save();
@@ -461,6 +539,11 @@ var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
       s.showMarkdownPreview = v;
       await save();
     }));
+    new import_obsidian2.Setting(containerEl).setName(t("headBehavior")).setHeading();
+    new import_obsidian2.Setting(containerEl).setName(t("setSort")).addDropdown((d) => d.addOption("name-asc", t("sortNameAsc")).addOption("name-desc", t("sortNameDesc")).addOption("mtime-desc", t("sortMtimeDesc")).addOption("mtime-asc", t("sortMtimeAsc")).setValue(s.sortMode).onChange(async (v) => {
+      s.sortMode = v;
+      await save();
+    }));
     new import_obsidian2.Setting(containerEl).setName(t("setAutoReveal")).setDesc(t("setAutoRevealDesc")).addToggle((tg) => tg.setValue(s.autoReveal).onChange(async (v) => {
       s.autoReveal = v;
       await save();
@@ -473,6 +556,11 @@ var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
       s.confirmDelete = v;
       await save();
     }));
+    new import_obsidian2.Setting(containerEl).setName(t("setExclude")).setDesc(t("setExcludeDesc")).addText((txt) => txt.setValue(s.excludePatterns).onChange(async (v) => {
+      s.excludePatterns = v;
+      await save();
+    }));
+    new import_obsidian2.Setting(containerEl).setName(t("headColumns")).setHeading();
     new import_obsidian2.Setting(containerEl).setName(t("setAutoPanel")).setDesc(t("setAutoPanelDesc")).addToggle((tg) => tg.setValue(s.autoPanelResize).onChange(async (v) => {
       s.autoPanelResize = v;
       await save();
@@ -481,14 +569,17 @@ var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
       s.columnWidth = v;
       await save();
     }));
+    new import_obsidian2.Setting(containerEl).setName(t("resetWidths")).setDesc(t("resetWidthsDesc")).addButton((b) => b.setButtonText(t("reset")).onClick(() => void this.resetColumnWidths()));
+    new import_obsidian2.Setting(containerEl).setName(t("headRecents")).setHeading();
+    new import_obsidian2.Setting(containerEl).setName(t("setShowRecents")).setDesc(t("setShowRecentsDesc")).addToggle((tg) => tg.setValue(s.showRecents).onChange(async (v) => {
+      s.showRecents = v;
+      await save();
+    }));
     new import_obsidian2.Setting(containerEl).setName(t("setRecentCount")).setDesc(t("setRecentCountDesc")).addSlider((sl) => sl.setLimits(MIN_RECENT_FILES, MAX_RECENT_FILES, 1).setValue(s.recentFilesCount).onChange(async (v) => {
       s.recentFilesCount = v;
       await save();
     }));
-    new import_obsidian2.Setting(containerEl).setName(t("setExclude")).setDesc(t("setExcludeDesc")).addText((txt) => txt.setValue(s.excludePatterns).onChange(async (v) => {
-      s.excludePatterns = v;
-      await save();
-    }));
+    new import_obsidian2.Setting(containerEl).setName(t("clearRecents")).setDesc(t("clearRecentsDesc")).addButton((b) => b.setButtonText(t("clear")).onClick(() => void this.clearRecents()));
   }
 };
 
@@ -1170,7 +1261,9 @@ function renderColumnList(view, list, folder, depth) {
   (_a = listObservers.get(list)) == null ? void 0 : _a.disconnect();
   listObservers.delete(list);
   list.empty();
-  if (folder.isRoot() && depth === 0) list.appendChild(buildRecentsItem(view));
+  if (folder.isRoot() && depth === 0 && view.plugin.settings.showRecents) {
+    list.appendChild(buildRecentsItem(view));
+  }
   const children = view.childrenOf(folder);
   const countEl = (_b = list.closest(".column-explorer-column")) == null ? void 0 : _b.querySelector(".column-explorer-column-count");
   countEl == null ? void 0 : countEl.setText(String(children.length));
@@ -1626,7 +1719,7 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     this.columnsEl.empty();
     this.applyColumnWidth();
     const validSel = [];
-    if (this.selection[0] === RECENTS_PATH) {
+    if (this.selection[0] === RECENTS_PATH && this.plugin.settings.showRecents) {
       validSel.push(RECENTS_PATH);
       const filePath = this.selection[1];
       if (filePath && this.app.vault.getAbstractFileByPath(filePath) instanceof import_obsidian10.TFile) validSel.push(filePath);
@@ -1733,32 +1826,18 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     item == null ? void 0 : item.addClass("is-active-file");
   }
   /* ----------------------------- actions --------------------------- */
-  /**
-   * Последние открытые файлы. Приватный getRecentFiles умеет maxCount
-   * больше 10, публичный getLastOpenFiles режет до 10 — он же fallback
-   * на случай поломки приватного API в будущих версиях.
-   */
+  /** Последние открытые файлы из собственного трекера (main.ts). */
   recentFiles() {
-    var _a, _b;
-    const limit = this.plugin.settings.recentFilesCount;
-    let paths;
-    try {
-      const ws = this.app.workspace;
-      paths = (_b = (_a = ws.getRecentFiles) == null ? void 0 : _a.call(ws, {
-        showMarkdown: true,
-        showNonAttachments: true,
-        showNonImageAttachments: true,
-        showImages: true,
-        maxCount: limit
-      })) != null ? _b : this.app.workspace.getLastOpenFiles();
-    } catch (e) {
-      paths = this.app.workspace.getLastOpenFiles();
-    }
+    const s = this.plugin.settings;
     const isFile = (p) => this.app.vault.getAbstractFileByPath(p) instanceof import_obsidian10.TFile;
-    return takeFirstExisting(paths, isFile, limit).flatMap((p) => {
+    return takeFirstExisting(s.recentFiles, isFile, s.recentFilesCount).flatMap((p) => {
       const f = this.app.vault.getAbstractFileByPath(p);
       return f instanceof import_obsidian10.TFile ? [f] : [];
     });
+  }
+  /** Перерисовать открытую колонку «Недавние» (файл открыли где-то ещё). */
+  refreshRecentsColumn() {
+    if (this.selection[0] === RECENTS_PATH) this.render();
   }
   selectRecents() {
     this.selection = [RECENTS_PATH];
@@ -2005,6 +2084,26 @@ var ColumnExplorerPlugin = class extends import_obsidian11.Plugin {
   }
   async onload() {
     await this.loadSettings();
+    if (this.settings.recentFiles.length === 0) {
+      this.settings.recentFiles = this.app.workspace.getLastOpenFiles();
+    }
+    this.registerEvent(this.app.workspace.on("file-open", (f) => {
+      var _a;
+      if (!f) return;
+      this.settings.recentFiles = pushRecent(this.settings.recentFiles, f.path, MAX_RECENT_FILES);
+      void this.saveSettings();
+      (_a = this.getView()) == null ? void 0 : _a.refreshRecentsColumn();
+    }));
+    this.registerEvent(this.app.vault.on("rename", (f, oldPath) => {
+      this.settings.recentFiles = remapPathList(this.settings.recentFiles, oldPath, f.path);
+      void this.saveSettings();
+    }));
+    this.registerEvent(this.app.vault.on("delete", (f) => {
+      this.settings.recentFiles = this.settings.recentFiles.filter(
+        (p) => p !== f.path && !p.startsWith(f.path + "/")
+      );
+      void this.saveSettings();
+    }));
     this.registerView(VIEW_TYPE_COLUMNS, (leaf) => new ColumnExplorerView(leaf, this));
     this.addSettingTab(new ColumnExplorerSettingTab(this.app, this));
     this.addRibbonIcon("columns-3", "Column Explorer", () => void this.activateView());

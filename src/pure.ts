@@ -163,6 +163,20 @@ export function availablePath(folderPath: string, fileName: string, taken: Reado
  */
 export const RECENTS_PATH = "::recents::";
 
+/** Prepend `path` to a recents list: dedupe, cap at `limit`. New array. */
+export function pushRecent(list: string[], path: string, limit: number): string[] {
+	return [path, ...list.filter((p) => p !== path)].slice(0, limit);
+}
+
+/** Rename-aware update of a path list (exact match or children). New array. */
+export function remapPathList(list: string[], oldPath: string, newPath: string): string[] {
+	return list.map((p) => {
+		if (p === oldPath) return newPath;
+		if (p.startsWith(oldPath + "/")) return newPath + p.slice(oldPath.length);
+		return p;
+	});
+}
+
 /** First `limit` paths that pass the `exists` check, original order kept. */
 export function takeFirstExisting(paths: string[], exists: (path: string) => boolean, limit: number): string[] {
 	const result: string[] = [];

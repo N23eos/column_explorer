@@ -46,6 +46,12 @@ const STRINGS: Record<string, Record<string, string>> = {
 		lockPanel: "Lock column count", unlockPanel: "Unlock columns",
 		recents: "Recents",
 		setRecentCount: "Recent files count", setRecentCountDesc: "How many files the “Recents” column shows.",
+		headAppearance: "Appearance", headBehavior: "Behavior", headColumns: "Columns", headRecents: "Recent files",
+		setShowRecents: "Show recents", setShowRecentsDesc: "Show the recents row at the top of the first column.",
+		resetWidths: "Reset all column widths", resetWidthsDesc: "Forget individually dragged widths and use the default width everywhere.",
+		widthsReset: "Column widths reset", reset: "Reset",
+		clearRecents: "Clear recent files", clearRecentsDesc: "Remove all entries from the recents list.",
+		recentsCleared: "Recent files cleared", clear: "Clear",
 	},
 	ru: {
 		newNote: "Новая заметка", newFolder: "Новая папка", reveal: "Показать активный файл",
@@ -91,6 +97,12 @@ const STRINGS: Record<string, Record<string, string>> = {
 		lockPanel: "Зафиксировать число колонок", unlockPanel: "Снять фиксацию колонок",
 		recents: "Недавние",
 		setRecentCount: "Число недавних файлов", setRecentCountDesc: "Сколько файлов показывать в колонке «Недавние».",
+		headAppearance: "Вид", headBehavior: "Поведение", headColumns: "Колонки", headRecents: "Недавние файлы",
+		setShowRecents: "Показывать «Недавние»", setShowRecentsDesc: "Пункт «Недавние» вверху первой колонки.",
+		resetWidths: "Сбросить ширины всех колонок", resetWidthsDesc: "Забыть индивидуально настроенные ширины и вернуть всем колонкам ширину по умолчанию.",
+		widthsReset: "Ширины колонок сброшены", reset: "Сбросить",
+		clearRecents: "Очистить недавние", clearRecentsDesc: "Удалить все записи из списка недавних.",
+		recentsCleared: "Список недавних очищен", clear: "Очистить",
 	},
 };
 

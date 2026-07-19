@@ -1,4 +1,4 @@
-import { App, PluginSettingTab, Setting, SettingDefinitionItem } from "obsidian";
+import { App, Notice, PluginSettingTab, Setting, SettingDefinitionItem } from "obsidian";
 import { t } from "./i18n";
 import type ColumnExplorerPlugin from "./main";
 
@@ -37,6 +37,10 @@ export interface ColumnExplorerSettings {
 	lockedColumnCount: number | null;
 	/** How many entries the virtual "Recent files" column shows. */
 	recentFilesCount: number;
+	/** Own recent-files tracker, newest first (Obsidian's stores only 25). */
+	recentFiles: string[];
+	/** Show the virtual "Recents" row in the root column. */
+	showRecents: boolean;
 }
 
 export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
@@ -59,11 +63,12 @@ export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
 	openFolderNote: false,
 	lockedColumnCount: null,
 	recentFilesCount: 10,
+	recentFiles: [],
+	showRecents: true,
 };
 
 export const MIN_RECENT_FILES = 5;
-/** Obsidian's own recent-file tracker stores at most 25 markdown paths. */
-export const MAX_RECENT_FILES = 25;
+export const MAX_RECENT_FILES = 50;
 
 export const MIN_COLUMN_WIDTH = 140;
 export const MAX_COLUMN_WIDTH = 500;
@@ -82,33 +87,66 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 	getSettingDefinitions(): SettingDefinitionItem[] {
 		return [
 			{
-				name: t("setSort"),
-				control: {
-					type: "dropdown", key: "sortMode",
-					options: {
-						"name-asc": t("sortNameAsc"), "name-desc": t("sortNameDesc"),
-						"mtime-desc": t("sortMtimeDesc"), "mtime-asc": t("sortMtimeAsc"),
+				type: "group", heading: t("headAppearance"), items: [
+					{ name: t("setFoldersFirst"), desc: t("setFoldersFirstDesc"), control: { type: "toggle", key: "foldersFirst" } },
+					{ name: t("setShowExt"), desc: t("setShowExtDesc"), control: { type: "toggle", key: "showExtensions" } },
+					{ name: t("setPreview"), desc: t("setPreviewDesc"), control: { type: "toggle", key: "showPreview" } },
+					{ name: t("setMdPreview"), desc: t("setMdPreviewDesc"), control: { type: "toggle", key: "showMarkdownPreview" } },
+				],
+			},
+			{
+				type: "group", heading: t("headBehavior"), items: [
+					{
+						name: t("setSort"),
+						control: {
+							type: "dropdown", key: "sortMode",
+							options: {
+								"name-asc": t("sortNameAsc"), "name-desc": t("sortNameDesc"),
+								"mtime-desc": t("sortMtimeDesc"), "mtime-asc": t("sortMtimeAsc"),
+							},
+						},
 					},
-				},
-			},
-			{ name: t("setFoldersFirst"), desc: t("setFoldersFirstDesc"), control: { type: "toggle", key: "foldersFirst" } },
-			{ name: t("setShowExt"), desc: t("setShowExtDesc"), control: { type: "toggle", key: "showExtensions" } },
-			{ name: t("setPreview"), desc: t("setPreviewDesc"), control: { type: "toggle", key: "showPreview" } },
-			{ name: t("setMdPreview"), desc: t("setMdPreviewDesc"), control: { type: "toggle", key: "showMarkdownPreview" } },
-			{ name: t("setAutoReveal"), desc: t("setAutoRevealDesc"), control: { type: "toggle", key: "autoReveal" } },
-			{ name: t("setFolderNote"), desc: t("setFolderNoteDesc"), control: { type: "toggle", key: "openFolderNote" } },
-			{ name: t("setConfirmDelete"), desc: t("setConfirmDeleteDesc"), control: { type: "toggle", key: "confirmDelete" } },
-			{ name: t("setAutoPanel"), desc: t("setAutoPanelDesc"), control: { type: "toggle", key: "autoPanelResize" } },
-			{
-				name: t("setColWidth"), desc: t("setColWidthDesc"),
-				control: { type: "slider", key: "columnWidth", min: MIN_COLUMN_WIDTH, max: MAX_COLUMN_WIDTH, step: 10 },
+					{ name: t("setAutoReveal"), desc: t("setAutoRevealDesc"), control: { type: "toggle", key: "autoReveal" } },
+					{ name: t("setFolderNote"), desc: t("setFolderNoteDesc"), control: { type: "toggle", key: "openFolderNote" } },
+					{ name: t("setConfirmDelete"), desc: t("setConfirmDeleteDesc"), control: { type: "toggle", key: "confirmDelete" } },
+					{ name: t("setExclude"), desc: t("setExcludeDesc"), control: { type: "text", key: "excludePatterns" } },
+				],
 			},
 			{
-				name: t("setRecentCount"), desc: t("setRecentCountDesc"),
-				control: { type: "slider", key: "recentFilesCount", min: MIN_RECENT_FILES, max: MAX_RECENT_FILES, step: 1 },
+				type: "group", heading: t("headColumns"), items: [
+					{ name: t("setAutoPanel"), desc: t("setAutoPanelDesc"), control: { type: "toggle", key: "autoPanelResize" } },
+					{
+						name: t("setColWidth"), desc: t("setColWidthDesc"),
+						control: { type: "slider", key: "columnWidth", min: MIN_COLUMN_WIDTH, max: MAX_COLUMN_WIDTH, step: 10 },
+					},
+					{ name: t("resetWidths"), desc: t("resetWidthsDesc"), action: () => void this.resetColumnWidths() },
+				],
 			},
-			{ name: t("setExclude"), desc: t("setExcludeDesc"), control: { type: "text", key: "excludePatterns" } },
+			{
+				type: "group", heading: t("headRecents"), items: [
+					{ name: t("setShowRecents"), desc: t("setShowRecentsDesc"), control: { type: "toggle", key: "showRecents" } },
+					{
+						name: t("setRecentCount"), desc: t("setRecentCountDesc"),
+						control: { type: "slider", key: "recentFilesCount", min: MIN_RECENT_FILES, max: MAX_RECENT_FILES, step: 1 },
+					},
+					{ name: t("clearRecents"), desc: t("clearRecentsDesc"), action: () => void this.clearRecents() },
+				],
+			},
 		];
+	}
+
+	private async resetColumnWidths() {
+		this.plugin.settings.columnWidths = {};
+		await this.plugin.saveSettings();
+		this.plugin.getView()?.render();
+		new Notice(t("widthsReset"));
+	}
+
+	private async clearRecents() {
+		this.plugin.settings.recentFiles = [];
+		await this.plugin.saveSettings();
+		this.plugin.getView()?.render();
+		new Notice(t("recentsCleared"));
 	}
 
 	/** Self-contained override — avoids calling the 1.13-only base implementation. */
@@ -127,14 +165,7 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 			this.plugin.getView()?.render();
 		};
 
-		new Setting(containerEl).setName(t("setSort"))
-			.addDropdown(d => d
-				.addOption("name-asc", t("sortNameAsc"))
-				.addOption("name-desc", t("sortNameDesc"))
-				.addOption("mtime-desc", t("sortMtimeDesc"))
-				.addOption("mtime-asc", t("sortMtimeAsc"))
-				.setValue(s.sortMode)
-				.onChange(async (v) => { s.sortMode = v as SortMode; await save(); }));
+		new Setting(containerEl).setName(t("headAppearance")).setHeading();
 
 		new Setting(containerEl).setName(t("setFoldersFirst")).setDesc(t("setFoldersFirstDesc"))
 			.addToggle(tg => tg.setValue(s.foldersFirst).onChange(async (v) => { s.foldersFirst = v; await save(); }));
@@ -148,6 +179,17 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 		new Setting(containerEl).setName(t("setMdPreview")).setDesc(t("setMdPreviewDesc"))
 			.addToggle(tg => tg.setValue(s.showMarkdownPreview).onChange(async (v) => { s.showMarkdownPreview = v; await save(); }));
 
+		new Setting(containerEl).setName(t("headBehavior")).setHeading();
+
+		new Setting(containerEl).setName(t("setSort"))
+			.addDropdown(d => d
+				.addOption("name-asc", t("sortNameAsc"))
+				.addOption("name-desc", t("sortNameDesc"))
+				.addOption("mtime-desc", t("sortMtimeDesc"))
+				.addOption("mtime-asc", t("sortMtimeAsc"))
+				.setValue(s.sortMode)
+				.onChange(async (v) => { s.sortMode = v as SortMode; await save(); }));
+
 		new Setting(containerEl).setName(t("setAutoReveal")).setDesc(t("setAutoRevealDesc"))
 			.addToggle(tg => tg.setValue(s.autoReveal).onChange(async (v) => { s.autoReveal = v; await save(); }));
 
@@ -157,6 +199,12 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 		new Setting(containerEl).setName(t("setConfirmDelete")).setDesc(t("setConfirmDeleteDesc"))
 			.addToggle(tg => tg.setValue(s.confirmDelete).onChange(async (v) => { s.confirmDelete = v; await save(); }));
 
+		new Setting(containerEl).setName(t("setExclude")).setDesc(t("setExcludeDesc"))
+			.addText(txt => txt.setValue(s.excludePatterns)
+				.onChange(async (v) => { s.excludePatterns = v; await save(); }));
+
+		new Setting(containerEl).setName(t("headColumns")).setHeading();
+
 		new Setting(containerEl).setName(t("setAutoPanel")).setDesc(t("setAutoPanelDesc"))
 			.addToggle(tg => tg.setValue(s.autoPanelResize).onChange(async (v) => { s.autoPanelResize = v; await save(); }));
 
@@ -165,13 +213,20 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 				.setValue(s.columnWidth)
 				.onChange(async (v) => { s.columnWidth = v; await save(); }));
 
+		new Setting(containerEl).setName(t("resetWidths")).setDesc(t("resetWidthsDesc"))
+			.addButton(b => b.setButtonText(t("reset")).onClick(() => void this.resetColumnWidths()));
+
+		new Setting(containerEl).setName(t("headRecents")).setHeading();
+
+		new Setting(containerEl).setName(t("setShowRecents")).setDesc(t("setShowRecentsDesc"))
+			.addToggle(tg => tg.setValue(s.showRecents).onChange(async (v) => { s.showRecents = v; await save(); }));
+
 		new Setting(containerEl).setName(t("setRecentCount")).setDesc(t("setRecentCountDesc"))
 			.addSlider(sl => sl.setLimits(MIN_RECENT_FILES, MAX_RECENT_FILES, 1)
 				.setValue(s.recentFilesCount)
 				.onChange(async (v) => { s.recentFilesCount = v; await save(); }));
 
-		new Setting(containerEl).setName(t("setExclude")).setDesc(t("setExcludeDesc"))
-			.addText(txt => txt.setValue(s.excludePatterns)
-				.onChange(async (v) => { s.excludePatterns = v; await save(); }));
+		new Setting(containerEl).setName(t("clearRecents")).setDesc(t("clearRecentsDesc"))
+			.addButton(b => b.setButtonText(t("clear")).onClick(() => void this.clearRecents()));
 	}
 }

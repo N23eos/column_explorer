@@ -11,6 +11,8 @@ import {
 	parseDragPaths,
 	availablePath,
 	takeFirstExisting,
+	pushRecent,
+	remapPathList,
 } from "../src/pure";
 
 describe("naturalCompare", () => {
@@ -371,5 +373,47 @@ describe("takeFirstExisting", () => {
 
 	test("returns empty array for empty input", () => {
 		expect(takeFirstExisting([], () => true, 10)).toEqual([]);
+	});
+});
+
+describe("pushRecent", () => {
+	test("puts the new path on top and dedupes an older entry", () => {
+		// Arrange
+		const list = ["b.md", "a.md"];
+
+		// Act
+		const result = pushRecent(list, "a.md", 50);
+
+		// Assert
+		expect(result).toEqual(["a.md", "b.md"]);
+	});
+
+	test("caps the list at the limit, dropping the oldest", () => {
+		expect(pushRecent(["b", "c"], "a", 2)).toEqual(["a", "b"]);
+	});
+
+	test("does not mutate the original list", () => {
+		const list = ["a"];
+		pushRecent(list, "b", 10);
+		expect(list).toEqual(["a"]);
+	});
+
+	test("no-op result when path already on top", () => {
+		expect(pushRecent(["a", "b"], "a", 10)).toEqual(["a", "b"]);
+	});
+});
+
+describe("remapPathList", () => {
+	test("replaces renamed path and children prefixes", () => {
+		const list = ["x/a.md", "x/sub/b.md", "y/c.md"];
+		expect(remapPathList(list, "x", "z")).toEqual(["z/a.md", "z/sub/b.md", "y/c.md"]);
+	});
+
+	test("does not touch paths sharing only a string prefix", () => {
+		expect(remapPathList(["ab/c.md"], "a", "z")).toEqual(["ab/c.md"]);
+	});
+
+	test("replaces an exact file path", () => {
+		expect(remapPathList(["a.md", "b.md"], "a.md", "n.md")).toEqual(["n.md", "b.md"]);
 	});
 });

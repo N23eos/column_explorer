@@ -106,8 +106,10 @@ export function renderColumnList(view: ColumnExplorerView, list: HTMLElement, fo
 	listObservers.get(list)?.disconnect();
 	listObservers.delete(list);
 	list.empty();
-	// Виртуальный пункт «Недавние» — всегда первым в корневой колонке
-	if (folder.isRoot() && depth === 0) list.appendChild(buildRecentsItem(view));
+	// Виртуальный пункт «Недавние» — первым в корневой колонке
+	if (folder.isRoot() && depth === 0 && view.plugin.settings.showRecents) {
+		list.appendChild(buildRecentsItem(view));
+	}
 	const children = view.childrenOf(folder);
 
 	const countEl = list.closest(".column-explorer-column")?.querySelector(".column-explorer-column-count");
