@@ -60,6 +60,8 @@ export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
 
 export const MIN_COLUMN_WIDTH = 140;
 export const MAX_COLUMN_WIDTH = 500;
+/** Корневая колонка по умолчанию шире остальных — там самые длинные ярлыки. */
+export const ROOT_COLUMN_EXTRA_WIDTH = 60;
 
 export class ColumnExplorerSettingTab extends PluginSettingTab {
 	constructor(app: App, private plugin: ColumnExplorerPlugin) {

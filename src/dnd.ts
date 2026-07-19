@@ -1,5 +1,5 @@
 import { App, TFile, TFolder } from "obsidian";
-import { moveFiles } from "./fileops";
+import { importExternalFiles, moveFiles } from "./fileops";
 import { movePinnedBefore, parseDragPaths } from "./pure";
 import type { ColumnExplorerView } from "./view";
 
@@ -77,7 +77,8 @@ export function setupColumnDnd(view: ColumnExplorerView, listEl: HTMLElement, co
 	listEl.addEventListener("dragover", (e: DragEvent) => {
 		e.preventDefault();
 		e.stopPropagation();
-		if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+		// Файлы из ОС копируются, внутренние перетаскивания — перемещаются
+		if (e.dataTransfer) e.dataTransfer.dropEffect = e.dataTransfer.types.includes("Files") ? "copy" : "move";
 		const targetFolder = folderForItem(app, itemUnderEvent(listEl, e));
 		setHighlight(targetFolder ? itemUnderEvent(listEl, e) : listEl);
 	});
@@ -91,6 +92,12 @@ export function setupColumnDnd(view: ColumnExplorerView, listEl: HTMLElement, co
 		e.stopPropagation();
 		const dropFolder = folderForItem(app, itemUnderEvent(listEl, e)) ?? columnFolder;
 		setHighlight(null);
+		// Файлы из ОС (Finder и т.п.) — импорт копированием в папку под курсором
+		const osFiles = e.dataTransfer?.files;
+		if (!activeDragPaths && osFiles && osFiles.length > 0) {
+			void importExternalFiles(app, Array.from(osFiles), dropFolder);
+			return;
+		}
 		// Внутренний драг — из состояния; dataTransfer только для внешних
 		const paths = activeDragPaths ?? parseDragPaths(e.dataTransfer?.getData("text/plain") ?? "");
 		activeDragPaths = null;

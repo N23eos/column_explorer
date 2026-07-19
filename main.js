@@ -122,6 +122,16 @@ function desiredPanelWidth(contentWidth, windowWidth, minWidth) {
   const capped = Math.min(contentWidth, windowWidth * MAX_PANEL_WINDOW_RATIO);
   return Math.max(minWidth, capped);
 }
+function availablePath(folderPath, fileName, taken) {
+  const prefix = folderPath ? folderPath + "/" : "";
+  if (!taken.has(prefix + fileName)) return prefix + fileName;
+  const dot = fileName.lastIndexOf(".");
+  const base = dot > 0 ? fileName.slice(0, dot) : fileName;
+  const ext = dot > 0 ? fileName.slice(dot) : "";
+  let counter = 1;
+  while (taken.has(`${prefix}${base} ${counter}${ext}`)) counter++;
+  return `${prefix}${base} ${counter}${ext}`;
+}
 function matchesExcludePatterns(path, patterns) {
   var _a;
   if (patterns.length === 0) return false;
@@ -179,6 +189,8 @@ var STRINGS = {
     cancel: "Cancel",
     itemsMoved: "{n} items moved",
     undo: "Undo",
+    filesImported: "{n} files imported",
+    importFailed: "Failed to import \u201C{name}\u201D",
     cmdOpen: "Open column explorer",
     cmdReveal: "Reveal active file in columns",
     setFoldersFirst: "Folders first",
@@ -266,6 +278,8 @@ var STRINGS = {
     cancel: "\u041E\u0442\u043C\u0435\u043D\u0430",
     itemsMoved: "\u041F\u0435\u0440\u0435\u043C\u0435\u0449\u0435\u043D\u043E \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432: {n}",
     undo: "\u041E\u0442\u043C\u0435\u043D\u0438\u0442\u044C",
+    filesImported: "\u0418\u043C\u043F\u043E\u0440\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u043E \u0444\u0430\u0439\u043B\u043E\u0432: {n}",
+    importFailed: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0438\u043C\u043F\u043E\u0440\u0442\u0438\u0440\u043E\u0432\u0430\u0442\u044C \xAB{name}\xBB",
     cmdOpen: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u043E\u0432\u043E\u0434\u043D\u0438\u043A-\u043A\u043E\u043B\u043E\u043D\u043A\u0438",
     cmdReveal: "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u0439 \u0444\u0430\u0439\u043B \u0432 \u043A\u043E\u043B\u043E\u043D\u043A\u0430\u0445",
     setFoldersFirst: "\u041F\u0430\u043F\u043A\u0438 \u0441\u0432\u0435\u0440\u0445\u0443",
@@ -347,6 +361,7 @@ var DEFAULT_SETTINGS = {
 };
 var MIN_COLUMN_WIDTH = 140;
 var MAX_COLUMN_WIDTH = 500;
+var ROOT_COLUMN_EXTRA_WIDTH = 60;
 var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
@@ -580,6 +595,22 @@ async function undoMoves(app, moves) {
     }
   }
 }
+async function importExternalFiles(app, files, target) {
+  let imported = 0;
+  for (const file of files) {
+    try {
+      const data = await file.arrayBuffer();
+      const taken = new Set(app.vault.getAllLoadedFiles().map((f) => f.path));
+      const dest = (0, import_obsidian4.normalizePath)(availablePath(target.isRoot() ? "" : target.path, file.name, taken));
+      await app.vault.createBinary(dest, data);
+      imported++;
+    } catch (e) {
+      new import_obsidian4.Notice(t("importFailed", { name: file.name }));
+    }
+  }
+  if (imported > 0) new import_obsidian4.Notice(t("filesImported", { n: imported }));
+  return imported;
+}
 async function duplicateFile(app, f) {
   const dir = f.parent && !f.parent.isRoot() ? f.parent.path + "/" : "";
   let n = 1;
@@ -643,7 +674,7 @@ function setupColumnDnd(view, listEl, columnFolder, depth) {
   listEl.addEventListener("dragover", (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+    if (e.dataTransfer) e.dataTransfer.dropEffect = e.dataTransfer.types.includes("Files") ? "copy" : "move";
     const targetFolder = folderForItem(app, itemUnderEvent(listEl, e));
     setHighlight(targetFolder ? itemUnderEvent(listEl, e) : listEl);
   });
@@ -651,12 +682,17 @@ function setupColumnDnd(view, listEl, columnFolder, depth) {
     if (!listEl.contains(e.relatedTarget)) setHighlight(null);
   });
   listEl.addEventListener("drop", (e) => {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     e.preventDefault();
     e.stopPropagation();
     const dropFolder = (_a = folderForItem(app, itemUnderEvent(listEl, e))) != null ? _a : columnFolder;
     setHighlight(null);
-    const paths = activeDragPaths != null ? activeDragPaths : parseDragPaths((_c = (_b = e.dataTransfer) == null ? void 0 : _b.getData("text/plain")) != null ? _c : "");
+    const osFiles = (_b = e.dataTransfer) == null ? void 0 : _b.files;
+    if (!activeDragPaths && osFiles && osFiles.length > 0) {
+      void importExternalFiles(app, Array.from(osFiles), dropFolder);
+      return;
+    }
+    const paths = activeDragPaths != null ? activeDragPaths : parseDragPaths((_d = (_c = e.dataTransfer) == null ? void 0 : _c.getData("text/plain")) != null ? _d : "");
     activeDragPaths = null;
     if (paths.length === 0) return;
     if (paths.length === 1 && reorderPinned(view, paths[0], itemUnderEvent(listEl, e))) return;
@@ -1018,11 +1054,11 @@ function itemFromEvent(e) {
   return (el == null ? void 0 : el.dataset.path) ? { el, path: el.dataset.path } : null;
 }
 function renderColumn(view, container, folder, depth) {
-  var _a;
+  var _a, _b;
   const col = container.createDiv({ cls: "column-explorer-column" });
   col.dataset.depth = String(depth);
   col.dataset.folderPath = folder.path;
-  const customWidth = view.plugin.settings.columnWidths[folder.path];
+  const customWidth = (_a = view.plugin.settings.columnWidths[folder.path]) != null ? _a : folder.isRoot() ? view.plugin.settings.columnWidth + ROOT_COLUMN_EXTRA_WIDTH : void 0;
   if (customWidth) col.style.setProperty("--ce-col-width", customWidth + "px");
   const header = col.createDiv({ cls: "column-explorer-column-header" });
   header.createSpan({ cls: "column-explorer-column-title", text: folder.isRoot() ? view.app.vault.getName() : folder.name });
@@ -1031,7 +1067,7 @@ function renderColumn(view, container, folder, depth) {
     e.preventDefault();
     showColumnHeaderMenu(view, e, folder);
   });
-  const viewMode = (_a = view.plugin.settings.columnViewModes[folder.path]) != null ? _a : "list";
+  const viewMode = (_b = view.plugin.settings.columnViewModes[folder.path]) != null ? _b : "list";
   const toggle = header.createDiv({
     cls: "clickable-icon column-explorer-view-toggle",
     attr: { "aria-label": viewMode === "list" ? t("viewAsGrid") : t("viewAsList") }
@@ -1214,7 +1250,11 @@ function addResizeHandle(view, col, folderPath) {
     delete rest[folderPath];
     s.columnWidths = rest;
     void view.plugin.saveSettings();
-    col.style.removeProperty("--ce-col-width");
+    if (folderPath === "/") {
+      col.style.setProperty("--ce-col-width", s.columnWidth + ROOT_COLUMN_EXTRA_WIDTH + "px");
+    } else {
+      col.style.removeProperty("--ce-col-width");
+    }
     view.autoResizePanel();
   });
 }

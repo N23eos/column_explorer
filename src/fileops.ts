@@ -1,5 +1,6 @@
 import { App, Notice, TFile, TFolder, normalizePath } from "obsidian";
 import { t } from "./i18n";
+import { availablePath } from "./pure";
 
 const UNDO_NOTICE_MS = 8000;
 
@@ -51,6 +52,28 @@ async function undoMoves(app: App, moves: MoveRecord[]) {
 			await app.fileManager.renameFile(f, move.from);
 		}
 	}
+}
+
+/**
+ * Copy files dragged in from the OS into a vault folder. Name clashes get
+ * a numeric suffix instead of overwriting. Returns the number imported.
+ */
+export async function importExternalFiles(app: App, files: readonly File[], target: TFolder): Promise<number> {
+	let imported = 0;
+	for (const file of files) {
+		try {
+			const data = await file.arrayBuffer();
+			// Свежий набор занятых путей на каждый файл — учитывает только что созданные
+			const taken = new Set(app.vault.getAllLoadedFiles().map((f) => f.path));
+			const dest = normalizePath(availablePath(target.isRoot() ? "" : target.path, file.name, taken));
+			await app.vault.createBinary(dest, data);
+			imported++;
+		} catch {
+			new Notice(t("importFailed", { name: file.name }));
+		}
+	}
+	if (imported > 0) new Notice(t("filesImported", { n: imported }));
+	return imported;
 }
 
 export async function duplicateFile(app: App, f: TFile): Promise<void> {

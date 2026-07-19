@@ -4,7 +4,7 @@ import { splitMatch } from "./pure";
 import { displayName, folderNoteOf, iconFor, isImageFile } from "./utils";
 import { setupColumnDnd } from "./dnd";
 import { showColumnHeaderMenu, showFileMenu, showFolderBackgroundMenu } from "./menus";
-import { MAX_COLUMN_WIDTH, MIN_COLUMN_WIDTH } from "./settings";
+import { MAX_COLUMN_WIDTH, MIN_COLUMN_WIDTH, ROOT_COLUMN_EXTRA_WIDTH } from "./settings";
 import type { ColumnExplorerView } from "./view";
 
 function itemFromEvent(e: Event): { el: HTMLElement; path: string } | null {
@@ -16,8 +16,10 @@ export function renderColumn(view: ColumnExplorerView, container: HTMLElement, f
 	const col = container.createDiv({ cls: "column-explorer-column" });
 	col.dataset.depth = String(depth);
 	col.dataset.folderPath = folder.path;
-	// Индивидуальная ширина колонки перекрывает дефолтную из настроек
-	const customWidth = view.plugin.settings.columnWidths[folder.path];
+	// Индивидуальная ширина колонки перекрывает дефолтную из настроек;
+	// без своей ширины корневая колонка шире остальных
+	const customWidth = view.plugin.settings.columnWidths[folder.path]
+		?? (folder.isRoot() ? view.plugin.settings.columnWidth + ROOT_COLUMN_EXTRA_WIDTH : undefined);
 	if (customWidth) col.style.setProperty("--ce-col-width", customWidth + "px");
 
 	const header = col.createDiv({ cls: "column-explorer-column-header" });
@@ -233,7 +235,12 @@ function addResizeHandle(view: ColumnExplorerView, col: HTMLElement, folderPath:
 		delete rest[folderPath];
 		s.columnWidths = rest;
 		void view.plugin.saveSettings();
-		col.style.removeProperty("--ce-col-width");
+		// Сброс корневой — к её дефолту (шире обычного), остальных — к общему
+		if (folderPath === "/") {
+			col.style.setProperty("--ce-col-width", s.columnWidth + ROOT_COLUMN_EXTRA_WIDTH + "px");
+		} else {
+			col.style.removeProperty("--ce-col-width");
+		}
 		view.autoResizePanel();
 	});
 }

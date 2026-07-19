@@ -143,6 +143,21 @@ export function desiredPanelWidth(contentWidth: number, windowWidth: number, min
 }
 
 /**
+ * First free vault path for `fileName` inside `folderPath` ("" = root):
+ * "photo.png", then "photo 1.png", "photo 2.png"… `taken` holds occupied paths.
+ */
+export function availablePath(folderPath: string, fileName: string, taken: ReadonlySet<string>): string {
+	const prefix = folderPath ? folderPath + "/" : "";
+	if (!taken.has(prefix + fileName)) return prefix + fileName;
+	const dot = fileName.lastIndexOf(".");
+	const base = dot > 0 ? fileName.slice(0, dot) : fileName;
+	const ext = dot > 0 ? fileName.slice(dot) : "";
+	let counter = 1;
+	while (taken.has(`${prefix}${base} ${counter}${ext}`)) counter++;
+	return `${prefix}${base} ${counter}${ext}`;
+}
+
+/**
  * Pattern semantics:
  * - "folder/"  — the folder itself and everything inside it
  * - "*.tmp"    — glob matched against the file name (not the full path)

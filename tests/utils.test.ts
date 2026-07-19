@@ -9,6 +9,7 @@ import {
 	desiredPanelWidth,
 	splitMatch,
 	parseDragPaths,
+	availablePath,
 } from "../src/pure";
 
 describe("naturalCompare", () => {
@@ -314,5 +315,38 @@ describe("parseDragPaths", () => {
 
 	test("returns empty list for empty input", () => {
 		expect(parseDragPaths("")).toEqual([]);
+	});
+});
+
+describe("availablePath", () => {
+	test("returns the plain path when the name is free", () => {
+		// Arrange
+		const taken = new Set<string>();
+
+		// Act
+		const path = availablePath("docs", "photo.png", taken);
+
+		// Assert
+		expect(path).toBe("docs/photo.png");
+	});
+
+	test("appends a counter when the name is taken", () => {
+		const taken = new Set(["docs/photo.png"]);
+		expect(availablePath("docs", "photo.png", taken)).toBe("docs/photo 1.png");
+	});
+
+	test("skips past several taken counters", () => {
+		const taken = new Set(["docs/photo.png", "docs/photo 1.png", "docs/photo 2.png"]);
+		expect(availablePath("docs", "photo.png", taken)).toBe("docs/photo 3.png");
+	});
+
+	test("works at the vault root (empty folder path)", () => {
+		const taken = new Set(["note.md"]);
+		expect(availablePath("", "note.md", taken)).toBe("note 1.md");
+	});
+
+	test("handles names without an extension", () => {
+		const taken = new Set(["docs/README"]);
+		expect(availablePath("docs", "README", taken)).toBe("docs/README 1");
 	});
 });
