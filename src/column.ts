@@ -1,8 +1,8 @@
 import { TAbstractFile, TFile, TFolder, getLanguage, setIcon } from "obsidian";
 import { t } from "./i18n";
-import { BOOKMARKS_PATH, CALENDAR_PATH, RECENTS_PATH, dayKey, monthGrid, splitMatch } from "./pure";
+import { BOOKMARKS_PATH, CALENDAR_PATH, DAY_PATH_PREFIX, RECENTS_PATH, dayKey, monthGrid, splitMatch } from "./pure";
 import { displayName, folderNoteOf, iconFor, isImageFile } from "./utils";
-import { setupColumnDnd } from "./dnd";
+import { notifyDragManager, setupColumnDnd } from "./dnd";
 import { showColumnHeaderMenu, showFileMenu, showFolderBackgroundMenu } from "./menus";
 import { MAX_COLUMN_WIDTH, MIN_COLUMN_WIDTH, ROOT_COLUMN_EXTRA_WIDTH } from "./settings";
 import type { ColumnExplorerView } from "./view";
@@ -253,7 +253,10 @@ export function renderFileListColumn(
 	const col = container.createDiv({ cls: "column-explorer-column" });
 	col.dataset.depth = String(depth);
 	col.dataset.folderPath = sentinelPath;
-	const customWidth = view.plugin.settings.columnWidths[sentinelPath];
+	// Все колонки дней делят один ключ ширины — иначе в настройках копились
+	// бы вечные записи вида "::day::2026-07-19"
+	const widthKey = sentinelPath.startsWith(DAY_PATH_PREFIX) ? DAY_PATH_PREFIX : sentinelPath;
+	const customWidth = view.plugin.settings.columnWidths[widthKey];
 	if (customWidth) col.style.setProperty("--ce-col-width", customWidth + "px");
 
 	const header = col.createDiv({ cls: "column-explorer-column-header" });
@@ -292,9 +295,12 @@ export function renderFileListColumn(
 	list.addEventListener("dragstart", (e: DragEvent) => {
 		const hit = itemFromEvent(e);
 		const f = hit ? view.app.vault.getAbstractFileByPath(hit.path) : null;
-		if (f) e.dataTransfer?.setData("text/plain", JSON.stringify([f.path]));
+		if (!f) return;
+		// dragManager — чтобы drop в редактор вставлял ссылку, а не сырой JSON
+		notifyDragManager(view.app, e, f);
+		e.dataTransfer?.setData("text/plain", JSON.stringify([f.path]));
 	});
-	addResizeHandle(view, col, sentinelPath);
+	addResizeHandle(view, col, widthKey);
 	return col;
 }
 

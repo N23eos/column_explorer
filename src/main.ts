@@ -1,25 +1,29 @@
-import { Plugin } from "obsidian";
+import { Plugin, debounce } from "obsidian";
 import { t } from "./i18n";
-import { pushRecent, remapPathList } from "./pure";
+import { DAY_PATH_PREFIX, pushRecent, remapPathList } from "./pure";
 import { ColumnExplorerSettings, ColumnExplorerSettingTab, DEFAULT_SETTINGS, MAX_RECENT_FILES } from "./settings";
 import { ColumnExplorerView, VIEW_TYPE_COLUMNS } from "./view";
 
 export default class ColumnExplorerPlugin extends Plugin {
 	settings: ColumnExplorerSettings = DEFAULT_SETTINGS;
+	private shouldSeedRecents = false;
+	private saveRecentsDebounced = debounce(() => void this.saveSettings(), 2000);
 
 	async onload() {
 		await this.loadSettings();
 
 		// Свой трекер недавних: встроенный в Obsidian хранит максимум 25 md.
 		// Первый запуск — засев из него, дальше копим сами (кап 50)
-		if (this.settings.recentFiles.length === 0) {
+		if (this.shouldSeedRecents) {
 			this.settings.recentFiles = this.app.workspace.getLastOpenFiles();
 		}
 		this.registerEvent(this.app.workspace.on("file-open", (f) => {
 			if (!f) return;
 			this.settings.recentFiles = pushRecent(this.settings.recentFiles, f.path, MAX_RECENT_FILES);
-			void this.saveSettings();
-			this.getView()?.refreshRecentsColumn();
+			// Дебаунс: file-open стреляет на каждое переключение вкладки,
+			// писать data.json так часто незачем
+			this.saveRecentsDebounced();
+			this.getView()?.refreshRecentsColumn(f.path);
 		}));
 		this.registerEvent(this.app.vault.on("rename", (f, oldPath) => {
 			this.settings.recentFiles = remapPathList(this.settings.recentFiles, oldPath, f.path);
@@ -66,6 +70,17 @@ export default class ColumnExplorerPlugin extends Plugin {
 	async loadSettings() {
 		const data = (await this.loadData()) as Partial<ColumnExplorerSettings> | null;
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, data ?? {});
+		// Сид недавних только при ПЕРВОМ запуске (ключа ещё нет в data.json) —
+		// иначе «Очистить недавние» отменялось бы каждым перезапуском
+		this.shouldSeedRecents = data?.recentFiles === undefined;
+		// Ширины колонок дня раньше писались под ключ с датой — чистим мусор
+		const widths = this.settings.columnWidths;
+		const staleDayKeys = Object.keys(widths).filter((k) => k.startsWith(DAY_PATH_PREFIX) && k !== DAY_PATH_PREFIX);
+		if (staleDayKeys.length > 0) {
+			this.settings.columnWidths = Object.fromEntries(
+				Object.entries(widths).filter(([k]) => !staleDayKeys.includes(k))
+			);
+		}
 		this.migratePinnedPaths();
 	}
 

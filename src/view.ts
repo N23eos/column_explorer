@@ -8,6 +8,7 @@ import {
 	ViewStateResult,
 	WorkspaceLeaf,
 	Keymap,
+	EventRef,
 	debounce,
 	getLanguage,
 	normalizePath,
@@ -16,7 +17,8 @@ import {
 import { t } from "./i18n";
 import {
 	BOOKMARKS_PATH, CALENDAR_PATH, DAY_PATH_PREFIX, RECENTS_PATH,
-	dayKey, desiredPanelWidth, lockedColumnVisible, prunePathKeys, remapPathKeys, takeFirstExisting,
+	dayKey, desiredPanelWidth, lockedColumnVisible, matchesExcludePatterns,
+	parseExcludePatterns, prunePathKeys, remapPathKeys, takeFirstExisting,
 } from "./pure";
 import { displayName, folderNoteOf, visibleChildren } from "./utils";
 import { MIN_COLUMN_WIDTH } from "./settings";
@@ -140,11 +142,15 @@ export class ColumnExplorerView extends ItemView {
 		this.columnsEl.tabIndex = 0;
 		this.registerDomEvent(this.columnsEl, "keydown", (e) => this.onKeyDown(e));
 
-		this.registerEvent(this.app.vault.on("create", (f) => this.markDirty(f.parent?.path ?? null)));
+		// При открытой виртуальной колонке точечный refresh её не найдёт
+		// (сентинел — не путь папки), поэтому create/delete → полный рендер
+		this.registerEvent(this.app.vault.on("create", (f) =>
+			this.markDirty(this.specialKind(this.selection[0]) ? null : f.parent?.path ?? null)));
 		this.registerEvent(this.app.vault.on("delete", (f) => {
 			const changed = this.pruneSelection(f.path);
 			this.prunePathRecords(f.path);
-			this.markDirty(changed ? null : f.parent?.path ?? null);
+			const fullRender = changed || this.specialKind(this.selection[0]) !== null;
+			this.markDirty(fullRender ? null : f.parent?.path ?? null);
 		}));
 		this.registerEvent(this.app.vault.on("rename", (f, oldPath) => {
 			this.remapSelection(oldPath, f.path);
@@ -152,6 +158,19 @@ export class ColumnExplorerView extends ItemView {
 			// Переименование может менять заголовки колонок и две папки сразу — полный рендер
 			this.markDirty(null);
 		}));
+
+		// Живое обновление колонки «Закладки»: core-плагин триггерит "changed"
+		// при каждом изменении. Приватный API — в try; без подписки колонка
+		// обновилась бы только при следующем рендере
+		try {
+			const app = this.app as unknown as {
+				internalPlugins?: { getEnabledPluginById?: (id: string) => { on?: (name: "changed", cb: () => void) => EventRef } | null };
+			};
+			const ref = app.internalPlugins?.getEnabledPluginById?.("bookmarks")?.on?.("changed", () => {
+				if (this.selection[0] === BOOKMARKS_PATH) this.render();
+			});
+			if (ref) this.registerEvent(ref);
+		} catch { /* ignore */ }
 
 		this.render();
 	}
@@ -491,19 +510,32 @@ export class ColumnExplorerView extends ItemView {
 
 	/* ----------------------------- actions --------------------------- */
 
+	/** Паттерны исключений — виртуальные колонки фильтруются как обычные. */
+	private excludePatternsList(): string[] {
+		return parseExcludePatterns(this.plugin.settings.excludePatterns);
+	}
+
 	/** Последние открытые файлы из собственного трекера (main.ts). */
 	recentFiles(): TFile[] {
 		const s = this.plugin.settings;
-		const isFile = (p: string) => this.app.vault.getAbstractFileByPath(p) instanceof TFile;
-		return takeFirstExisting(s.recentFiles, isFile, s.recentFilesCount).flatMap((p) => {
+		const patterns = this.excludePatternsList();
+		const isVisibleFile = (p: string) =>
+			!matchesExcludePatterns(p, patterns) && this.app.vault.getAbstractFileByPath(p) instanceof TFile;
+		return takeFirstExisting(s.recentFiles, isVisibleFile, s.recentFilesCount).flatMap((p) => {
 			const f = this.app.vault.getAbstractFileByPath(p);
 			return f instanceof TFile ? [f] : [];
 		});
 	}
 
-	/** Перерисовать открытую колонку «Недавние» (файл открыли где-то ещё). */
-	refreshRecentsColumn() {
-		if (this.selection[0] === RECENTS_PATH) this.render();
+	/**
+	 * Перерисовать открытую колонку «Недавние» (файл открыли где-то ещё).
+	 * Если открыт как раз выбранный в ней файл — не дёргаем список под
+	 * курсором, он и так показан.
+	 */
+	refreshRecentsColumn(openedPath?: string) {
+		if (this.selection[0] !== RECENTS_PATH) return;
+		if (openedPath && this.selection[1] === openedPath) return;
+		this.render();
 	}
 
 	/** Тип спецпункта по сентинел-пути с учётом настроек и доступности. */
@@ -558,8 +590,10 @@ export class ColumnExplorerView extends ItemView {
 
 	/** Число созданных файлов по дням (ключ — dayKey) для бейджей календаря. */
 	calendarCounts(): Map<string, number> {
+		const patterns = this.excludePatternsList();
 		const counts = new Map<string, number>();
 		for (const f of this.app.vault.getFiles()) {
+			if (matchesExcludePatterns(f.path, patterns)) continue;
 			const key = dayKey(f.stat.ctime);
 			counts.set(key, (counts.get(key) ?? 0) + 1);
 		}
@@ -568,8 +602,9 @@ export class ColumnExplorerView extends ItemView {
 
 	/** Файлы, созданные в день `day` ("YYYY-MM-DD"), новые сверху. */
 	filesCreatedOn(day: string): TFile[] {
+		const patterns = this.excludePatternsList();
 		return this.app.vault.getFiles()
-			.filter((f) => dayKey(f.stat.ctime) === day)
+			.filter((f) => !matchesExcludePatterns(f.path, patterns) && dayKey(f.stat.ctime) === day)
 			.sort((a, b) => b.stat.ctime - a.stat.ctime);
 	}
 
@@ -593,13 +628,18 @@ export class ColumnExplorerView extends ItemView {
 		}
 	}
 
-	/** Файлы и папки из закладок; группы разворачиваются плоско. */
+	/**
+	 * Файлы и папки из закладок; группы разворачиваются плоско, дубли
+	 * (закладки на заголовки/блоки одной заметки) схлопываются.
+	 */
 	bookmarkedItems(): TAbstractFile[] {
 		const flatten = (items: BookmarkItemLike[]): string[] => items.flatMap((it) =>
 			it.type === "group" ? flatten(it.items ?? [])
 				: (it.type === "file" || it.type === "folder") && it.path ? [it.path] : []
 		);
-		return flatten(this.bookmarkItems() ?? []).flatMap((p) => {
+		const patterns = this.excludePatternsList();
+		return [...new Set(flatten(this.bookmarkItems() ?? []))].flatMap((p) => {
+			if (matchesExcludePatterns(p, patterns)) return [];
 			const f = this.app.vault.getAbstractFileByPath(p);
 			return f ? [f] : [];
 		});
@@ -747,8 +787,7 @@ export class ColumnExplorerView extends ItemView {
 		if (this.renamingPath) return;
 		const depth = Math.max(0, this.selection.length - 1);
 		const selectedPath = this.selection[depth];
-		const parentFolder = this.folderAtDepth(depth);
-		const children = parentFolder ? this.childrenOf(parentFolder) : [];
+		const children = this.siblingsAt(depth);
 		const currentIdx = children.findIndex(c => c.path === selectedPath);
 
 		const jumpTo = (idx: number) => {
@@ -785,6 +824,7 @@ export class ColumnExplorerView extends ItemView {
 			}
 		} else if (e.key === "ArrowRight" || e.key === "Enter") {
 			e.preventDefault();
+			if (this.enterVirtual(selectedPath, depth)) return;
 			const f = selectedPath ? this.app.vault.getAbstractFileByPath(selectedPath) : null;
 			if (f instanceof TFolder) {
 				const inner = this.childrenOf(f);
@@ -811,24 +851,69 @@ export class ColumnExplorerView extends ItemView {
 		} else if (e.key === "Delete" || (e.key === "Backspace" && (e.metaKey || e.ctrlKey))) {
 			e.preventDefault();
 			if (this.multiSel.size > 0) { this.deleteMany([...this.multiSel]); return; }
-			if (selectedPath) this.deleteMany([selectedPath]);
+			// Сентинелы спецпунктов ("::…") — не файлы, удалять нечего
+			if (selectedPath && !selectedPath.startsWith("::")) this.deleteMany([selectedPath]);
 		} else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
 			// Type-ahead: как в Finder — набор букв прыгает к совпадению
 			this.onTypeahead(e.key, children, depth);
 		}
 	}
 
-	private onTypeahead(char: string, children: TAbstractFile[], depth: number) {
+	private onTypeahead(char: string, children: { path: string; name: string }[], depth: number) {
 		window.clearTimeout(this.typeaheadTimer);
 		this.typeaheadBuffer += char.toLowerCase();
 		this.typeaheadTimer = window.setTimeout(() => { this.typeaheadBuffer = ""; }, TYPEAHEAD_RESET_MS);
-		const match = children.find(c => displayName(c).toLowerCase().startsWith(this.typeaheadBuffer));
+		const match = children.find(c => c.name.toLowerCase().startsWith(this.typeaheadBuffer));
 		if (!match) return;
 		this.selection = this.selection.slice(0, depth);
 		this.selection.push(match.path);
 		this.clearMulti();
 		this.persistState();
 		this.render();
+	}
+
+	/**
+	 * «Соседи» для клавиатурной навигации на данной глубине: в виртуальных
+	 * колонках — их файлы, в первой колонке — дети корня плюс спецпункты
+	 * (на той же позиции, что и на экране).
+	 */
+	private siblingsAt(depth: number): { path: string; name: string }[] {
+		const toEntry = (f: TAbstractFile) => ({ path: f.path, name: displayName(f) });
+		const special = this.specialKind(this.selection[0]);
+		if (special && depth >= 1) {
+			if (special === "recents") return this.recentFiles().map(toEntry);
+			if (special === "bookmarks") return this.bookmarkedItems().map(toEntry);
+			// Календарь: глубина 1 — сетка дней (не список), глубина 2 — файлы дня
+			const day = this.selectedDayKey();
+			return depth === 2 && day ? this.filesCreatedOn(day).map(toEntry) : [];
+		}
+		const parentFolder = this.folderAtDepth(depth);
+		const entries = (parentFolder ? this.childrenOf(parentFolder) : []).map(toEntry);
+		if (depth !== 0) return entries;
+		const specials: { path: string; name: string }[] = [];
+		if (this.specialKind(RECENTS_PATH)) specials.push({ path: RECENTS_PATH, name: t("recents") });
+		if (this.specialKind(BOOKMARKS_PATH)) specials.push({ path: BOOKMARKS_PATH, name: t("bookmarks") });
+		if (this.specialKind(CALENDAR_PATH)) specials.push({ path: CALENDAR_PATH, name: t("calendar") });
+		return this.plugin.settings.specialItemsPosition === "top" ? [...specials, ...entries] : [...entries, ...specials];
+	}
+
+	/** ArrowRight/Enter на спецпункте или дне календаря — вход в его колонку. */
+	private enterVirtual(selectedPath: string | undefined, depth: number): boolean {
+		if (!selectedPath) return false;
+		if (this.specialKind(selectedPath) === "calendar") {
+			this.selectDay(dayKey(Date.now()));
+			return true;
+		}
+		if (this.specialKind(selectedPath) || selectedPath.startsWith(DAY_PATH_PREFIX)) {
+			const inner = this.siblingsAt(depth + 1);
+			if (inner.length > 0) {
+				this.selection.push(inner[0].path);
+				this.persistState();
+				this.render();
+			}
+			return true;
+		}
+		return false;
 	}
 
 	private folderAtDepth(depth: number): TFolder | null {

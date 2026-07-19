@@ -820,6 +820,15 @@ async function trashFiles(app, paths) {
 
 // src/dnd.ts
 var activeDragPaths = null;
+function notifyDragManager(app, e, f) {
+  try {
+    const dragManager = app.dragManager;
+    if (!dragManager || !(f instanceof import_obsidian5.TFile || f instanceof import_obsidian5.TFolder)) return;
+    const dragData = f instanceof import_obsidian5.TFile ? dragManager.dragFile(e, f) : dragManager.dragFolder(e, f);
+    dragManager.onDragStart(e, dragData);
+  } catch (e2) {
+  }
+}
 function itemUnderEvent(listEl, e) {
   var _a;
   const target = e.target;
@@ -848,14 +857,7 @@ function setupColumnDnd(view, listEl, columnFolder, depth) {
     const paths = view.dragPayload(f, depth);
     activeDragPaths = paths;
     if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
-    try {
-      const dragManager = app.dragManager;
-      if (dragManager && paths.length === 1 && (f instanceof import_obsidian5.TFile || f instanceof import_obsidian5.TFolder)) {
-        const dragData = f instanceof import_obsidian5.TFile ? dragManager.dragFile(e, f) : dragManager.dragFolder(e, f);
-        dragManager.onDragStart(e, dragData);
-      }
-    } catch (e2) {
-    }
+    if (paths.length === 1) notifyDragManager(app, e, f);
     (_a = e.dataTransfer) == null ? void 0 : _a.setData("text/plain", JSON.stringify(paths));
   });
   listEl.addEventListener("dragend", () => {
@@ -1453,7 +1455,8 @@ function renderFileListColumn(view, container, title, files, sentinelPath, depth
   const col = container.createDiv({ cls: "column-explorer-column" });
   col.dataset.depth = String(depth);
   col.dataset.folderPath = sentinelPath;
-  const customWidth = view.plugin.settings.columnWidths[sentinelPath];
+  const widthKey = sentinelPath.startsWith(DAY_PATH_PREFIX) ? DAY_PATH_PREFIX : sentinelPath;
+  const customWidth = view.plugin.settings.columnWidths[widthKey];
   if (customWidth) col.style.setProperty("--ce-col-width", customWidth + "px");
   const header = col.createDiv({ cls: "column-explorer-column-header" });
   header.createSpan({ cls: "column-explorer-column-title", text: title });
@@ -1494,9 +1497,11 @@ function renderFileListColumn(view, container, title, files, sentinelPath, depth
     var _a;
     const hit = itemFromEvent(e);
     const f = hit ? view.app.vault.getAbstractFileByPath(hit.path) : null;
-    if (f) (_a = e.dataTransfer) == null ? void 0 : _a.setData("text/plain", JSON.stringify([f.path]));
+    if (!f) return;
+    notifyDragManager(view.app, e, f);
+    (_a = e.dataTransfer) == null ? void 0 : _a.setData("text/plain", JSON.stringify([f.path]));
   });
-  addResizeHandle(view, col, sentinelPath);
+  addResizeHandle(view, col, widthKey);
   return col;
 }
 function renderCalendarColumn(view, container) {
@@ -1644,6 +1649,7 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
   }
   /* ------------------------------ setup ---------------------------- */
   async onOpen() {
+    var _a, _b, _c, _d;
     const container = this.contentEl;
     container.empty();
     container.addClass("column-explorer-container");
@@ -1685,20 +1691,29 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     this.columnsEl.tabIndex = 0;
     this.registerDomEvent(this.columnsEl, "keydown", (e) => this.onKeyDown(e));
     this.registerEvent(this.app.vault.on("create", (f) => {
-      var _a, _b;
-      return this.markDirty((_b = (_a = f.parent) == null ? void 0 : _a.path) != null ? _b : null);
+      var _a2, _b2;
+      return this.markDirty(this.specialKind(this.selection[0]) ? null : (_b2 = (_a2 = f.parent) == null ? void 0 : _a2.path) != null ? _b2 : null);
     }));
     this.registerEvent(this.app.vault.on("delete", (f) => {
-      var _a, _b;
+      var _a2, _b2;
       const changed = this.pruneSelection(f.path);
       this.prunePathRecords(f.path);
-      this.markDirty(changed ? null : (_b = (_a = f.parent) == null ? void 0 : _a.path) != null ? _b : null);
+      const fullRender = changed || this.specialKind(this.selection[0]) !== null;
+      this.markDirty(fullRender ? null : (_b2 = (_a2 = f.parent) == null ? void 0 : _a2.path) != null ? _b2 : null);
     }));
     this.registerEvent(this.app.vault.on("rename", (f, oldPath) => {
       this.remapSelection(oldPath, f.path);
       this.remapPathRecords(oldPath, f.path);
       this.markDirty(null);
     }));
+    try {
+      const app = this.app;
+      const ref = (_d = (_c = (_b = (_a = app.internalPlugins) == null ? void 0 : _a.getEnabledPluginById) == null ? void 0 : _b.call(_a, "bookmarks")) == null ? void 0 : _c.on) == null ? void 0 : _d.call(_c, "changed", () => {
+        if (this.selection[0] === BOOKMARKS_PATH) this.render();
+      });
+      if (ref) this.registerEvent(ref);
+    } catch (e) {
+    }
     this.render();
   }
   addToolbarButton(parent, icon, tooltip, onClick) {
@@ -1996,18 +2011,29 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     item == null ? void 0 : item.addClass("is-active-file");
   }
   /* ----------------------------- actions --------------------------- */
+  /** Паттерны исключений — виртуальные колонки фильтруются как обычные. */
+  excludePatternsList() {
+    return parseExcludePatterns(this.plugin.settings.excludePatterns);
+  }
   /** Последние открытые файлы из собственного трекера (main.ts). */
   recentFiles() {
     const s = this.plugin.settings;
-    const isFile = (p) => this.app.vault.getAbstractFileByPath(p) instanceof import_obsidian10.TFile;
-    return takeFirstExisting(s.recentFiles, isFile, s.recentFilesCount).flatMap((p) => {
+    const patterns = this.excludePatternsList();
+    const isVisibleFile = (p) => !matchesExcludePatterns(p, patterns) && this.app.vault.getAbstractFileByPath(p) instanceof import_obsidian10.TFile;
+    return takeFirstExisting(s.recentFiles, isVisibleFile, s.recentFilesCount).flatMap((p) => {
       const f = this.app.vault.getAbstractFileByPath(p);
       return f instanceof import_obsidian10.TFile ? [f] : [];
     });
   }
-  /** Перерисовать открытую колонку «Недавние» (файл открыли где-то ещё). */
-  refreshRecentsColumn() {
-    if (this.selection[0] === RECENTS_PATH) this.render();
+  /**
+   * Перерисовать открытую колонку «Недавние» (файл открыли где-то ещё).
+   * Если открыт как раз выбранный в ней файл — не дёргаем список под
+   * курсором, он и так показан.
+   */
+  refreshRecentsColumn(openedPath) {
+    if (this.selection[0] !== RECENTS_PATH) return;
+    if (openedPath && this.selection[1] === openedPath) return;
+    this.render();
   }
   /** Тип спецпункта по сентинел-пути с учётом настроек и доступности. */
   specialKind(path) {
@@ -2056,8 +2082,10 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
   /** Число созданных файлов по дням (ключ — dayKey) для бейджей календаря. */
   calendarCounts() {
     var _a;
+    const patterns = this.excludePatternsList();
     const counts = /* @__PURE__ */ new Map();
     for (const f of this.app.vault.getFiles()) {
+      if (matchesExcludePatterns(f.path, patterns)) continue;
       const key = dayKey(f.stat.ctime);
       counts.set(key, ((_a = counts.get(key)) != null ? _a : 0) + 1);
     }
@@ -2065,7 +2093,8 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
   }
   /** Файлы, созданные в день `day` ("YYYY-MM-DD"), новые сверху. */
   filesCreatedOn(day) {
-    return this.app.vault.getFiles().filter((f) => dayKey(f.stat.ctime) === day).sort((a, b) => b.stat.ctime - a.stat.ctime);
+    const patterns = this.excludePatternsList();
+    return this.app.vault.getFiles().filter((f) => !matchesExcludePatterns(f.path, patterns) && dayKey(f.stat.ctime) === day).sort((a, b) => b.stat.ctime - a.stat.ctime);
   }
   bookmarksAvailable() {
     return this.bookmarkItems() !== null;
@@ -2084,7 +2113,10 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
       return null;
     }
   }
-  /** Файлы и папки из закладок; группы разворачиваются плоско. */
+  /**
+   * Файлы и папки из закладок; группы разворачиваются плоско, дубли
+   * (закладки на заголовки/блоки одной заметки) схлопываются.
+   */
   bookmarkedItems() {
     var _a;
     const flatten = (items) => items.flatMap(
@@ -2093,7 +2125,9 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
         return it.type === "group" ? flatten((_a2 = it.items) != null ? _a2 : []) : (it.type === "file" || it.type === "folder") && it.path ? [it.path] : [];
       }
     );
-    return flatten((_a = this.bookmarkItems()) != null ? _a : []).flatMap((p) => {
+    const patterns = this.excludePatternsList();
+    return [...new Set(flatten((_a = this.bookmarkItems()) != null ? _a : []))].flatMap((p) => {
+      if (matchesExcludePatterns(p, patterns)) return [];
       const f = this.app.vault.getAbstractFileByPath(p);
       return f ? [f] : [];
     });
@@ -2241,8 +2275,7 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     if (this.renamingPath) return;
     const depth = Math.max(0, this.selection.length - 1);
     const selectedPath = this.selection[depth];
-    const parentFolder = this.folderAtDepth(depth);
-    const children = parentFolder ? this.childrenOf(parentFolder) : [];
+    const children = this.siblingsAt(depth);
     const currentIdx = children.findIndex((c) => c.path === selectedPath);
     const jumpTo = (idx) => {
       if (children.length === 0) return;
@@ -2275,6 +2308,7 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
       }
     } else if (e.key === "ArrowRight" || e.key === "Enter") {
       e.preventDefault();
+      if (this.enterVirtual(selectedPath, depth)) return;
       const f = selectedPath ? this.app.vault.getAbstractFileByPath(selectedPath) : null;
       if (f instanceof import_obsidian10.TFolder) {
         const inner = this.childrenOf(f);
@@ -2303,7 +2337,7 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
         this.deleteMany([...this.multiSel]);
         return;
       }
-      if (selectedPath) this.deleteMany([selectedPath]);
+      if (selectedPath && !selectedPath.startsWith("::")) this.deleteMany([selectedPath]);
     } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
       this.onTypeahead(e.key, children, depth);
     }
@@ -2314,13 +2348,54 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     this.typeaheadTimer = window.setTimeout(() => {
       this.typeaheadBuffer = "";
     }, TYPEAHEAD_RESET_MS);
-    const match = children.find((c) => displayName(c).toLowerCase().startsWith(this.typeaheadBuffer));
+    const match = children.find((c) => c.name.toLowerCase().startsWith(this.typeaheadBuffer));
     if (!match) return;
     this.selection = this.selection.slice(0, depth);
     this.selection.push(match.path);
     this.clearMulti();
     this.persistState();
     this.render();
+  }
+  /**
+   * «Соседи» для клавиатурной навигации на данной глубине: в виртуальных
+   * колонках — их файлы, в первой колонке — дети корня плюс спецпункты
+   * (на той же позиции, что и на экране).
+   */
+  siblingsAt(depth) {
+    const toEntry = (f) => ({ path: f.path, name: displayName(f) });
+    const special = this.specialKind(this.selection[0]);
+    if (special && depth >= 1) {
+      if (special === "recents") return this.recentFiles().map(toEntry);
+      if (special === "bookmarks") return this.bookmarkedItems().map(toEntry);
+      const day = this.selectedDayKey();
+      return depth === 2 && day ? this.filesCreatedOn(day).map(toEntry) : [];
+    }
+    const parentFolder = this.folderAtDepth(depth);
+    const entries = (parentFolder ? this.childrenOf(parentFolder) : []).map(toEntry);
+    if (depth !== 0) return entries;
+    const specials = [];
+    if (this.specialKind(RECENTS_PATH)) specials.push({ path: RECENTS_PATH, name: t("recents") });
+    if (this.specialKind(BOOKMARKS_PATH)) specials.push({ path: BOOKMARKS_PATH, name: t("bookmarks") });
+    if (this.specialKind(CALENDAR_PATH)) specials.push({ path: CALENDAR_PATH, name: t("calendar") });
+    return this.plugin.settings.specialItemsPosition === "top" ? [...specials, ...entries] : [...entries, ...specials];
+  }
+  /** ArrowRight/Enter на спецпункте или дне календаря — вход в его колонку. */
+  enterVirtual(selectedPath, depth) {
+    if (!selectedPath) return false;
+    if (this.specialKind(selectedPath) === "calendar") {
+      this.selectDay(dayKey(Date.now()));
+      return true;
+    }
+    if (this.specialKind(selectedPath) || selectedPath.startsWith(DAY_PATH_PREFIX)) {
+      const inner = this.siblingsAt(depth + 1);
+      if (inner.length > 0) {
+        this.selection.push(inner[0].path);
+        this.persistState();
+        this.render();
+      }
+      return true;
+    }
+    return false;
   }
   folderAtDepth(depth) {
     if (depth === 0) return this.app.vault.getRoot();
@@ -2334,18 +2409,20 @@ var ColumnExplorerPlugin = class extends import_obsidian11.Plugin {
   constructor() {
     super(...arguments);
     this.settings = DEFAULT_SETTINGS;
+    this.shouldSeedRecents = false;
+    this.saveRecentsDebounced = (0, import_obsidian11.debounce)(() => void this.saveSettings(), 2e3);
   }
   async onload() {
     await this.loadSettings();
-    if (this.settings.recentFiles.length === 0) {
+    if (this.shouldSeedRecents) {
       this.settings.recentFiles = this.app.workspace.getLastOpenFiles();
     }
     this.registerEvent(this.app.workspace.on("file-open", (f) => {
       var _a;
       if (!f) return;
       this.settings.recentFiles = pushRecent(this.settings.recentFiles, f.path, MAX_RECENT_FILES);
-      void this.saveSettings();
-      (_a = this.getView()) == null ? void 0 : _a.refreshRecentsColumn();
+      this.saveRecentsDebounced();
+      (_a = this.getView()) == null ? void 0 : _a.refreshRecentsColumn(f.path);
     }));
     this.registerEvent(this.app.vault.on("rename", (f, oldPath) => {
       this.settings.recentFiles = remapPathList(this.settings.recentFiles, oldPath, f.path);
@@ -2387,6 +2464,14 @@ var ColumnExplorerPlugin = class extends import_obsidian11.Plugin {
   async loadSettings() {
     const data = await this.loadData();
     this.settings = Object.assign({}, DEFAULT_SETTINGS, data != null ? data : {});
+    this.shouldSeedRecents = (data == null ? void 0 : data.recentFiles) === void 0;
+    const widths = this.settings.columnWidths;
+    const staleDayKeys = Object.keys(widths).filter((k) => k.startsWith(DAY_PATH_PREFIX) && k !== DAY_PATH_PREFIX);
+    if (staleDayKeys.length > 0) {
+      this.settings.columnWidths = Object.fromEntries(
+        Object.entries(widths).filter(([k]) => !staleDayKeys.includes(k))
+      );
+    }
     this.migratePinnedPaths();
   }
   /** v1.3.x stored pins as `true`; convert to numeric order once. */

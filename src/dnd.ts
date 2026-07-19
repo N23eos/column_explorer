@@ -1,4 +1,4 @@
-import { App, TFile, TFolder } from "obsidian";
+import { App, TAbstractFile, TFile, TFolder } from "obsidian";
 import { importExternalFiles, moveFiles } from "./fileops";
 import { movePinnedBefore, parseDragPaths } from "./pure";
 import type { ColumnExplorerView } from "./view";
@@ -15,6 +15,20 @@ interface DragManagerLike {
 	dragFile: (e: DragEvent, f: TFile) => unknown;
 	dragFolder: (e: DragEvent, f: TFolder) => unknown;
 	onDragStart: (e: DragEvent, d: unknown) => void;
+}
+
+/**
+ * Интеграция с нативным drag&drop Obsidian (вставка ссылки в редактор).
+ * Приватный API — в try, чтобы поломка в будущих версиях не ломала
+ * перемещение внутри колонок.
+ */
+export function notifyDragManager(app: App, e: DragEvent, f: TAbstractFile) {
+	try {
+		const dragManager = (app as unknown as { dragManager?: DragManagerLike }).dragManager;
+		if (!dragManager || !(f instanceof TFile || f instanceof TFolder)) return;
+		const dragData = f instanceof TFile ? dragManager.dragFile(e, f) : dragManager.dragFolder(e, f);
+		dragManager.onDragStart(e, dragData);
+	} catch { /* ignore */ }
 }
 
 function itemUnderEvent(listEl: HTMLElement, e: Event): HTMLElement | null {
@@ -53,18 +67,7 @@ export function setupColumnDnd(view: ColumnExplorerView, listEl: HTMLElement, co
 		const paths = view.dragPayload(f, depth);
 		activeDragPaths = paths;
 		if (e.dataTransfer) e.dataTransfer.effectAllowed = "move";
-		// Интеграция с нативным drag&drop Obsidian (вставка ссылки в редактор).
-		// Приватный API — оборачиваем в try, чтобы поломка в будущих версиях
-		// не ломала перемещение внутри колонок.
-		try {
-			const dragManager = (app as unknown as { dragManager?: DragManagerLike }).dragManager;
-			if (dragManager && paths.length === 1 && (f instanceof TFile || f instanceof TFolder)) {
-				const dragData = f instanceof TFile
-					? dragManager.dragFile(e, f)
-					: dragManager.dragFolder(e, f);
-				dragManager.onDragStart(e, dragData);
-			}
-		} catch { /* ignore */ }
+		if (paths.length === 1) notifyDragManager(app, e, f);
 		// Свой payload — после dragManager: он мог перезаписать text/plain
 		e.dataTransfer?.setData("text/plain", JSON.stringify(paths));
 	});
