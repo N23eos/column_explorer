@@ -1,8 +1,15 @@
+/* Obsidian даёт вьюхам в сайдбаре padding 12px по бокам правилом
+   `.workspace-leaf-content .view-content` — оно специфичнее одиночного
+   класса и съедает 24px ширины: панель, подогнанная autoResizePanel ровно
+   под сумму колонок, оказывается уже содержимого, появляется горизонтальный
+   скролл. Селектор ниже перебивает его (так же делают markdown/pdf вьюхи). */
+.workspace-leaf-content .view-content.column-explorer-container,
 .column-explorer-container {
 	display: flex;
 	flex-direction: column;
 	height: 100%;
 	padding: 0;
+	overflow: hidden;
 }
 
 .column-explorer-toolbar {
