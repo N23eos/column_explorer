@@ -4,9 +4,24 @@
 
 Browse your Obsidian vault in **Finder-style Miller columns** — click a folder and its contents open in a new column to the right. A full file manager: create, rename, move, drag & drop, multi-select, context menus, folder colors and more.
 
-![Column Explorer — Miller columns with folder colors, icons and breadcrumbs](docs/screenshot-1.jpg)
+![Column Explorer — Miller columns with Recents and Calendar rows, folder colors and breadcrumbs](docs/screenshot-1.jpg)
 
-![Column Explorer — icon grid view with toolbar and file filter](docs/screenshot-2.jpg)
+![Column Explorer — calendar column with per-day created-note counts](docs/screenshot-2.jpg)
+
+![Column Explorer — icon grid view with special items](docs/screenshot-3.jpg)
+
+![Column Explorer — special items settings](docs/screenshot-4.jpg)
+
+## Highlights
+
+- **Miller columns** — Finder-style navigation, each folder opens a new column
+- **Recents, Bookmarks & Calendar** — virtual rows in the first column: recently opened files (up to 50), your core-plugin bookmarks, and a month calendar with per-day created-note badges — click a day to list the notes created then
+- **Import from the OS** — drop files from Finder/Explorer into any column to copy them into the vault
+- **Folder colors, icons and pins** — eight theme-aware colors, any lucide icon, pin items to the top
+- **List or icon grid per folder** — the grid shows real image thumbnails
+- **Quick Look & preview column** — `Space` previews the selected file; optional details column with media previews
+- **Resizable everything** — per-column widths, auto-resizing side panel, lockable column count
+- **Full file manager** — multi-select, drag & drop with undo, context menus, per-folder sort, excluded files
 
 ## Features
 
