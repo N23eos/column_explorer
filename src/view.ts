@@ -9,19 +9,26 @@ import {
 	WorkspaceLeaf,
 	Keymap,
 	debounce,
+	getLanguage,
 	normalizePath,
 	setIcon,
 } from "obsidian";
 import { t } from "./i18n";
-import { RECENTS_PATH, desiredPanelWidth, lockedColumnVisible, prunePathKeys, remapPathKeys, takeFirstExisting } from "./pure";
+import {
+	BOOKMARKS_PATH, CALENDAR_PATH, DAY_PATH_PREFIX, RECENTS_PATH,
+	dayKey, desiredPanelWidth, lockedColumnVisible, prunePathKeys, remapPathKeys, takeFirstExisting,
+} from "./pure";
 import { displayName, folderNoteOf, visibleChildren } from "./utils";
 import { MIN_COLUMN_WIDTH } from "./settings";
-import { renderColumn, renderColumnList, renderRecentsColumn } from "./column";
+import { renderCalendarColumn, renderColumn, renderColumnList, renderFileListColumn } from "./column";
 import { renderPreviewColumn } from "./preview";
 import { showSortMenu } from "./menus";
 import { ConfirmModal, QuickLookModal } from "./modals";
 import { trashFiles } from "./fileops";
 import type ColumnExplorerPlugin from "./main";
+
+/** Форма пункта core-плагина Bookmarks (приватный API — только чтение). */
+interface BookmarkItemLike { type: string; path?: string; items?: BookmarkItemLike[] }
 
 export const VIEW_TYPE_COLUMNS = "column-explorer-view";
 
@@ -48,6 +55,8 @@ export class ColumnExplorerView extends ItemView {
 	private lockBtn!: HTMLElement;
 	private typeaheadBuffer = "";
 	private typeaheadTimer = 0;
+	/** Показанный месяц календаря; null — от выбранного дня или сегодня. */
+	private calendarMonth: { year: number; month: number } | null = null;
 
 	/** Targeted refresh: folders whose columns need re-rendering. */
 	private dirtyFolders: Set<string> = new Set();
@@ -327,9 +336,19 @@ export class ColumnExplorerView extends ItemView {
 		this.applyColumnWidth();
 
 		const validSel: string[] = [];
-		if (this.selection[0] === RECENTS_PATH && this.plugin.settings.showRecents) {
-			// Виртуальная колонка «Недавние»: сентинел + опционально выбранный файл
-			validSel.push(RECENTS_PATH);
+		const special = this.specialKind(this.selection[0]);
+		if (special === "calendar") {
+			// Календарь: сентинел + опционально день + опционально файл дня
+			validSel.push(CALENDAR_PATH);
+			const day = this.selection[1];
+			if (day?.startsWith(DAY_PATH_PREFIX)) {
+				validSel.push(day);
+				const filePath = this.selection[2];
+				if (filePath && this.app.vault.getAbstractFileByPath(filePath) instanceof TFile) validSel.push(filePath);
+			}
+		} else if (special) {
+			// «Недавние»/«Закладки»: сентинел + опционально выбранный файл
+			validSel.push(this.selection[0]);
 			const filePath = this.selection[1];
 			if (filePath && this.app.vault.getAbstractFileByPath(filePath) instanceof TFile) validSel.push(filePath);
 		} else {
@@ -356,10 +375,26 @@ export class ColumnExplorerView extends ItemView {
 		if (lockedColumnVisible(0, folderCols, lockedCount)) {
 			renderColumn(this, this.columnsEl, this.app.vault.getRoot(), 0);
 		}
-		if (this.selection[0] === RECENTS_PATH) {
-			renderRecentsColumn(this, this.columnsEl);
-			const f = this.selection[1] ? this.app.vault.getAbstractFileByPath(this.selection[1]) : null;
+		const previewOf = (path: string | undefined) => {
+			const f = path ? this.app.vault.getAbstractFileByPath(path) : null;
 			if (f instanceof TFile && this.plugin.settings.showPreview) renderPreviewColumn(this, this.columnsEl, f);
+		};
+		if (special === "recents") {
+			renderFileListColumn(this, this.columnsEl, t("recents"), this.recentFiles(), RECENTS_PATH, 1);
+			previewOf(this.selection[1]);
+		} else if (special === "bookmarks") {
+			renderFileListColumn(this, this.columnsEl, t("bookmarks"), this.bookmarkedFiles(), BOOKMARKS_PATH, 1);
+			previewOf(this.selection[1]);
+		} else if (special === "calendar") {
+			renderCalendarColumn(this, this.columnsEl);
+			const daySentinel = this.selection[1];
+			if (daySentinel) {
+				const day = daySentinel.slice(DAY_PATH_PREFIX.length);
+				const title = new Date(Number(day.slice(0, 4)), Number(day.slice(5, 7)) - 1, Number(day.slice(8)))
+					.toLocaleDateString(getLanguage(), { day: "numeric", month: "long", year: "numeric" });
+				renderFileListColumn(this, this.columnsEl, title, this.filesCreatedOn(day), daySentinel, 2);
+				previewOf(this.selection[2]);
+			}
 		} else {
 			for (let depth = 0; depth < this.selection.length; depth++) {
 				const f = this.app.vault.getAbstractFileByPath(this.selection[depth]);
@@ -432,7 +467,12 @@ export class ColumnExplorerView extends ItemView {
 		addSegment(this.app.vault.getName(), 0, this.selection.length === 0);
 		this.selection.forEach((path, i) => {
 			const f = this.app.vault.getAbstractFileByPath(path);
-			const label = f ? displayName(f) : path === RECENTS_PATH ? t("recents") : path.split("/").pop() ?? path;
+			const label = f ? displayName(f)
+				: path === RECENTS_PATH ? t("recents")
+				: path === BOOKMARKS_PATH ? t("bookmarks")
+				: path === CALENDAR_PATH ? t("calendar")
+				: path.startsWith(DAY_PATH_PREFIX) ? path.slice(DAY_PATH_PREFIX.length)
+				: path.split("/").pop() ?? path;
 			addSegment(label, i + 1, i === this.selection.length - 1);
 		});
 	}
@@ -466,11 +506,102 @@ export class ColumnExplorerView extends ItemView {
 		if (this.selection[0] === RECENTS_PATH) this.render();
 	}
 
-	selectRecents() {
-		this.selection = [RECENTS_PATH];
+	/** Тип спецпункта по сентинел-пути с учётом настроек и доступности. */
+	specialKind(path: string | undefined): "recents" | "bookmarks" | "calendar" | null {
+		const s = this.plugin.settings;
+		if (path === RECENTS_PATH && s.showRecents) return "recents";
+		if (path === BOOKMARKS_PATH && s.showBookmarks && this.bookmarksAvailable()) return "bookmarks";
+		if (path === CALENDAR_PATH && s.showCalendar) return "calendar";
+		return null;
+	}
+
+	selectSpecial(path: string) {
+		this.selection = [path];
 		this.clearMulti();
 		this.persistState();
 		this.render();
+	}
+
+	selectDay(day: string) {
+		this.selection = [CALENDAR_PATH, DAY_PATH_PREFIX + day];
+		this.clearMulti();
+		this.persistState();
+		this.render();
+	}
+
+	/** Выбранный день календаря ("YYYY-MM-DD") или null. */
+	selectedDayKey(): string | null {
+		const sentinel = this.selection[0] === CALENDAR_PATH ? this.selection[1] : undefined;
+		return sentinel?.startsWith(DAY_PATH_PREFIX) ? sentinel.slice(DAY_PATH_PREFIX.length) : null;
+	}
+
+	currentCalendarMonth(): { year: number; month: number } {
+		if (this.calendarMonth) return this.calendarMonth;
+		const day = this.selectedDayKey();
+		if (day) return { year: Number(day.slice(0, 4)), month: Number(day.slice(5, 7)) - 1 };
+		const now = new Date();
+		return { year: now.getFullYear(), month: now.getMonth() };
+	}
+
+	/** Листание месяца: ±1, а 0 — вернуться к сегодняшнему. */
+	navigateCalendarMonth(delta: number) {
+		if (delta === 0) {
+			const now = new Date();
+			this.calendarMonth = { year: now.getFullYear(), month: now.getMonth() };
+		} else {
+			const cur = this.currentCalendarMonth();
+			const d = new Date(cur.year, cur.month + delta, 1);
+			this.calendarMonth = { year: d.getFullYear(), month: d.getMonth() };
+		}
+		this.render();
+	}
+
+	/** Число созданных файлов по дням (ключ — dayKey) для бейджей календаря. */
+	calendarCounts(): Map<string, number> {
+		const counts = new Map<string, number>();
+		for (const f of this.app.vault.getFiles()) {
+			const key = dayKey(f.stat.ctime);
+			counts.set(key, (counts.get(key) ?? 0) + 1);
+		}
+		return counts;
+	}
+
+	/** Файлы, созданные в день `day` ("YYYY-MM-DD"), новые сверху. */
+	filesCreatedOn(day: string): TFile[] {
+		return this.app.vault.getFiles()
+			.filter((f) => dayKey(f.stat.ctime) === day)
+			.sort((a, b) => b.stat.ctime - a.stat.ctime);
+	}
+
+	bookmarksAvailable(): boolean {
+		return this.bookmarkItems() !== null;
+	}
+
+	/**
+	 * Пункты core-плагина Bookmarks. Приватный API (internalPlugins) —
+	 * в try, при поломке или выключенном плагине возвращаем null
+	 * и спецпункт «Закладки» просто не показывается.
+	 */
+	private bookmarkItems(): BookmarkItemLike[] | null {
+		try {
+			const app = this.app as unknown as {
+				internalPlugins?: { getEnabledPluginById?: (id: string) => { items?: BookmarkItemLike[] } | null };
+			};
+			return app.internalPlugins?.getEnabledPluginById?.("bookmarks")?.items ?? null;
+		} catch {
+			return null;
+		}
+	}
+
+	/** Файлы из закладок; группы разворачиваются, не-файлы пропускаются. */
+	bookmarkedFiles(): TFile[] {
+		const flatten = (items: BookmarkItemLike[]): string[] => items.flatMap((it) =>
+			it.type === "group" ? flatten(it.items ?? []) : it.type === "file" && it.path ? [it.path] : []
+		);
+		return flatten(this.bookmarkItems() ?? []).flatMap((p) => {
+			const f = this.app.vault.getAbstractFileByPath(p);
+			return f instanceof TFile ? [f] : [];
+		});
 	}
 
 	selectItem(f: TAbstractFile, depth: number, e: MouseEvent) {

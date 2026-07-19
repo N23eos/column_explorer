@@ -1,6 +1,6 @@
-import { TAbstractFile, TFile, TFolder, setIcon } from "obsidian";
+import { TAbstractFile, TFile, TFolder, getLanguage, setIcon } from "obsidian";
 import { t } from "./i18n";
-import { RECENTS_PATH, splitMatch } from "./pure";
+import { BOOKMARKS_PATH, CALENDAR_PATH, RECENTS_PATH, dayKey, monthGrid, splitMatch } from "./pure";
 import { displayName, folderNoteOf, iconFor, isImageFile } from "./utils";
 import { setupColumnDnd } from "./dnd";
 import { showColumnHeaderMenu, showFileMenu, showFolderBackgroundMenu } from "./menus";
@@ -56,7 +56,7 @@ export function renderColumn(view: ColumnExplorerView, container: HTMLElement, f
 			if (e.target === list) { view.clearMulti(); view.render(); }
 			return;
 		}
-		if (hit.path === RECENTS_PATH) { view.clearMulti(); view.selectRecents(); return; }
+		if (view.specialKind(hit.path)) { view.clearMulti(); view.selectSpecial(hit.path); return; }
 		const f = view.app.vault.getAbstractFileByPath(hit.path);
 		if (!f || view.isRenaming(hit.path)) return;
 		if (e.ctrlKey || e.metaKey) { view.toggleMulti(f, depth); return; }
@@ -106,10 +106,14 @@ export function renderColumnList(view: ColumnExplorerView, list: HTMLElement, fo
 	listObservers.get(list)?.disconnect();
 	listObservers.delete(list);
 	list.empty();
-	// Виртуальный пункт «Недавние» — первым в корневой колонке
-	if (folder.isRoot() && depth === 0 && view.plugin.settings.showRecents) {
-		list.appendChild(buildRecentsItem(view));
-	}
+	// Спецпункты (Недавние/Закладки/Календарь) — только в корневой колонке,
+	// сверху или снизу списка по настройке
+	const specials = folder.isRoot() && depth === 0 ? buildSpecialItems(view) : [];
+	const specialsOnTop = view.plugin.settings.specialItemsPosition === "top";
+	if (specialsOnTop) specials.forEach((el) => list.appendChild(el));
+	const appendSpecialsBottom = () => {
+		if (!specialsOnTop) specials.forEach((el) => list.appendChild(el));
+	};
 	const children = view.childrenOf(folder);
 
 	const countEl = list.closest(".column-explorer-column")?.querySelector(".column-explorer-column-count");
@@ -117,6 +121,7 @@ export function renderColumnList(view: ColumnExplorerView, list: HTMLElement, fo
 
 	if (children.length === 0) {
 		list.createDiv({ cls: "column-explorer-empty", text: view.hasFilter() ? t("noResults") : t("empty") });
+		appendSpecialsBottom();
 		return;
 	}
 
@@ -128,9 +133,12 @@ export function renderColumnList(view: ColumnExplorerView, list: HTMLElement, fo
 	const frag = createFragment();
 	for (let i = 0; i < rendered; i++) frag.appendChild(buildItem(view, children[i], depth, isGrid));
 	list.appendChild(frag);
-	if (rendered >= children.length) return;
+	if (rendered >= children.length) { appendSpecialsBottom(); return; }
 
+	// Спецпункты «снизу» встают после сентинела: догружаемые порции
+	// вставляются перед ним, так что спецпункты остаются в самом конце
 	const sentinel = list.createDiv({ cls: "column-explorer-load-more" });
+	appendSpecialsBottom();
 	const observer = new IntersectionObserver((entries) => {
 		if (!entries.some(entry => entry.isIntersecting)) return;
 		const next = Math.min(children.length, rendered + RENDER_CHUNK);
@@ -209,51 +217,61 @@ function buildItem(view: ColumnExplorerView, f: TAbstractFile, depth: number, is
 	return item;
 }
 
-/** Виртуальный пункт «Недавние» вверху корневой колонки. */
-function buildRecentsItem(view: ColumnExplorerView): HTMLElement {
-	const item = createDiv({ cls: "column-explorer-item column-explorer-recents", attr: { role: "option" } });
-	item.dataset.path = RECENTS_PATH;
-	const selected = view.selection[0] === RECENTS_PATH;
+/** Виртуальные пункты корневой колонки — с учётом настроек и доступности. */
+function buildSpecialItems(view: ColumnExplorerView): HTMLElement[] {
+	const items: HTMLElement[] = [];
+	if (view.specialKind(RECENTS_PATH)) items.push(buildSpecialItem(view, RECENTS_PATH, "history", t("recents")));
+	if (view.specialKind(BOOKMARKS_PATH)) items.push(buildSpecialItem(view, BOOKMARKS_PATH, "bookmark", t("bookmarks")));
+	if (view.specialKind(CALENDAR_PATH)) items.push(buildSpecialItem(view, CALENDAR_PATH, "calendar-days", t("calendar")));
+	return items;
+}
+
+function buildSpecialItem(view: ColumnExplorerView, path: string, icon: string, label: string): HTMLElement {
+	const item = createDiv({ cls: "column-explorer-item column-explorer-special", attr: { role: "option" } });
+	item.dataset.path = path;
+	const selected = view.selection[0] === path;
 	item.setAttribute("aria-selected", String(selected));
 	if (selected) item.addClass("is-selected");
 	if (selected && view.selection.length > 1) item.addClass("is-ancestor");
 	const iconEl = item.createDiv({ cls: "column-explorer-item-icon" });
-	setIcon(iconEl, "history");
-	item.createDiv({ cls: "column-explorer-item-title", text: t("recents") });
+	setIcon(iconEl, icon);
+	item.createDiv({ cls: "column-explorer-item-title", text: label });
 	const chev = item.createDiv({ cls: "column-explorer-item-chevron" });
 	setIcon(chev, "chevron-right");
 	return item;
 }
 
 /**
- * Виртуальная колонка «Недавние»: последние открытые файлы. Вглубь не
- * ведёт, drop и inline-rename не принимает; клик открывает файл, тащить
- * файлы ИЗ неё в обычные колонки можно.
+ * Виртуальная файловая колонка («Недавние», «Закладки», день календаря):
+ * плоский список файлов. Вглубь не ведёт, drop и inline-rename не
+ * принимает; клик открывает файл, тащить файлы ИЗ неё можно.
  */
-export function renderRecentsColumn(view: ColumnExplorerView, container: HTMLElement) {
+export function renderFileListColumn(
+	view: ColumnExplorerView, container: HTMLElement,
+	title: string, files: TFile[], sentinelPath: string, depth: number
+) {
 	const col = container.createDiv({ cls: "column-explorer-column" });
-	col.dataset.depth = "1";
-	col.dataset.folderPath = RECENTS_PATH;
-	const customWidth = view.plugin.settings.columnWidths[RECENTS_PATH];
+	col.dataset.depth = String(depth);
+	col.dataset.folderPath = sentinelPath;
+	const customWidth = view.plugin.settings.columnWidths[sentinelPath];
 	if (customWidth) col.style.setProperty("--ce-col-width", customWidth + "px");
 
 	const header = col.createDiv({ cls: "column-explorer-column-header" });
-	header.createSpan({ cls: "column-explorer-column-title", text: t("recents") });
+	header.createSpan({ cls: "column-explorer-column-title", text: title });
 	const countEl = header.createSpan({ cls: "column-explorer-column-count" });
 
 	const list = col.createDiv({ cls: "column-explorer-list", attr: { role: "listbox" } });
-	const files = view.recentFiles();
 	countEl.setText(String(files.length));
 	if (files.length === 0) {
 		list.createDiv({ cls: "column-explorer-empty", text: t("empty") });
 	} else {
-		for (const f of files) list.appendChild(buildItem(view, f, 1));
+		for (const f of files) list.appendChild(buildItem(view, f, depth));
 	}
 
 	list.addEventListener("click", (e) => {
 		const hit = itemFromEvent(e);
 		const f = hit ? view.app.vault.getAbstractFileByPath(hit.path) : null;
-		if (f instanceof TFile) { view.clearMulti(); view.selectItem(f, 1, e); }
+		if (f instanceof TFile) { view.clearMulti(); view.selectItem(f, depth, e); }
 	});
 	list.addEventListener("auxclick", (e) => {
 		if (e.button !== 1) return;
@@ -265,16 +283,76 @@ export function renderRecentsColumn(view: ColumnExplorerView, container: HTMLEle
 		e.preventDefault();
 		const hit = itemFromEvent(e);
 		const f = hit ? view.app.vault.getAbstractFileByPath(hit.path) : null;
-		if (f) showFileMenu(view, e, f, 1);
+		if (f) showFileMenu(view, e, f, depth);
 	});
 	// Только dragstart: перетащить файл в обычную колонку — payload через
-	// dataTransfer, drop-приёма у «Недавних» нет
+	// dataTransfer, drop-приёма у виртуальных колонок нет
 	list.addEventListener("dragstart", (e: DragEvent) => {
 		const hit = itemFromEvent(e);
 		const f = hit ? view.app.vault.getAbstractFileByPath(hit.path) : null;
 		if (f) e.dataTransfer?.setData("text/plain", JSON.stringify([f.path]));
 	});
-	addResizeHandle(view, col, RECENTS_PATH);
+	addResizeHandle(view, col, sentinelPath);
+	return col;
+}
+
+/**
+ * Колонка «Календарь»: сетка месяца с бейджами числа созданных заметок,
+ * ‹ › листают месяцы, клик по названию месяца возвращает к сегодня,
+ * клик по дню открывает колонку файлов этого дня.
+ */
+export function renderCalendarColumn(view: ColumnExplorerView, container: HTMLElement) {
+	const col = container.createDiv({ cls: "column-explorer-column column-explorer-calendar" });
+	col.dataset.depth = "1";
+	col.dataset.folderPath = CALENDAR_PATH;
+	const customWidth = view.plugin.settings.columnWidths[CALENDAR_PATH];
+	if (customWidth) col.style.setProperty("--ce-col-width", customWidth + "px");
+
+	const header = col.createDiv({ cls: "column-explorer-column-header" });
+	header.createSpan({ cls: "column-explorer-column-title", text: t("calendar") });
+
+	const { year, month } = view.currentCalendarMonth();
+	const nav = col.createDiv({ cls: "column-explorer-cal-nav" });
+	const prev = nav.createDiv({ cls: "clickable-icon", attr: { role: "button" } });
+	setIcon(prev, "chevron-left");
+	prev.addEventListener("click", () => view.navigateCalendarMonth(-1));
+	const monthLabel = nav.createDiv({
+		cls: "column-explorer-cal-month",
+		text: new Date(year, month, 1).toLocaleDateString(getLanguage(), { month: "long", year: "numeric" }),
+		attr: { "aria-label": t("today"), role: "button" },
+	});
+	monthLabel.addEventListener("click", () => view.navigateCalendarMonth(0));
+	const next = nav.createDiv({ cls: "clickable-icon", attr: { role: "button" } });
+	setIcon(next, "chevron-right");
+	next.addEventListener("click", () => view.navigateCalendarMonth(1));
+
+	const counts = view.calendarCounts();
+	const todayKey = dayKey(Date.now());
+	const selectedDay = view.selectedDayKey();
+	const grid = col.createDiv({ cls: "column-explorer-cal-grid" });
+	// Шапка дней недели, неделя с понедельника (2024-01-01 — понедельник)
+	for (let i = 0; i < 7; i++) {
+		const weekday = new Date(2024, 0, 1 + i).toLocaleDateString(getLanguage(), { weekday: "short" });
+		grid.createDiv({ cls: "column-explorer-cal-weekday", text: weekday });
+	}
+	for (const week of monthGrid(year, month)) {
+		for (const day of week) {
+			const cell = grid.createDiv({ cls: "column-explorer-cal-cell" });
+			if (!day) continue;
+			cell.addClass("is-day");
+			cell.dataset.day = day;
+			if (day === todayKey) cell.addClass("is-today");
+			if (day === selectedDay) cell.addClass("is-selected");
+			cell.createDiv({ cls: "column-explorer-cal-daynum", text: String(Number(day.slice(8))) });
+			const n = counts.get(day) ?? 0;
+			if (n > 0) cell.createDiv({ cls: "column-explorer-cal-count", text: String(n) });
+		}
+	}
+	grid.addEventListener("click", (e) => {
+		const cell = (e.target as HTMLElement | null)?.closest<HTMLElement>(".column-explorer-cal-cell.is-day");
+		if (cell?.dataset.day) view.selectDay(cell.dataset.day);
+	});
+	addResizeHandle(view, col, CALENDAR_PATH);
 	return col;
 }
 

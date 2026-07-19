@@ -13,6 +13,8 @@ import {
 	takeFirstExisting,
 	pushRecent,
 	remapPathList,
+	dayKey,
+	monthGrid,
 } from "../src/pure";
 
 describe("naturalCompare", () => {
@@ -415,5 +417,40 @@ describe("remapPathList", () => {
 
 	test("replaces an exact file path", () => {
 		expect(remapPathList(["a.md", "b.md"], "a.md", "n.md")).toEqual(["n.md", "b.md"]);
+	});
+});
+
+describe("dayKey", () => {
+	test("formats a local date as YYYY-MM-DD", () => {
+		// Arrange: полдень 19 июля 2026 в ЛОКАЛЬНОЙ зоне — независимо от TZ теста
+		const ts = new Date(2026, 6, 19, 12, 0, 0).getTime();
+
+		// Act + Assert
+		expect(dayKey(ts)).toBe("2026-07-19");
+	});
+
+	test("pads single-digit month and day", () => {
+		const ts = new Date(2026, 0, 5).getTime();
+		expect(dayKey(ts)).toBe("2026-01-05");
+	});
+});
+
+describe("monthGrid", () => {
+	test("July 2026 starts on Wednesday with Monday-first weeks", () => {
+		// Act
+		const grid = monthGrid(2026, 6);
+
+		// Assert: 1 июля 2026 — среда: пн/вт пустые
+		expect(grid[0]).toEqual([null, null, "2026-07-01", "2026-07-02", "2026-07-03", "2026-07-04", "2026-07-05"]);
+		expect(grid.flat().filter(Boolean).length).toBe(31);
+		expect(grid.every(week => week.length === 7)).toBe(true);
+	});
+
+	test("February 2026 has 28 days and ends the last week with nulls", () => {
+		const grid = monthGrid(2026, 1);
+		const days = grid.flat().filter(Boolean);
+		expect(days.length).toBe(28);
+		expect(days[0]).toBe("2026-02-01");
+		expect(days[27]).toBe("2026-02-28");
 	});
 });

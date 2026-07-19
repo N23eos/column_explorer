@@ -41,6 +41,12 @@ export interface ColumnExplorerSettings {
 	recentFiles: string[];
 	/** Show the virtual "Recents" row in the root column. */
 	showRecents: boolean;
+	/** Show the virtual "Bookmarks" row (requires the core Bookmarks plugin). */
+	showBookmarks: boolean;
+	/** Show the virtual "Calendar" row. */
+	showCalendar: boolean;
+	/** Where the virtual rows sit in the root column. */
+	specialItemsPosition: "top" | "bottom";
 }
 
 export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
@@ -65,6 +71,9 @@ export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
 	recentFilesCount: 10,
 	recentFiles: [],
 	showRecents: true,
+	showBookmarks: true,
+	showCalendar: true,
+	specialItemsPosition: "top",
 };
 
 export const MIN_RECENT_FILES = 5;
@@ -123,13 +132,19 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 				],
 			},
 			{
-				type: "group", heading: t("headRecents"), items: [
+				type: "group", heading: t("headSpecial"), items: [
+					{
+						name: t("setSpecialPos"), desc: t("setSpecialPosDesc"),
+						control: { type: "dropdown", key: "specialItemsPosition", options: { top: t("posTop"), bottom: t("posBottom") } },
+					},
 					{ name: t("setShowRecents"), desc: t("setShowRecentsDesc"), control: { type: "toggle", key: "showRecents" } },
 					{
 						name: t("setRecentCount"), desc: t("setRecentCountDesc"),
-						control: { type: "slider", key: "recentFilesCount", min: MIN_RECENT_FILES, max: MAX_RECENT_FILES, step: 1 },
+						control: { type: "number", key: "recentFilesCount", min: MIN_RECENT_FILES, max: MAX_RECENT_FILES, step: 1 },
 					},
 					{ name: t("clearRecents"), desc: t("clearRecentsDesc"), action: () => void this.clearRecents() },
+					{ name: t("setShowBookmarks"), desc: t("setShowBookmarksDesc"), control: { type: "toggle", key: "showBookmarks" } },
+					{ name: t("setShowCalendar"), desc: t("setShowCalendarDesc"), control: { type: "toggle", key: "showCalendar" } },
 				],
 			},
 		];
@@ -151,6 +166,9 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 
 	/** Self-contained override — avoids calling the 1.13-only base implementation. */
 	async setControlValue(key: string, value: unknown) {
+		if (key === "recentFilesCount" && typeof value === "number") {
+			value = Math.max(MIN_RECENT_FILES, Math.min(MAX_RECENT_FILES, Math.round(value)));
+		}
 		(this.plugin.settings as unknown as Record<string, unknown>)[key] = value;
 		await this.plugin.saveSettings();
 		this.plugin.getView()?.render();
@@ -216,17 +234,37 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 		new Setting(containerEl).setName(t("resetWidths")).setDesc(t("resetWidthsDesc"))
 			.addButton(b => b.setButtonText(t("reset")).onClick(() => void this.resetColumnWidths()));
 
-		new Setting(containerEl).setName(t("headRecents")).setHeading();
+		new Setting(containerEl).setName(t("headSpecial")).setHeading();
+
+		new Setting(containerEl).setName(t("setSpecialPos")).setDesc(t("setSpecialPosDesc"))
+			.addDropdown(d => d
+				.addOption("top", t("posTop"))
+				.addOption("bottom", t("posBottom"))
+				.setValue(s.specialItemsPosition)
+				.onChange(async (v) => { s.specialItemsPosition = v === "bottom" ? "bottom" : "top"; await save(); }));
 
 		new Setting(containerEl).setName(t("setShowRecents")).setDesc(t("setShowRecentsDesc"))
 			.addToggle(tg => tg.setValue(s.showRecents).onChange(async (v) => { s.showRecents = v; await save(); }));
 
 		new Setting(containerEl).setName(t("setRecentCount")).setDesc(t("setRecentCountDesc"))
-			.addSlider(sl => sl.setLimits(MIN_RECENT_FILES, MAX_RECENT_FILES, 1)
-				.setValue(s.recentFilesCount)
-				.onChange(async (v) => { s.recentFilesCount = v; await save(); }));
+			.addText(txt => {
+				txt.inputEl.type = "number";
+				txt.setValue(String(s.recentFilesCount))
+					.onChange(async (v) => {
+						const n = Number(v);
+						if (!Number.isFinite(n)) return;
+						s.recentFilesCount = Math.max(MIN_RECENT_FILES, Math.min(MAX_RECENT_FILES, Math.round(n)));
+						await save();
+					});
+			});
 
 		new Setting(containerEl).setName(t("clearRecents")).setDesc(t("clearRecentsDesc"))
 			.addButton(b => b.setButtonText(t("clear")).onClick(() => void this.clearRecents()));
+
+		new Setting(containerEl).setName(t("setShowBookmarks")).setDesc(t("setShowBookmarksDesc"))
+			.addToggle(tg => tg.setValue(s.showBookmarks).onChange(async (v) => { s.showBookmarks = v; await save(); }));
+
+		new Setting(containerEl).setName(t("setShowCalendar")).setDesc(t("setShowCalendarDesc"))
+			.addToggle(tg => tg.setValue(s.showCalendar).onChange(async (v) => { s.showCalendar = v; await save(); }));
 	}
 }

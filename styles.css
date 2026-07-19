@@ -537,3 +537,87 @@
 .is-mobile .column-explorer-resize-handle {
 	display: none;
 }
+
+/* Special rows (Recents / Bookmarks / Calendar) in the root column */
+.column-explorer-special .column-explorer-item-icon {
+	color: var(--text-accent);
+}
+
+/* Calendar column */
+.column-explorer-cal-nav {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 4px;
+	padding: 4px 8px;
+	flex-shrink: 0;
+}
+
+.column-explorer-cal-month {
+	flex: 1;
+	text-align: center;
+	font-weight: var(--font-medium);
+	cursor: var(--cursor);
+	text-transform: capitalize;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.column-explorer-cal-grid {
+	display: grid;
+	grid-template-columns: repeat(7, 1fr);
+	gap: 2px;
+	padding: 4px 8px 8px;
+	overflow-y: auto;
+}
+
+.column-explorer-cal-weekday {
+	text-align: center;
+	font-size: var(--font-ui-smaller);
+	color: var(--text-faint);
+	padding: 2px 0;
+}
+
+.column-explorer-cal-cell {
+	min-height: 34px;
+	border-radius: var(--radius-s);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: flex-start;
+	gap: 1px;
+	padding: 2px 0;
+}
+
+.column-explorer-cal-cell.is-day {
+	cursor: var(--cursor);
+}
+
+.column-explorer-cal-cell.is-day:hover {
+	background-color: var(--background-modifier-hover);
+}
+
+.column-explorer-cal-cell.is-today .column-explorer-cal-daynum {
+	color: var(--text-accent);
+	font-weight: var(--font-bold);
+}
+
+.column-explorer-cal-cell.is-selected {
+	background-color: var(--background-modifier-hover);
+	box-shadow: 0 0 0 1px var(--interactive-accent) inset;
+}
+
+.column-explorer-cal-daynum {
+	font-size: var(--font-ui-small);
+	line-height: 1.2;
+}
+
+.column-explorer-cal-count {
+	font-size: 10px;
+	line-height: 1;
+	padding: 1px 4px;
+	border-radius: 6px;
+	background-color: var(--interactive-accent);
+	color: var(--text-on-accent);
+}

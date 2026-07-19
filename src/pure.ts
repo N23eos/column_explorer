@@ -162,6 +162,36 @@ export function availablePath(folderPath: string, fileName: string, taken: Reado
  * Obsidian file names, so it can never collide with a real vault path.
  */
 export const RECENTS_PATH = "::recents::";
+export const BOOKMARKS_PATH = "::bookmarks::";
+export const CALENDAR_PATH = "::calendar::";
+/** Префикс сентинела дня календаря: "::day::2026-07-19". */
+export const DAY_PATH_PREFIX = "::day::";
+
+/** Local-timezone "YYYY-MM-DD" key for a unix timestamp (ms). */
+export function dayKey(ts: number): string {
+	const d = new Date(ts);
+	const month = String(d.getMonth() + 1).padStart(2, "0");
+	const day = String(d.getDate()).padStart(2, "0");
+	return `${d.getFullYear()}-${month}-${day}`;
+}
+
+/**
+ * Календарная сетка месяца: массив недель по 7 ячеек (недели с понедельника),
+ * в ячейке — dayKey или null вне месяца. `month` — 0-based.
+ */
+export function monthGrid(year: number, month: number): (string | null)[][] {
+	const daysInMonth = new Date(year, month + 1, 0).getDate();
+	// getDay(): 0 = воскресенье → сдвигаем к понедельнику
+	const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
+	const cells = new Array<string | null>(firstWeekday).fill(null);
+	for (let day = 1; day <= daysInMonth; day++) {
+		cells.push(dayKey(new Date(year, month, day).getTime()));
+	}
+	while (cells.length % 7 !== 0) cells.push(null);
+	const weeks: (string | null)[][] = [];
+	for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+	return weeks;
+}
 
 /** Prepend `path` to a recents list: dedupe, cap at `limit`. New array. */
 export function pushRecent(list: string[], path: string, limit: number): string[] {

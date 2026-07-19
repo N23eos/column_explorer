@@ -133,6 +133,27 @@ function availablePath(folderPath, fileName, taken) {
   return `${prefix}${base} ${counter}${ext}`;
 }
 var RECENTS_PATH = "::recents::";
+var BOOKMARKS_PATH = "::bookmarks::";
+var CALENDAR_PATH = "::calendar::";
+var DAY_PATH_PREFIX = "::day::";
+function dayKey(ts) {
+  const d = new Date(ts);
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${month}-${day}`;
+}
+function monthGrid(year, month) {
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
+  const cells = new Array(firstWeekday).fill(null);
+  for (let day = 1; day <= daysInMonth; day++) {
+    cells.push(dayKey(new Date(year, month, day).getTime()));
+  }
+  while (cells.length % 7 !== 0) cells.push(null);
+  const weeks = [];
+  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
+  return weeks;
+}
 function pushRecent(list, path, limit) {
   return [path, ...list.filter((p) => p !== path)].slice(0, limit);
 }
@@ -263,7 +284,6 @@ var STRINGS = {
     headAppearance: "Appearance",
     headBehavior: "Behavior",
     headColumns: "Columns",
-    headRecents: "Recent files",
     setShowRecents: "Show recents",
     setShowRecentsDesc: "Show the recents row at the top of the first column.",
     resetWidths: "Reset all column widths",
@@ -273,7 +293,19 @@ var STRINGS = {
     clearRecents: "Clear recent files",
     clearRecentsDesc: "Remove all entries from the recents list.",
     recentsCleared: "Recent files cleared",
-    clear: "Clear"
+    clear: "Clear",
+    bookmarks: "Bookmarks",
+    calendar: "Calendar",
+    headSpecial: "Special items",
+    setShowBookmarks: "Show bookmarks",
+    setShowBookmarksDesc: "Show the bookmarks row (needs the core Bookmarks plugin).",
+    setShowCalendar: "Show calendar",
+    setShowCalendarDesc: "Show the calendar row: notes by creation day.",
+    setSpecialPos: "Special items position",
+    setSpecialPosDesc: "Where the recents, bookmarks and calendar rows sit in the first column.",
+    posTop: "Top",
+    posBottom: "Bottom",
+    today: "Today"
   },
   ru: {
     newNote: "\u041D\u043E\u0432\u0430\u044F \u0437\u0430\u043C\u0435\u0442\u043A\u0430",
@@ -369,7 +401,6 @@ var STRINGS = {
     headAppearance: "\u0412\u0438\u0434",
     headBehavior: "\u041F\u043E\u0432\u0435\u0434\u0435\u043D\u0438\u0435",
     headColumns: "\u041A\u043E\u043B\u043E\u043D\u043A\u0438",
-    headRecents: "\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435 \u0444\u0430\u0439\u043B\u044B",
     setShowRecents: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435\xBB",
     setShowRecentsDesc: "\u041F\u0443\u043D\u043A\u0442 \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435\xBB \u0432\u0432\u0435\u0440\u0445\u0443 \u043F\u0435\u0440\u0432\u043E\u0439 \u043A\u043E\u043B\u043E\u043D\u043A\u0438.",
     resetWidths: "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u0448\u0438\u0440\u0438\u043D\u044B \u0432\u0441\u0435\u0445 \u043A\u043E\u043B\u043E\u043D\u043E\u043A",
@@ -379,7 +410,19 @@ var STRINGS = {
     clearRecents: "\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u044C \u043D\u0435\u0434\u0430\u0432\u043D\u0438\u0435",
     clearRecentsDesc: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0432\u0441\u0435 \u0437\u0430\u043F\u0438\u0441\u0438 \u0438\u0437 \u0441\u043F\u0438\u0441\u043A\u0430 \u043D\u0435\u0434\u0430\u0432\u043D\u0438\u0445.",
     recentsCleared: "\u0421\u043F\u0438\u0441\u043E\u043A \u043D\u0435\u0434\u0430\u0432\u043D\u0438\u0445 \u043E\u0447\u0438\u0449\u0435\u043D",
-    clear: "\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u044C"
+    clear: "\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u044C",
+    bookmarks: "\u0417\u0430\u043A\u043B\u0430\u0434\u043A\u0438",
+    calendar: "\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C",
+    headSpecial: "\u0421\u043F\u0435\u0446\u043F\u0443\u043D\u043A\u0442\u044B",
+    setShowBookmarks: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \xAB\u0417\u0430\u043A\u043B\u0430\u0434\u043A\u0438\xBB",
+    setShowBookmarksDesc: "\u041F\u0443\u043D\u043A\u0442 \xAB\u0417\u0430\u043A\u043B\u0430\u0434\u043A\u0438\xBB (\u043D\u0443\u0436\u0435\u043D \u0432\u0441\u0442\u0440\u043E\u0435\u043D\u043D\u044B\u0439 \u043F\u043B\u0430\u0433\u0438\u043D Bookmarks).",
+    setShowCalendar: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \xAB\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C\xBB",
+    setShowCalendarDesc: "\u041F\u0443\u043D\u043A\u0442 \xAB\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C\xBB: \u0437\u0430\u043C\u0435\u0442\u043A\u0438 \u043F\u043E \u0434\u043D\u044E \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u044F.",
+    setSpecialPos: "\u041F\u043E\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u0441\u043F\u0435\u0446\u043F\u0443\u043D\u043A\u0442\u043E\u0432",
+    setSpecialPosDesc: "\u0413\u0434\u0435 \u0432 \u043F\u0435\u0440\u0432\u043E\u0439 \u043A\u043E\u043B\u043E\u043D\u043A\u0435 \u0441\u0442\u043E\u044F\u0442 \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435\xBB, \xAB\u0417\u0430\u043A\u043B\u0430\u0434\u043A\u0438\xBB \u0438 \xAB\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C\xBB.",
+    posTop: "\u0421\u0432\u0435\u0440\u0445\u0443",
+    posBottom: "\u0421\u043D\u0438\u0437\u0443",
+    today: "\u0421\u0435\u0433\u043E\u0434\u043D\u044F"
   }
 };
 function t(key, vars) {
@@ -413,7 +456,10 @@ var DEFAULT_SETTINGS = {
   lockedColumnCount: null,
   recentFilesCount: 10,
   recentFiles: [],
-  showRecents: true
+  showRecents: true,
+  showBookmarks: true,
+  showCalendar: true,
+  specialItemsPosition: "top"
 };
 var MIN_RECENT_FILES = 5;
 var MAX_RECENT_FILES = 50;
@@ -479,15 +525,22 @@ var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
       },
       {
         type: "group",
-        heading: t("headRecents"),
+        heading: t("headSpecial"),
         items: [
+          {
+            name: t("setSpecialPos"),
+            desc: t("setSpecialPosDesc"),
+            control: { type: "dropdown", key: "specialItemsPosition", options: { top: t("posTop"), bottom: t("posBottom") } }
+          },
           { name: t("setShowRecents"), desc: t("setShowRecentsDesc"), control: { type: "toggle", key: "showRecents" } },
           {
             name: t("setRecentCount"),
             desc: t("setRecentCountDesc"),
-            control: { type: "slider", key: "recentFilesCount", min: MIN_RECENT_FILES, max: MAX_RECENT_FILES, step: 1 }
+            control: { type: "number", key: "recentFilesCount", min: MIN_RECENT_FILES, max: MAX_RECENT_FILES, step: 1 }
           },
-          { name: t("clearRecents"), desc: t("clearRecentsDesc"), action: () => void this.clearRecents() }
+          { name: t("clearRecents"), desc: t("clearRecentsDesc"), action: () => void this.clearRecents() },
+          { name: t("setShowBookmarks"), desc: t("setShowBookmarksDesc"), control: { type: "toggle", key: "showBookmarks" } },
+          { name: t("setShowCalendar"), desc: t("setShowCalendarDesc"), control: { type: "toggle", key: "showCalendar" } }
         ]
       }
     ];
@@ -509,6 +562,9 @@ var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
   /** Self-contained override — avoids calling the 1.13-only base implementation. */
   async setControlValue(key, value) {
     var _a;
+    if (key === "recentFilesCount" && typeof value === "number") {
+      value = Math.max(MIN_RECENT_FILES, Math.min(MAX_RECENT_FILES, Math.round(value)));
+    }
     this.plugin.settings[key] = value;
     await this.plugin.saveSettings();
     (_a = this.plugin.getView()) == null ? void 0 : _a.render();
@@ -570,16 +626,33 @@ var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
       await save();
     }));
     new import_obsidian2.Setting(containerEl).setName(t("resetWidths")).setDesc(t("resetWidthsDesc")).addButton((b) => b.setButtonText(t("reset")).onClick(() => void this.resetColumnWidths()));
-    new import_obsidian2.Setting(containerEl).setName(t("headRecents")).setHeading();
+    new import_obsidian2.Setting(containerEl).setName(t("headSpecial")).setHeading();
+    new import_obsidian2.Setting(containerEl).setName(t("setSpecialPos")).setDesc(t("setSpecialPosDesc")).addDropdown((d) => d.addOption("top", t("posTop")).addOption("bottom", t("posBottom")).setValue(s.specialItemsPosition).onChange(async (v) => {
+      s.specialItemsPosition = v === "bottom" ? "bottom" : "top";
+      await save();
+    }));
     new import_obsidian2.Setting(containerEl).setName(t("setShowRecents")).setDesc(t("setShowRecentsDesc")).addToggle((tg) => tg.setValue(s.showRecents).onChange(async (v) => {
       s.showRecents = v;
       await save();
     }));
-    new import_obsidian2.Setting(containerEl).setName(t("setRecentCount")).setDesc(t("setRecentCountDesc")).addSlider((sl) => sl.setLimits(MIN_RECENT_FILES, MAX_RECENT_FILES, 1).setValue(s.recentFilesCount).onChange(async (v) => {
-      s.recentFilesCount = v;
+    new import_obsidian2.Setting(containerEl).setName(t("setRecentCount")).setDesc(t("setRecentCountDesc")).addText((txt) => {
+      txt.inputEl.type = "number";
+      txt.setValue(String(s.recentFilesCount)).onChange(async (v) => {
+        const n = Number(v);
+        if (!Number.isFinite(n)) return;
+        s.recentFilesCount = Math.max(MIN_RECENT_FILES, Math.min(MAX_RECENT_FILES, Math.round(n)));
+        await save();
+      });
+    });
+    new import_obsidian2.Setting(containerEl).setName(t("clearRecents")).setDesc(t("clearRecentsDesc")).addButton((b) => b.setButtonText(t("clear")).onClick(() => void this.clearRecents()));
+    new import_obsidian2.Setting(containerEl).setName(t("setShowBookmarks")).setDesc(t("setShowBookmarksDesc")).addToggle((tg) => tg.setValue(s.showBookmarks).onChange(async (v) => {
+      s.showBookmarks = v;
       await save();
     }));
-    new import_obsidian2.Setting(containerEl).setName(t("clearRecents")).setDesc(t("clearRecentsDesc")).addButton((b) => b.setButtonText(t("clear")).onClick(() => void this.clearRecents()));
+    new import_obsidian2.Setting(containerEl).setName(t("setShowCalendar")).setDesc(t("setShowCalendarDesc")).addToggle((tg) => tg.setValue(s.showCalendar).onChange(async (v) => {
+      s.showCalendar = v;
+      await save();
+    }));
   }
 };
 
@@ -1210,9 +1283,9 @@ function renderColumn(view, container, folder, depth) {
       }
       return;
     }
-    if (hit.path === RECENTS_PATH) {
+    if (view.specialKind(hit.path)) {
       view.clearMulti();
-      view.selectRecents();
+      view.selectSpecial(hit.path);
       return;
     }
     const f = view.app.vault.getAbstractFileByPath(hit.path);
@@ -1261,14 +1334,18 @@ function renderColumnList(view, list, folder, depth) {
   (_a = listObservers.get(list)) == null ? void 0 : _a.disconnect();
   listObservers.delete(list);
   list.empty();
-  if (folder.isRoot() && depth === 0 && view.plugin.settings.showRecents) {
-    list.appendChild(buildRecentsItem(view));
-  }
+  const specials = folder.isRoot() && depth === 0 ? buildSpecialItems(view) : [];
+  const specialsOnTop = view.plugin.settings.specialItemsPosition === "top";
+  if (specialsOnTop) specials.forEach((el) => list.appendChild(el));
+  const appendSpecialsBottom = () => {
+    if (!specialsOnTop) specials.forEach((el) => list.appendChild(el));
+  };
   const children = view.childrenOf(folder);
   const countEl = (_b = list.closest(".column-explorer-column")) == null ? void 0 : _b.querySelector(".column-explorer-column-count");
   countEl == null ? void 0 : countEl.setText(String(children.length));
   if (children.length === 0) {
     list.createDiv({ cls: "column-explorer-empty", text: view.hasFilter() ? t("noResults") : t("empty") });
+    appendSpecialsBottom();
     return;
   }
   const isGrid = ((_c = view.plugin.settings.columnViewModes[folder.path]) != null ? _c : "list") === "grid";
@@ -1277,8 +1354,12 @@ function renderColumnList(view, list, folder, depth) {
   const frag = createFragment();
   for (let i = 0; i < rendered; i++) frag.appendChild(buildItem(view, children[i], depth, isGrid));
   list.appendChild(frag);
-  if (rendered >= children.length) return;
+  if (rendered >= children.length) {
+    appendSpecialsBottom();
+    return;
+  }
   const sentinel = list.createDiv({ cls: "column-explorer-load-more" });
+  appendSpecialsBottom();
   const observer = new IntersectionObserver((entries) => {
     if (!entries.some((entry) => entry.isIntersecting)) return;
     const next = Math.min(children.length, rendered + RENDER_CHUNK);
@@ -1347,43 +1428,49 @@ function buildItem(view, f, depth, isGrid = false) {
   }
   return item;
 }
-function buildRecentsItem(view) {
-  const item = createDiv({ cls: "column-explorer-item column-explorer-recents", attr: { role: "option" } });
-  item.dataset.path = RECENTS_PATH;
-  const selected = view.selection[0] === RECENTS_PATH;
+function buildSpecialItems(view) {
+  const items = [];
+  if (view.specialKind(RECENTS_PATH)) items.push(buildSpecialItem(view, RECENTS_PATH, "history", t("recents")));
+  if (view.specialKind(BOOKMARKS_PATH)) items.push(buildSpecialItem(view, BOOKMARKS_PATH, "bookmark", t("bookmarks")));
+  if (view.specialKind(CALENDAR_PATH)) items.push(buildSpecialItem(view, CALENDAR_PATH, "calendar-days", t("calendar")));
+  return items;
+}
+function buildSpecialItem(view, path, icon, label) {
+  const item = createDiv({ cls: "column-explorer-item column-explorer-special", attr: { role: "option" } });
+  item.dataset.path = path;
+  const selected = view.selection[0] === path;
   item.setAttribute("aria-selected", String(selected));
   if (selected) item.addClass("is-selected");
   if (selected && view.selection.length > 1) item.addClass("is-ancestor");
   const iconEl = item.createDiv({ cls: "column-explorer-item-icon" });
-  (0, import_obsidian9.setIcon)(iconEl, "history");
-  item.createDiv({ cls: "column-explorer-item-title", text: t("recents") });
+  (0, import_obsidian9.setIcon)(iconEl, icon);
+  item.createDiv({ cls: "column-explorer-item-title", text: label });
   const chev = item.createDiv({ cls: "column-explorer-item-chevron" });
   (0, import_obsidian9.setIcon)(chev, "chevron-right");
   return item;
 }
-function renderRecentsColumn(view, container) {
+function renderFileListColumn(view, container, title, files, sentinelPath, depth) {
   const col = container.createDiv({ cls: "column-explorer-column" });
-  col.dataset.depth = "1";
-  col.dataset.folderPath = RECENTS_PATH;
-  const customWidth = view.plugin.settings.columnWidths[RECENTS_PATH];
+  col.dataset.depth = String(depth);
+  col.dataset.folderPath = sentinelPath;
+  const customWidth = view.plugin.settings.columnWidths[sentinelPath];
   if (customWidth) col.style.setProperty("--ce-col-width", customWidth + "px");
   const header = col.createDiv({ cls: "column-explorer-column-header" });
-  header.createSpan({ cls: "column-explorer-column-title", text: t("recents") });
+  header.createSpan({ cls: "column-explorer-column-title", text: title });
   const countEl = header.createSpan({ cls: "column-explorer-column-count" });
   const list = col.createDiv({ cls: "column-explorer-list", attr: { role: "listbox" } });
-  const files = view.recentFiles();
   countEl.setText(String(files.length));
   if (files.length === 0) {
     list.createDiv({ cls: "column-explorer-empty", text: t("empty") });
   } else {
-    for (const f of files) list.appendChild(buildItem(view, f, 1));
+    for (const f of files) list.appendChild(buildItem(view, f, depth));
   }
   list.addEventListener("click", (e) => {
     const hit = itemFromEvent(e);
     const f = hit ? view.app.vault.getAbstractFileByPath(hit.path) : null;
     if (f instanceof import_obsidian9.TFile) {
       view.clearMulti();
-      view.selectItem(f, 1, e);
+      view.selectItem(f, depth, e);
     }
   });
   list.addEventListener("auxclick", (e) => {
@@ -1396,7 +1483,7 @@ function renderRecentsColumn(view, container) {
     e.preventDefault();
     const hit = itemFromEvent(e);
     const f = hit ? view.app.vault.getAbstractFileByPath(hit.path) : null;
-    if (f) showFileMenu(view, e, f, 1);
+    if (f) showFileMenu(view, e, f, depth);
   });
   list.addEventListener("dragstart", (e) => {
     var _a;
@@ -1404,7 +1491,59 @@ function renderRecentsColumn(view, container) {
     const f = hit ? view.app.vault.getAbstractFileByPath(hit.path) : null;
     if (f) (_a = e.dataTransfer) == null ? void 0 : _a.setData("text/plain", JSON.stringify([f.path]));
   });
-  addResizeHandle(view, col, RECENTS_PATH);
+  addResizeHandle(view, col, sentinelPath);
+  return col;
+}
+function renderCalendarColumn(view, container) {
+  var _a;
+  const col = container.createDiv({ cls: "column-explorer-column column-explorer-calendar" });
+  col.dataset.depth = "1";
+  col.dataset.folderPath = CALENDAR_PATH;
+  const customWidth = view.plugin.settings.columnWidths[CALENDAR_PATH];
+  if (customWidth) col.style.setProperty("--ce-col-width", customWidth + "px");
+  const header = col.createDiv({ cls: "column-explorer-column-header" });
+  header.createSpan({ cls: "column-explorer-column-title", text: t("calendar") });
+  const { year, month } = view.currentCalendarMonth();
+  const nav = col.createDiv({ cls: "column-explorer-cal-nav" });
+  const prev = nav.createDiv({ cls: "clickable-icon", attr: { role: "button" } });
+  (0, import_obsidian9.setIcon)(prev, "chevron-left");
+  prev.addEventListener("click", () => view.navigateCalendarMonth(-1));
+  const monthLabel = nav.createDiv({
+    cls: "column-explorer-cal-month",
+    text: new Date(year, month, 1).toLocaleDateString((0, import_obsidian9.getLanguage)(), { month: "long", year: "numeric" }),
+    attr: { "aria-label": t("today"), role: "button" }
+  });
+  monthLabel.addEventListener("click", () => view.navigateCalendarMonth(0));
+  const next = nav.createDiv({ cls: "clickable-icon", attr: { role: "button" } });
+  (0, import_obsidian9.setIcon)(next, "chevron-right");
+  next.addEventListener("click", () => view.navigateCalendarMonth(1));
+  const counts = view.calendarCounts();
+  const todayKey = dayKey(Date.now());
+  const selectedDay = view.selectedDayKey();
+  const grid = col.createDiv({ cls: "column-explorer-cal-grid" });
+  for (let i = 0; i < 7; i++) {
+    const weekday = new Date(2024, 0, 1 + i).toLocaleDateString((0, import_obsidian9.getLanguage)(), { weekday: "short" });
+    grid.createDiv({ cls: "column-explorer-cal-weekday", text: weekday });
+  }
+  for (const week of monthGrid(year, month)) {
+    for (const day of week) {
+      const cell = grid.createDiv({ cls: "column-explorer-cal-cell" });
+      if (!day) continue;
+      cell.addClass("is-day");
+      cell.dataset.day = day;
+      if (day === todayKey) cell.addClass("is-today");
+      if (day === selectedDay) cell.addClass("is-selected");
+      cell.createDiv({ cls: "column-explorer-cal-daynum", text: String(Number(day.slice(8))) });
+      const n = (_a = counts.get(day)) != null ? _a : 0;
+      if (n > 0) cell.createDiv({ cls: "column-explorer-cal-count", text: String(n) });
+    }
+  }
+  grid.addEventListener("click", (e) => {
+    var _a2;
+    const cell = (_a2 = e.target) == null ? void 0 : _a2.closest(".column-explorer-cal-cell.is-day");
+    if (cell == null ? void 0 : cell.dataset.day) view.selectDay(cell.dataset.day);
+  });
+  addResizeHandle(view, col, CALENDAR_PATH);
   return col;
 }
 function addResizeHandle(view, col, folderPath) {
@@ -1462,6 +1601,8 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     this.renamingPath = null;
     this.typeaheadBuffer = "";
     this.typeaheadTimer = 0;
+    /** Показанный месяц календаря; null — от выбранного дня или сегодня. */
+    this.calendarMonth = null;
     /** Targeted refresh: folders whose columns need re-rendering. */
     this.dirtyFolders = /* @__PURE__ */ new Set();
     this.fullRenderPending = false;
@@ -1719,8 +1860,17 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     this.columnsEl.empty();
     this.applyColumnWidth();
     const validSel = [];
-    if (this.selection[0] === RECENTS_PATH && this.plugin.settings.showRecents) {
-      validSel.push(RECENTS_PATH);
+    const special = this.specialKind(this.selection[0]);
+    if (special === "calendar") {
+      validSel.push(CALENDAR_PATH);
+      const day = this.selection[1];
+      if (day == null ? void 0 : day.startsWith(DAY_PATH_PREFIX)) {
+        validSel.push(day);
+        const filePath = this.selection[2];
+        if (filePath && this.app.vault.getAbstractFileByPath(filePath) instanceof import_obsidian10.TFile) validSel.push(filePath);
+      }
+    } else if (special) {
+      validSel.push(this.selection[0]);
       const filePath = this.selection[1];
       if (filePath && this.app.vault.getAbstractFileByPath(filePath) instanceof import_obsidian10.TFile) validSel.push(filePath);
     } else {
@@ -1742,10 +1892,25 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     if (lockedColumnVisible(0, folderCols, lockedCount)) {
       renderColumn(this, this.columnsEl, this.app.vault.getRoot(), 0);
     }
-    if (this.selection[0] === RECENTS_PATH) {
-      renderRecentsColumn(this, this.columnsEl);
-      const f = this.selection[1] ? this.app.vault.getAbstractFileByPath(this.selection[1]) : null;
+    const previewOf = (path) => {
+      const f = path ? this.app.vault.getAbstractFileByPath(path) : null;
       if (f instanceof import_obsidian10.TFile && this.plugin.settings.showPreview) renderPreviewColumn(this, this.columnsEl, f);
+    };
+    if (special === "recents") {
+      renderFileListColumn(this, this.columnsEl, t("recents"), this.recentFiles(), RECENTS_PATH, 1);
+      previewOf(this.selection[1]);
+    } else if (special === "bookmarks") {
+      renderFileListColumn(this, this.columnsEl, t("bookmarks"), this.bookmarkedFiles(), BOOKMARKS_PATH, 1);
+      previewOf(this.selection[1]);
+    } else if (special === "calendar") {
+      renderCalendarColumn(this, this.columnsEl);
+      const daySentinel = this.selection[1];
+      if (daySentinel) {
+        const day = daySentinel.slice(DAY_PATH_PREFIX.length);
+        const title = new Date(Number(day.slice(0, 4)), Number(day.slice(5, 7)) - 1, Number(day.slice(8))).toLocaleDateString((0, import_obsidian10.getLanguage)(), { day: "numeric", month: "long", year: "numeric" });
+        renderFileListColumn(this, this.columnsEl, title, this.filesCreatedOn(day), daySentinel, 2);
+        previewOf(this.selection[2]);
+      }
     } else {
       for (let depth = 0; depth < this.selection.length; depth++) {
         const f = this.app.vault.getAbstractFileByPath(this.selection[depth]);
@@ -1811,7 +1976,7 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     this.selection.forEach((path, i) => {
       var _a;
       const f = this.app.vault.getAbstractFileByPath(path);
-      const label = f ? displayName(f) : path === RECENTS_PATH ? t("recents") : (_a = path.split("/").pop()) != null ? _a : path;
+      const label = f ? displayName(f) : path === RECENTS_PATH ? t("recents") : path === BOOKMARKS_PATH ? t("bookmarks") : path === CALENDAR_PATH ? t("calendar") : path.startsWith(DAY_PATH_PREFIX) ? path.slice(DAY_PATH_PREFIX.length) : (_a = path.split("/").pop()) != null ? _a : path;
       addSegment(label, i + 1, i === this.selection.length - 1);
     });
   }
@@ -1839,11 +2004,94 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
   refreshRecentsColumn() {
     if (this.selection[0] === RECENTS_PATH) this.render();
   }
-  selectRecents() {
-    this.selection = [RECENTS_PATH];
+  /** Тип спецпункта по сентинел-пути с учётом настроек и доступности. */
+  specialKind(path) {
+    const s = this.plugin.settings;
+    if (path === RECENTS_PATH && s.showRecents) return "recents";
+    if (path === BOOKMARKS_PATH && s.showBookmarks && this.bookmarksAvailable()) return "bookmarks";
+    if (path === CALENDAR_PATH && s.showCalendar) return "calendar";
+    return null;
+  }
+  selectSpecial(path) {
+    this.selection = [path];
     this.clearMulti();
     this.persistState();
     this.render();
+  }
+  selectDay(day) {
+    this.selection = [CALENDAR_PATH, DAY_PATH_PREFIX + day];
+    this.clearMulti();
+    this.persistState();
+    this.render();
+  }
+  /** Выбранный день календаря ("YYYY-MM-DD") или null. */
+  selectedDayKey() {
+    const sentinel = this.selection[0] === CALENDAR_PATH ? this.selection[1] : void 0;
+    return (sentinel == null ? void 0 : sentinel.startsWith(DAY_PATH_PREFIX)) ? sentinel.slice(DAY_PATH_PREFIX.length) : null;
+  }
+  currentCalendarMonth() {
+    if (this.calendarMonth) return this.calendarMonth;
+    const day = this.selectedDayKey();
+    if (day) return { year: Number(day.slice(0, 4)), month: Number(day.slice(5, 7)) - 1 };
+    const now = /* @__PURE__ */ new Date();
+    return { year: now.getFullYear(), month: now.getMonth() };
+  }
+  /** Листание месяца: ±1, а 0 — вернуться к сегодняшнему. */
+  navigateCalendarMonth(delta) {
+    if (delta === 0) {
+      const now = /* @__PURE__ */ new Date();
+      this.calendarMonth = { year: now.getFullYear(), month: now.getMonth() };
+    } else {
+      const cur = this.currentCalendarMonth();
+      const d = new Date(cur.year, cur.month + delta, 1);
+      this.calendarMonth = { year: d.getFullYear(), month: d.getMonth() };
+    }
+    this.render();
+  }
+  /** Число созданных файлов по дням (ключ — dayKey) для бейджей календаря. */
+  calendarCounts() {
+    var _a;
+    const counts = /* @__PURE__ */ new Map();
+    for (const f of this.app.vault.getFiles()) {
+      const key = dayKey(f.stat.ctime);
+      counts.set(key, ((_a = counts.get(key)) != null ? _a : 0) + 1);
+    }
+    return counts;
+  }
+  /** Файлы, созданные в день `day` ("YYYY-MM-DD"), новые сверху. */
+  filesCreatedOn(day) {
+    return this.app.vault.getFiles().filter((f) => dayKey(f.stat.ctime) === day).sort((a, b) => b.stat.ctime - a.stat.ctime);
+  }
+  bookmarksAvailable() {
+    return this.bookmarkItems() !== null;
+  }
+  /**
+   * Пункты core-плагина Bookmarks. Приватный API (internalPlugins) —
+   * в try, при поломке или выключенном плагине возвращаем null
+   * и спецпункт «Закладки» просто не показывается.
+   */
+  bookmarkItems() {
+    var _a, _b, _c, _d;
+    try {
+      const app = this.app;
+      return (_d = (_c = (_b = (_a = app.internalPlugins) == null ? void 0 : _a.getEnabledPluginById) == null ? void 0 : _b.call(_a, "bookmarks")) == null ? void 0 : _c.items) != null ? _d : null;
+    } catch (e) {
+      return null;
+    }
+  }
+  /** Файлы из закладок; группы разворачиваются, не-файлы пропускаются. */
+  bookmarkedFiles() {
+    var _a;
+    const flatten = (items) => items.flatMap(
+      (it) => {
+        var _a2;
+        return it.type === "group" ? flatten((_a2 = it.items) != null ? _a2 : []) : it.type === "file" && it.path ? [it.path] : [];
+      }
+    );
+    return flatten((_a = this.bookmarkItems()) != null ? _a : []).flatMap((p) => {
+      const f = this.app.vault.getAbstractFileByPath(p);
+      return f instanceof import_obsidian10.TFile ? [f] : [];
+    });
   }
   selectItem(f, depth, e) {
     this.selection = this.selection.slice(0, depth);
