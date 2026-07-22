@@ -26,7 +26,7 @@ import { renderCalendarColumn, renderColumn, renderColumnList, renderFileListCol
 import { renderPreviewColumn } from "./preview";
 import { showSortMenu } from "./menus";
 import { ConfirmModal, QuickLookModal } from "./modals";
-import { trashFiles } from "./fileops";
+import { duplicateFile, trashFiles } from "./fileops";
 import type ColumnExplorerPlugin from "./main";
 
 /** Форма пункта core-плагина Bookmarks (приватный API — только чтение). */
@@ -682,6 +682,31 @@ export class ColumnExplorerView extends ItemView {
 		this.render();
 	}
 
+	/** Cmd/Ctrl+A — multi-select every item in the active folder column. */
+	selectAllAt(depth: number) {
+		const folder = this.folderAtDepth(depth);
+		if (!folder) return; // виртуальные колонки (Недавние/дни) — пропускаем
+		const children = this.childrenOf(folder);
+		if (children.length === 0) return;
+		this.clearMulti();
+		this.multiSelDepth = depth;
+		for (const c of children) this.multiSel.add(c.path);
+		this.render();
+	}
+
+	/** Cmd/Ctrl+D — duplicate the multi-selection, or the single selected file. */
+	duplicateSelected(depth: number) {
+		const paths = this.multiSel.size > 0 && this.multiSelDepth === depth
+			? [...this.multiSel]
+			: [this.selection[depth]].filter(Boolean);
+		void (async () => {
+			for (const p of paths) {
+				const f = this.app.vault.getAbstractFileByPath(p);
+				if (f instanceof TFile) await duplicateFile(this.app, f);
+			}
+		})();
+	}
+
 	revealFile(file: TAbstractFile | null) {
 		if (!file) return;
 		if (this.hasFilter()) { this.filter = ""; this.searchInput.value = ""; }
@@ -853,6 +878,12 @@ export class ColumnExplorerView extends ItemView {
 			if (this.multiSel.size > 0) { this.deleteMany([...this.multiSel]); return; }
 			// Сентинелы спецпунктов ("::…") — не файлы, удалять нечего
 			if (selectedPath && !selectedPath.startsWith("::")) this.deleteMany([selectedPath]);
+		} else if ((e.metaKey || e.ctrlKey) && (e.key === "a" || e.key === "A")) {
+			e.preventDefault();
+			this.selectAllAt(depth);
+		} else if ((e.metaKey || e.ctrlKey) && (e.key === "d" || e.key === "D")) {
+			e.preventDefault();
+			this.duplicateSelected(depth);
 		} else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
 			// Type-ahead: как в Finder — набор букв прыгает к совпадению
 			this.onTypeahead(e.key, children, depth);

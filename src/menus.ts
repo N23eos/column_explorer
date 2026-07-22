@@ -5,12 +5,19 @@ import { FolderSuggestModal, IconSuggestModal } from "./modals";
 import { FOLDER_COLOR_KEYS, FolderColorKey, SortMode } from "./settings";
 import type { ColumnExplorerView } from "./view";
 
-const SORT_MODES = ["name-asc", "name-desc", "mtime-desc", "mtime-asc"] as const;
+const SORT_MODES = [
+	"name-asc", "name-desc",
+	"mtime-desc", "mtime-asc",
+	"ctime-desc", "ctime-asc",
+	"size-desc", "size-asc",
+] as const;
 
 function sortLabel(mode: SortMode): string {
 	const keys: Record<SortMode, string> = {
 		"name-asc": "sortNameAsc", "name-desc": "sortNameDesc",
 		"mtime-desc": "sortMtimeDesc", "mtime-asc": "sortMtimeAsc",
+		"ctime-desc": "sortCtimeDesc", "ctime-asc": "sortCtimeAsc",
+		"size-desc": "sortSizeDesc", "size-asc": "sortSizeAsc",
 	};
 	return t(keys[mode]);
 }
@@ -143,6 +150,8 @@ export function showFileMenu(view: ColumnExplorerView, e: MouseEvent, f: TAbstra
 	menu.addItem(i => i.setTitle(t("copyPath")).setIcon("clipboard-copy")
 		.onClick(() => copyToClipboard(f.path, t("pathCopied"))));
 	if (f instanceof TFile) {
+		menu.addItem(i => i.setTitle(t("copyWikiLink")).setIcon("brackets")
+			.onClick(() => copyToClipboard("[[" + app.metadataCache.fileToLinktext(f, "", false) + "]]", t("linkCopied"))));
 		menu.addItem(i => i.setTitle(t("copyMdLink")).setIcon("link")
 			.onClick(() => copyToClipboard(app.fileManager.generateMarkdownLink(f, ""), t("linkCopied"))));
 		menu.addItem(i => i.setTitle(t("copyObsidianUrl")).setIcon("external-link")

@@ -56,6 +56,28 @@ export default class ColumnExplorerPlugin extends Plugin {
 			},
 		});
 
+		this.addCommand({
+			id: "new-note-here",
+			name: t("cmdNewNote"),
+			checkCallback: (checking) => {
+				const view = this.getView();
+				if (!view) return false;
+				if (!checking) void view.createNote(view.currentFolder());
+				return true;
+			},
+		});
+
+		this.addCommand({
+			id: "new-folder-here",
+			name: t("cmdNewFolder"),
+			checkCallback: (checking) => {
+				const view = this.getView();
+				if (!view) return false;
+				if (!checking) void view.createFolder(view.currentFolder());
+				return true;
+			},
+		});
+
 		this.registerEvent(this.app.workspace.on("active-leaf-change", () => {
 			const view = this.getView();
 			if (!view) return;

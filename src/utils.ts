@@ -4,6 +4,8 @@ import type { ColumnExplorerSettings } from "./settings";
 
 export function sortChildren(children: TAbstractFile[], s: ColumnExplorerSettings, mode = s.sortMode): TAbstractFile[] {
 	const mtime = (f: TAbstractFile) => (f instanceof TFile ? f.stat.mtime : 0);
+	const ctime = (f: TAbstractFile) => (f instanceof TFile ? f.stat.ctime : 0);
+	const size = (f: TAbstractFile) => (f instanceof TFile ? f.stat.size : 0);
 	return [...children].sort((a, b) => {
 		if (s.foldersFirst) {
 			const aF = a instanceof TFolder, bF = b instanceof TFolder;
@@ -13,6 +15,10 @@ export function sortChildren(children: TAbstractFile[], s: ColumnExplorerSetting
 			case "name-desc": return naturalCompare(b.name, a.name);
 			case "mtime-desc": return mtime(b) - mtime(a) || naturalCompare(a.name, b.name);
 			case "mtime-asc": return mtime(a) - mtime(b) || naturalCompare(a.name, b.name);
+			case "ctime-desc": return ctime(b) - ctime(a) || naturalCompare(a.name, b.name);
+			case "ctime-asc": return ctime(a) - ctime(b) || naturalCompare(a.name, b.name);
+			case "size-desc": return size(b) - size(a) || naturalCompare(a.name, b.name);
+			case "size-asc": return size(a) - size(b) || naturalCompare(a.name, b.name);
 			default: return naturalCompare(a.name, b.name);
 		}
 	});
