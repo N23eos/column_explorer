@@ -2,7 +2,11 @@ import { App, Notice, PluginSettingTab, Setting, SettingDefinitionItem } from "o
 import { t } from "./i18n";
 import type ColumnExplorerPlugin from "./main";
 
-export type SortMode = "name-asc" | "name-desc" | "mtime-desc" | "mtime-asc";
+export type SortMode =
+	| "name-asc" | "name-desc"
+	| "mtime-desc" | "mtime-asc"
+	| "ctime-desc" | "ctime-asc"
+	| "size-desc" | "size-asc";
 export type ColumnViewMode = "list" | "grid";
 
 /** Theme color keys — resolve to Obsidian's native `--color-*` CSS variables. */
@@ -47,6 +51,10 @@ export interface ColumnExplorerSettings {
 	showCalendar: boolean;
 	/** Where the virtual rows sit in the root column. */
 	specialItemsPosition: "top" | "bottom";
+	/** Own favorite paths (files and folders), shown atop the Bookmarks column. */
+	favorites: string[];
+	/** Show the favorites section in the Bookmarks column. */
+	showFavorites: boolean;
 }
 
 export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
@@ -74,6 +82,8 @@ export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
 	showBookmarks: true,
 	showCalendar: true,
 	specialItemsPosition: "top",
+	favorites: [],
+	showFavorites: true,
 };
 
 export const MIN_RECENT_FILES = 5;
@@ -112,6 +122,8 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 							options: {
 								"name-asc": t("sortNameAsc"), "name-desc": t("sortNameDesc"),
 								"mtime-desc": t("sortMtimeDesc"), "mtime-asc": t("sortMtimeAsc"),
+								"ctime-desc": t("sortCtimeDesc"), "ctime-asc": t("sortCtimeAsc"),
+								"size-desc": t("sortSizeDesc"), "size-asc": t("sortSizeAsc"),
 							},
 						},
 					},
@@ -143,6 +155,7 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 						control: { type: "number", key: "recentFilesCount", min: MIN_RECENT_FILES, max: MAX_RECENT_FILES, step: 1 },
 					},
 					{ name: t("clearRecents"), desc: t("clearRecentsDesc"), action: () => void this.clearRecents() },
+					{ name: t("setShowFavorites"), desc: t("setShowFavoritesDesc"), control: { type: "toggle", key: "showFavorites" } },
 					{ name: t("setShowBookmarks"), desc: t("setShowBookmarksDesc"), control: { type: "toggle", key: "showBookmarks" } },
 					{ name: t("setShowCalendar"), desc: t("setShowCalendarDesc"), control: { type: "toggle", key: "showCalendar" } },
 				],
@@ -205,6 +218,10 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 				.addOption("name-desc", t("sortNameDesc"))
 				.addOption("mtime-desc", t("sortMtimeDesc"))
 				.addOption("mtime-asc", t("sortMtimeAsc"))
+				.addOption("ctime-desc", t("sortCtimeDesc"))
+				.addOption("ctime-asc", t("sortCtimeAsc"))
+				.addOption("size-desc", t("sortSizeDesc"))
+				.addOption("size-asc", t("sortSizeAsc"))
 				.setValue(s.sortMode)
 				.onChange(async (v) => { s.sortMode = v as SortMode; await save(); }));
 
@@ -260,6 +277,9 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl).setName(t("clearRecents")).setDesc(t("clearRecentsDesc"))
 			.addButton(b => b.setButtonText(t("clear")).onClick(() => void this.clearRecents()));
+
+		new Setting(containerEl).setName(t("setShowFavorites")).setDesc(t("setShowFavoritesDesc"))
+			.addToggle(tg => tg.setValue(s.showFavorites).onChange(async (v) => { s.showFavorites = v; await save(); }));
 
 		new Setting(containerEl).setName(t("setShowBookmarks")).setDesc(t("setShowBookmarksDesc"))
 			.addToggle(tg => tg.setValue(s.showBookmarks).onChange(async (v) => { s.showBookmarks = v; await save(); }));

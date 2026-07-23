@@ -15,6 +15,7 @@ import {
 	remapPathList,
 	dayKey,
 	monthGrid,
+	shellEscapePath,
 } from "../src/pure";
 
 describe("naturalCompare", () => {
@@ -452,5 +453,25 @@ describe("monthGrid", () => {
 		expect(days.length).toBe(28);
 		expect(days[0]).toBe("2026-02-01");
 		expect(days[27]).toBe("2026-02-28");
+	});
+});
+
+describe("shellEscapePath", () => {
+	test("escapes spaces and tildes like a terminal drag", () => {
+		const input = "/Users/n/Library/Mobile Documents/iCloud~md~obsidian/Documents/Raincoat/Content/Music";
+		const expected = "/Users/n/Library/Mobile\\ Documents/iCloud\\~md\\~obsidian/Documents/Raincoat/Content/Music";
+		expect(shellEscapePath(input)).toBe(expected);
+	});
+
+	test("leaves letters, digits and path-safe chars untouched", () => {
+		expect(shellEscapePath("/a/b-c/d_e.f/g1")).toBe("/a/b-c/d_e.f/g1");
+	});
+
+	test("does not escape non-Latin letters (Cyrillic)", () => {
+		expect(shellEscapePath("/vault/Projects/Мафия")).toBe("/vault/Projects/Мафия");
+	});
+
+	test("escapes shell metacharacters", () => {
+		expect(shellEscapePath("/a/b(c)&d;e")).toBe("/a/b\\(c\\)\\&d\\;e");
 	});
 });

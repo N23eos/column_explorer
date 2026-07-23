@@ -1,2 +1,5 @@
 .DS_Store
 node_modules/
+.plan.md
+.plan.done.md
+coverage/

@@ -26,7 +26,7 @@ import { renderCalendarColumn, renderColumn, renderColumnList, renderFileListCol
 import { renderPreviewColumn } from "./preview";
 import { showSortMenu } from "./menus";
 import { ConfirmModal, QuickLookModal } from "./modals";
-import { trashFiles } from "./fileops";
+import { duplicateFile, trashFiles } from "./fileops";
 import type ColumnExplorerPlugin from "./main";
 
 /** Форма пункта core-плагина Bookmarks (приватный API — только чтение). */
@@ -59,6 +59,12 @@ export class ColumnExplorerView extends ItemView {
 	private typeaheadTimer = 0;
 	/** Показанный месяц календаря; null — от выбранного дня или сегодня. */
 	private calendarMonth: { year: number; month: number } | null = null;
+
+	/** Стек истории навигации (снимки selection) для кнопок назад/вперёд. */
+	private history: string[][] = [];
+	private historyIndex = -1;
+	/** Флаг: идёт переход по истории — не писать новую запись в стек. */
+	private navigatingHistory = false;
 
 	/** Targeted refresh: folders whose columns need re-rendering. */
 	private dirtyFolders: Set<string> = new Set();
@@ -380,6 +386,7 @@ export class ColumnExplorerView extends ItemView {
 			}
 		}
 		this.selection = validSel;
+		this.recordHistory();
 
 		// Фиксация числа колонок: первые N−1 колонок заморожены на месте,
 		// последняя всегда показывает самую глубокую папку цепочки —
@@ -402,7 +409,12 @@ export class ColumnExplorerView extends ItemView {
 			renderFileListColumn(this, this.columnsEl, t("recents"), this.recentFiles(), RECENTS_PATH, 1);
 			previewOf(this.selection[1]);
 		} else if (special === "bookmarks") {
-			renderFileListColumn(this, this.columnsEl, t("bookmarks"), this.bookmarkedItems(), BOOKMARKS_PATH, 1);
+			const favs = this.plugin.settings.showFavorites ? this.favoriteItems() : [];
+			const favPaths = new Set(favs.map((f) => f.path));
+			const core = this.plugin.settings.showBookmarks && this.bookmarksAvailable()
+				? this.bookmarkedItems().filter((f) => !favPaths.has(f.path))
+				: [];
+			renderFileListColumn(this, this.columnsEl, t("bookmarks"), core, BOOKMARKS_PATH, 1, favs);
 			previewOf(this.selection[1]);
 		} else if (special === "calendar") {
 			renderCalendarColumn(this, this.columnsEl);
@@ -466,8 +478,57 @@ export class ColumnExplorerView extends ItemView {
 		header.prepend(badge);
 	}
 
+	/** Записать текущий выбор в стек истории (если не идём по истории и он изменился). */
+	private recordHistory() {
+		if (this.navigatingHistory) return;
+		const HISTORY_CAP = 100;
+		const last = this.history[this.historyIndex];
+		if (last && last.length === this.selection.length && last.every((p, i) => p === this.selection[i])) return;
+		// Новая навигация обрезает forward-хвост (браузерная семантика)
+		this.history = this.history.slice(0, this.historyIndex + 1);
+		this.history.push([...this.selection]);
+		if (this.history.length > HISTORY_CAP) this.history.shift();
+		this.historyIndex = this.history.length - 1;
+	}
+
+	private navigateHistory(delta: number) {
+		const next = this.historyIndex + delta;
+		if (next < 0 || next >= this.history.length) return;
+		this.historyIndex = next;
+		this.navigatingHistory = true;
+		this.selection = [...this.history[next]];
+		this.clearMulti();
+		this.persistState();
+		this.render();
+		this.navigatingHistory = false;
+	}
+
 	private renderBreadcrumbs() {
 		this.breadcrumbsEl.empty();
+
+		// Кнопки назад/вперёд слева — история навигации по папкам
+		const nav = this.breadcrumbsEl.createDiv({ cls: "column-explorer-nav-buttons" });
+		const navBtn = (icon: string, label: string, enabled: boolean, onClick: () => void) => {
+			const btn = nav.createDiv({
+				cls: "clickable-icon column-explorer-nav-btn" + (enabled ? "" : " is-disabled"),
+				attr: { "aria-label": label, role: "button" },
+			});
+			setIcon(btn, icon);
+			if (enabled) btn.addEventListener("click", onClick);
+		};
+		navBtn("arrow-left", t("navBack"), this.historyIndex > 0, () => this.navigateHistory(-1));
+		navBtn("arrow-right", t("navForward"), this.historyIndex < this.history.length - 1, () => this.navigateHistory(1));
+
+		// Звёздочка: быстро добавить/убрать текущую папку в избранное
+		const current = this.currentFolder();
+		const isFav = this.isFavorite(current.path);
+		const star = nav.createDiv({
+			cls: "clickable-icon column-explorer-fav-btn" + (isFav ? " is-active" : ""),
+			attr: { "aria-label": isFav ? t("removeFavorite") : t("addFavorite"), role: "button" },
+		});
+		setIcon(star, "star");
+		star.addEventListener("click", () => this.toggleFavorite(current.path));
+
 		const addSegment = (label: string, targetDepth: number, isLast: boolean) => {
 			const seg = this.breadcrumbsEl.createSpan({
 				cls: "column-explorer-crumb" + (isLast ? " is-current" : ""),
@@ -542,7 +603,7 @@ export class ColumnExplorerView extends ItemView {
 	specialKind(path: string | undefined): "recents" | "bookmarks" | "calendar" | null {
 		const s = this.plugin.settings;
 		if (path === RECENTS_PATH && s.showRecents) return "recents";
-		if (path === BOOKMARKS_PATH && s.showBookmarks && this.bookmarksAvailable()) return "bookmarks";
+		if (path === BOOKMARKS_PATH && ((s.showBookmarks && this.bookmarksAvailable()) || (s.showFavorites && s.favorites.length > 0))) return "bookmarks";
 		if (path === CALENDAR_PATH && s.showCalendar) return "calendar";
 		return null;
 	}
@@ -645,6 +706,30 @@ export class ColumnExplorerView extends ItemView {
 		});
 	}
 
+	/** Saved favorite files/folders, invalid and excluded paths dropped, add-order kept. */
+	favoriteItems(): TAbstractFile[] {
+		const patterns = this.excludePatternsList();
+		return this.plugin.settings.favorites.flatMap((p) => {
+			if (matchesExcludePatterns(p, patterns)) return [];
+			const f = this.app.vault.getAbstractFileByPath(p);
+			return f ? [f] : [];
+		});
+	}
+
+	isFavorite(path: string): boolean {
+		return this.plugin.settings.favorites.includes(path);
+	}
+
+	/** Add or remove a path from favorites, with a notice. */
+	toggleFavorite(path: string) {
+		const s = this.plugin.settings;
+		const has = s.favorites.includes(path);
+		s.favorites = has ? s.favorites.filter((p) => p !== path) : [...s.favorites, path];
+		void this.plugin.saveSettings();
+		new Notice(t(has ? "favoriteRemoved" : "favoriteAdded"));
+		this.render();
+	}
+
 	selectItem(f: TAbstractFile, depth: number, e: MouseEvent) {
 		// Фиксация снимается только вручную кнопкой в тулбаре —
 		// навигация (включая клики в первой колонке) замок не трогает
@@ -680,6 +765,31 @@ export class ColumnExplorerView extends ItemView {
 		const [from, to] = ai < bi ? [ai, bi] : [bi, ai];
 		for (let i = from; i <= to; i++) this.multiSel.add(siblings[i].path);
 		this.render();
+	}
+
+	/** Cmd/Ctrl+A — multi-select every item in the active folder column. */
+	selectAllAt(depth: number) {
+		const folder = this.folderAtDepth(depth);
+		if (!folder) return; // виртуальные колонки (Недавние/дни) — пропускаем
+		const children = this.childrenOf(folder);
+		if (children.length === 0) return;
+		this.clearMulti();
+		this.multiSelDepth = depth;
+		for (const c of children) this.multiSel.add(c.path);
+		this.render();
+	}
+
+	/** Cmd/Ctrl+D — duplicate the multi-selection, or the single selected file. */
+	duplicateSelected(depth: number) {
+		const paths = this.multiSel.size > 0 && this.multiSelDepth === depth
+			? [...this.multiSel]
+			: [this.selection[depth]].filter(Boolean);
+		void (async () => {
+			for (const p of paths) {
+				const f = this.app.vault.getAbstractFileByPath(p);
+				if (f instanceof TFile) await duplicateFile(this.app, f);
+			}
+		})();
 	}
 
 	revealFile(file: TAbstractFile | null) {
@@ -853,6 +963,12 @@ export class ColumnExplorerView extends ItemView {
 			if (this.multiSel.size > 0) { this.deleteMany([...this.multiSel]); return; }
 			// Сентинелы спецпунктов ("::…") — не файлы, удалять нечего
 			if (selectedPath && !selectedPath.startsWith("::")) this.deleteMany([selectedPath]);
+		} else if ((e.metaKey || e.ctrlKey) && (e.key === "a" || e.key === "A")) {
+			e.preventDefault();
+			this.selectAllAt(depth);
+		} else if ((e.metaKey || e.ctrlKey) && (e.key === "d" || e.key === "D")) {
+			e.preventDefault();
+			this.duplicateSelected(depth);
 		} else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
 			// Type-ahead: как в Finder — набор букв прыгает к совпадению
 			this.onTypeahead(e.key, children, depth);
