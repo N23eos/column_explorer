@@ -50,6 +50,9 @@ function humanSize(bytes) {
   } while (value >= 1024 && unitIndex < units.length - 1);
   return value.toFixed(1) + " " + units[unitIndex];
 }
+function shellEscapePath(path) {
+  return path.replace(/[^\p{L}\p{N}_./-]/gu, "\\$&");
+}
 function formatTemplate(template, vars) {
   let result = template;
   for (const key of Object.keys(vars)) {
@@ -210,6 +213,7 @@ var STRINGS = {
     moveTo: "Move to folder\u2026",
     moveToPlaceholder: "Choose target folder\u2026",
     copyPath: "Copy path",
+    copyFullPath: "Copy full path",
     pathCopied: "Path copied",
     untitled: "Untitled",
     newFolderName: "New folder",
@@ -343,6 +347,7 @@ var STRINGS = {
     moveTo: "\u041F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u044C \u0432 \u043F\u0430\u043F\u043A\u0443\u2026",
     moveToPlaceholder: "\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043F\u0430\u043F\u043A\u0443\u2026",
     copyPath: "\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u043F\u0443\u0442\u044C",
+    copyFullPath: "\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u043F\u043E\u043B\u043D\u044B\u0439 \u043F\u0443\u0442\u044C",
     pathCopied: "\u041F\u0443\u0442\u044C \u0441\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u043D",
     untitled: "\u0411\u0435\u0437 \u043D\u0430\u0437\u0432\u0430\u043D\u0438\u044F",
     newFolderName: "\u041D\u043E\u0432\u0430\u044F \u043F\u0430\u043F\u043A\u0430",
@@ -1239,6 +1244,10 @@ function showFileMenu(view, e, f, depth) {
   menu.addItem((i) => i.setTitle(t("delete")).setIcon("trash").onClick(() => view.deleteMany([f.path])));
   menu.addSeparator();
   menu.addItem((i) => i.setTitle(t("copyPath")).setIcon("clipboard-copy").onClick(() => copyToClipboard(f.path, t("pathCopied"))));
+  const adapter = app.vault.adapter;
+  if (adapter instanceof import_obsidian8.FileSystemAdapter) {
+    menu.addItem((i) => i.setTitle(t("copyFullPath")).setIcon("terminal").onClick(() => copyToClipboard(shellEscapePath(adapter.getBasePath() + "/" + f.path), t("pathCopied"))));
+  }
   if (f instanceof import_obsidian8.TFile) {
     menu.addItem((i) => i.setTitle(t("copyWikiLink")).setIcon("brackets").onClick(() => copyToClipboard("[[" + app.metadataCache.fileToLinktext(f, "", false) + "]]", t("linkCopied"))));
     menu.addItem((i) => i.setTitle(t("copyMdLink")).setIcon("link").onClick(() => copyToClipboard(app.fileManager.generateMarkdownLink(f, ""), t("linkCopied"))));

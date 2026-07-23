@@ -29,6 +29,16 @@ export function humanSize(bytes: number): string {
 	return value.toFixed(1) + " " + units[unitIndex];
 }
 
+/**
+ * Backslash-escape shell-special characters in an absolute path, matching what
+ * macOS/terminal produces when you drag a file in: spaces, tildes and shell
+ * metacharacters get a leading "\". Letters (any script, incl. Cyrillic),
+ * digits and the path-safe chars `_ . / -` are left untouched.
+ */
+export function shellEscapePath(path: string): string {
+	return path.replace(/[^\p{L}\p{N}_./-]/gu, "\\$&");
+}
+
 export function formatTemplate(template: string, vars: Record<string, string | number>): string {
 	let result = template;
 	for (const key of Object.keys(vars)) {

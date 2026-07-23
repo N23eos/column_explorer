@@ -1,5 +1,6 @@
-import { Menu, MenuItem, Notice, TFile, TFolder, TAbstractFile } from "obsidian";
+import { FileSystemAdapter, Menu, MenuItem, Notice, TFile, TFolder, TAbstractFile } from "obsidian";
 import { t } from "./i18n";
+import { shellEscapePath } from "./pure";
 import { duplicateFile, moveFiles } from "./fileops";
 import { FolderSuggestModal, IconSuggestModal } from "./modals";
 import { FOLDER_COLOR_KEYS, FolderColorKey, SortMode } from "./settings";
@@ -152,6 +153,13 @@ export function showFileMenu(view: ColumnExplorerView, e: MouseEvent, f: TAbstra
 	menu.addSeparator();
 	menu.addItem(i => i.setTitle(t("copyPath")).setIcon("clipboard-copy")
 		.onClick(() => copyToClipboard(f.path, t("pathCopied"))));
+	// Абсолютный системный путь с shell-экранированием (как драг в терминал).
+	// Только для десктопа — на мобильном базового пути файловой системы нет
+	const adapter = app.vault.adapter;
+	if (adapter instanceof FileSystemAdapter) {
+		menu.addItem(i => i.setTitle(t("copyFullPath")).setIcon("terminal")
+			.onClick(() => copyToClipboard(shellEscapePath(adapter.getBasePath() + "/" + f.path), t("pathCopied"))));
+	}
 	if (f instanceof TFile) {
 		menu.addItem(i => i.setTitle(t("copyWikiLink")).setIcon("brackets")
 			.onClick(() => copyToClipboard("[[" + app.metadataCache.fileToLinktext(f, "", false) + "]]", t("linkCopied"))));
