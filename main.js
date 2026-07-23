@@ -1386,8 +1386,7 @@ function renderColumnList(view, list, folder, depth) {
   };
   const children = view.childrenOf(folder);
   const countEl = (_b = list.closest(".column-explorer-column")) == null ? void 0 : _b.querySelector(".column-explorer-column-count");
-  const bytes = children.reduce((sum, c) => sum + (c instanceof import_obsidian9.TFile ? c.stat.size : 0), 0);
-  countEl == null ? void 0 : countEl.setText(bytes > 0 ? `${children.length} \xB7 ${humanSize(bytes)}` : String(children.length));
+  countEl == null ? void 0 : countEl.setText(String(children.length));
   if (children.length === 0) {
     list.createDiv({ cls: "column-explorer-empty", text: view.hasFilter() ? t("noResults") : t("empty") });
     appendSpecialsBottom();

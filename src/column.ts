@@ -1,6 +1,6 @@
 import { TAbstractFile, TFile, TFolder, getLanguage, setIcon } from "obsidian";
 import { t } from "./i18n";
-import { BOOKMARKS_PATH, CALENDAR_PATH, DAY_PATH_PREFIX, RECENTS_PATH, dayKey, humanSize, monthGrid, splitMatch } from "./pure";
+import { BOOKMARKS_PATH, CALENDAR_PATH, DAY_PATH_PREFIX, RECENTS_PATH, dayKey, monthGrid, splitMatch } from "./pure";
 import { displayName, folderNoteOf, iconFor, isImageFile } from "./utils";
 import { notifyDragManager, setupColumnDnd } from "./dnd";
 import { showColumnHeaderMenu, showFileMenu, showFolderBackgroundMenu } from "./menus";
@@ -117,9 +117,7 @@ export function renderColumnList(view: ColumnExplorerView, list: HTMLElement, fo
 	const children = view.childrenOf(folder);
 
 	const countEl = list.closest(".column-explorer-column")?.querySelector(".column-explorer-column-count");
-	// Суммарный размер файлов прямо в этой папке (не рекурсивно — дёшево на больших vault)
-	const bytes = children.reduce((sum, c) => sum + (c instanceof TFile ? c.stat.size : 0), 0);
-	countEl?.setText(bytes > 0 ? `${children.length} · ${humanSize(bytes)}` : String(children.length));
+	countEl?.setText(String(children.length));
 
 	if (children.length === 0) {
 		list.createDiv({ cls: "column-explorer-empty", text: view.hasFilter() ? t("noResults") : t("empty") });
