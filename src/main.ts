@@ -27,12 +27,13 @@ export default class ColumnExplorerPlugin extends Plugin {
 		}));
 		this.registerEvent(this.app.vault.on("rename", (f, oldPath) => {
 			this.settings.recentFiles = remapPathList(this.settings.recentFiles, oldPath, f.path);
+			this.settings.favorites = remapPathList(this.settings.favorites, oldPath, f.path);
 			void this.saveSettings();
 		}));
 		this.registerEvent(this.app.vault.on("delete", (f) => {
-			this.settings.recentFiles = this.settings.recentFiles.filter(
-				(p) => p !== f.path && !p.startsWith(f.path + "/")
-			);
+			const dropDeleted = (p: string) => p !== f.path && !p.startsWith(f.path + "/");
+			this.settings.recentFiles = this.settings.recentFiles.filter(dropDeleted);
+			this.settings.favorites = this.settings.favorites.filter(dropDeleted);
 			void this.saveSettings();
 		}));
 

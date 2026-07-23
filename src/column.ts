@@ -248,7 +248,8 @@ function buildSpecialItem(view: ColumnExplorerView, path: string, icon: string, 
  */
 export function renderFileListColumn(
 	view: ColumnExplorerView, container: HTMLElement,
-	title: string, files: TAbstractFile[], sentinelPath: string, depth: number
+	title: string, files: TAbstractFile[], sentinelPath: string, depth: number,
+	favorites: TAbstractFile[] = []
 ) {
 	const col = container.createDiv({ cls: "column-explorer-column" });
 	col.dataset.depth = String(depth);
@@ -264,8 +265,16 @@ export function renderFileListColumn(
 	const countEl = header.createSpan({ cls: "column-explorer-column-count" });
 
 	const list = col.createDiv({ cls: "column-explorer-list", attr: { role: "listbox" } });
-	countEl.setText(String(files.length));
-	if (files.length === 0) {
+	countEl.setText(String(favorites.length + files.length));
+
+	// Секция «Избранное» — сверху, над закладками, с подписью и разделителем
+	if (favorites.length > 0) {
+		list.createDiv({ cls: "column-explorer-section-label", text: t("favorites") });
+		for (const f of favorites) list.appendChild(buildItem(view, f, depth));
+		if (files.length > 0) list.createDiv({ cls: "column-explorer-section-divider" });
+	}
+
+	if (favorites.length === 0 && files.length === 0) {
 		list.createDiv({ cls: "column-explorer-empty", text: t("empty") });
 	} else {
 		for (const f of files) list.appendChild(buildItem(view, f, depth));

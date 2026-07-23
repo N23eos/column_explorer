@@ -140,6 +140,9 @@ export function showFileMenu(view: ColumnExplorerView, e: MouseEvent, f: TAbstra
 			await view.plugin.saveSettings();
 			view.render();
 		}));
+	const isFav = view.isFavorite(f.path);
+	menu.addItem(i => i.setTitle(isFav ? t("removeFavorite") : t("addFavorite")).setIcon(isFav ? "star-off" : "star")
+		.onClick(() => view.toggleFavorite(f.path)));
 	menu.addItem(i => i.setTitle(t("moveTo")).setIcon("folder-input")
 		.onClick(() => new FolderSuggestModal(app, (target) => void moveFiles(app, [f.path], target)).open()));
 	menu.addItem(i => i.setTitle(t("rename")).setIcon("pencil")

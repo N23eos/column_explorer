@@ -303,6 +303,13 @@ var STRINGS = {
     clear: "Clear",
     bookmarks: "Bookmarks",
     calendar: "Calendar",
+    favorites: "Favorites",
+    addFavorite: "Add to favorites",
+    removeFavorite: "Remove from favorites",
+    favoriteAdded: "Added to favorites",
+    favoriteRemoved: "Removed from favorites",
+    setShowFavorites: "Show favorites",
+    setShowFavoritesDesc: "Show your saved favorite files and folders at the top of the Bookmarks column.",
     headSpecial: "Special items",
     setShowBookmarks: "Show bookmarks",
     setShowBookmarksDesc: "Show the bookmarks row (needs the core Bookmarks plugin).",
@@ -312,7 +319,9 @@ var STRINGS = {
     setSpecialPosDesc: "Where the recents, bookmarks and calendar rows sit in the first column.",
     posTop: "Top",
     posBottom: "Bottom",
-    today: "Today"
+    today: "Today",
+    navBack: "Back",
+    navForward: "Forward"
   },
   ru: {
     newNote: "\u041D\u043E\u0432\u0430\u044F \u0437\u0430\u043C\u0435\u0442\u043A\u0430",
@@ -427,6 +436,13 @@ var STRINGS = {
     clear: "\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u044C",
     bookmarks: "\u0417\u0430\u043A\u043B\u0430\u0434\u043A\u0438",
     calendar: "\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C",
+    favorites: "\u0418\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0435",
+    addFavorite: "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0432 \u0438\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0435",
+    removeFavorite: "\u0423\u0431\u0440\u0430\u0442\u044C \u0438\u0437 \u0438\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0433\u043E",
+    favoriteAdded: "\u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u043E \u0432 \u0438\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0435",
+    favoriteRemoved: "\u0423\u0431\u0440\u0430\u043D\u043E \u0438\u0437 \u0438\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0433\u043E",
+    setShowFavorites: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \xAB\u0418\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0435\xBB",
+    setShowFavoritesDesc: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D\u043D\u044B\u0435 \u0438\u0437\u0431\u0440\u0430\u043D\u043D\u044B\u0435 \u0444\u0430\u0439\u043B\u044B \u0438 \u043F\u0430\u043F\u043A\u0438 \u0432\u0432\u0435\u0440\u0445\u0443 \u043A\u043E\u043B\u043E\u043D\u043A\u0438 \xAB\u0417\u0430\u043A\u043B\u0430\u0434\u043A\u0438\xBB.",
     headSpecial: "\u0421\u043F\u0435\u0446\u043F\u0443\u043D\u043A\u0442\u044B",
     setShowBookmarks: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \xAB\u0417\u0430\u043A\u043B\u0430\u0434\u043A\u0438\xBB",
     setShowBookmarksDesc: "\u041F\u0443\u043D\u043A\u0442 \xAB\u0417\u0430\u043A\u043B\u0430\u0434\u043A\u0438\xBB (\u043D\u0443\u0436\u0435\u043D \u0432\u0441\u0442\u0440\u043E\u0435\u043D\u043D\u044B\u0439 \u043F\u043B\u0430\u0433\u0438\u043D Bookmarks).",
@@ -436,7 +452,9 @@ var STRINGS = {
     setSpecialPosDesc: "\u0413\u0434\u0435 \u0432 \u043F\u0435\u0440\u0432\u043E\u0439 \u043A\u043E\u043B\u043E\u043D\u043A\u0435 \u0441\u0442\u043E\u044F\u0442 \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435\xBB, \xAB\u0417\u0430\u043A\u043B\u0430\u0434\u043A\u0438\xBB \u0438 \xAB\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C\xBB.",
     posTop: "\u0421\u0432\u0435\u0440\u0445\u0443",
     posBottom: "\u0421\u043D\u0438\u0437\u0443",
-    today: "\u0421\u0435\u0433\u043E\u0434\u043D\u044F"
+    today: "\u0421\u0435\u0433\u043E\u0434\u043D\u044F",
+    navBack: "\u041D\u0430\u0437\u0430\u0434",
+    navForward: "\u0412\u043F\u0435\u0440\u0451\u0434"
   }
 };
 function t(key, vars) {
@@ -473,7 +491,9 @@ var DEFAULT_SETTINGS = {
   showRecents: true,
   showBookmarks: true,
   showCalendar: true,
-  specialItemsPosition: "top"
+  specialItemsPosition: "top",
+  favorites: [],
+  showFavorites: true
 };
 var MIN_RECENT_FILES = 5;
 var MAX_RECENT_FILES = 50;
@@ -557,6 +577,7 @@ var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
             control: { type: "number", key: "recentFilesCount", min: MIN_RECENT_FILES, max: MAX_RECENT_FILES, step: 1 }
           },
           { name: t("clearRecents"), desc: t("clearRecentsDesc"), action: () => void this.clearRecents() },
+          { name: t("setShowFavorites"), desc: t("setShowFavoritesDesc"), control: { type: "toggle", key: "showFavorites" } },
           { name: t("setShowBookmarks"), desc: t("setShowBookmarksDesc"), control: { type: "toggle", key: "showBookmarks" } },
           { name: t("setShowCalendar"), desc: t("setShowCalendarDesc"), control: { type: "toggle", key: "showCalendar" } }
         ]
@@ -663,6 +684,10 @@ var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
       });
     });
     new import_obsidian2.Setting(containerEl).setName(t("clearRecents")).setDesc(t("clearRecentsDesc")).addButton((b) => b.setButtonText(t("clear")).onClick(() => void this.clearRecents()));
+    new import_obsidian2.Setting(containerEl).setName(t("setShowFavorites")).setDesc(t("setShowFavoritesDesc")).addToggle((tg) => tg.setValue(s.showFavorites).onChange(async (v) => {
+      s.showFavorites = v;
+      await save();
+    }));
     new import_obsidian2.Setting(containerEl).setName(t("setShowBookmarks")).setDesc(t("setShowBookmarksDesc")).addToggle((tg) => tg.setValue(s.showBookmarks).onChange(async (v) => {
       s.showBookmarks = v;
       await save();
@@ -1207,6 +1232,8 @@ function showFileMenu(view, e, f, depth) {
     await view.plugin.saveSettings();
     view.render();
   }));
+  const isFav = view.isFavorite(f.path);
+  menu.addItem((i) => i.setTitle(isFav ? t("removeFavorite") : t("addFavorite")).setIcon(isFav ? "star-off" : "star").onClick(() => view.toggleFavorite(f.path)));
   menu.addItem((i) => i.setTitle(t("moveTo")).setIcon("folder-input").onClick(() => new FolderSuggestModal(app, (target) => void moveFiles(app, [f.path], target)).open()));
   menu.addItem((i) => i.setTitle(t("rename")).setIcon("pencil").onClick(() => view.startRename(f)));
   menu.addItem((i) => i.setTitle(t("delete")).setIcon("trash").onClick(() => view.deleteMany([f.path])));
@@ -1493,7 +1520,7 @@ function buildSpecialItem(view, path, icon, label) {
   (0, import_obsidian9.setIcon)(chev, "chevron-right");
   return item;
 }
-function renderFileListColumn(view, container, title, files, sentinelPath, depth) {
+function renderFileListColumn(view, container, title, files, sentinelPath, depth, favorites = []) {
   const col = container.createDiv({ cls: "column-explorer-column" });
   col.dataset.depth = String(depth);
   col.dataset.folderPath = sentinelPath;
@@ -1504,8 +1531,13 @@ function renderFileListColumn(view, container, title, files, sentinelPath, depth
   header.createSpan({ cls: "column-explorer-column-title", text: title });
   const countEl = header.createSpan({ cls: "column-explorer-column-count" });
   const list = col.createDiv({ cls: "column-explorer-list", attr: { role: "listbox" } });
-  countEl.setText(String(files.length));
-  if (files.length === 0) {
+  countEl.setText(String(favorites.length + files.length));
+  if (favorites.length > 0) {
+    list.createDiv({ cls: "column-explorer-section-label", text: t("favorites") });
+    for (const f of favorites) list.appendChild(buildItem(view, f, depth));
+    if (files.length > 0) list.createDiv({ cls: "column-explorer-section-divider" });
+  }
+  if (favorites.length === 0 && files.length === 0) {
     list.createDiv({ cls: "column-explorer-empty", text: t("empty") });
   } else {
     for (const f of files) list.appendChild(buildItem(view, f, depth));
@@ -1655,6 +1687,11 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     this.typeaheadTimer = 0;
     /** Показанный месяц календаря; null — от выбранного дня или сегодня. */
     this.calendarMonth = null;
+    /** Стек истории навигации (снимки selection) для кнопок назад/вперёд. */
+    this.history = [];
+    this.historyIndex = -1;
+    /** Флаг: идёт переход по истории — не писать новую запись в стек. */
+    this.navigatingHistory = false;
     /** Targeted refresh: folders whose columns need re-rendering. */
     this.dirtyFolders = /* @__PURE__ */ new Set();
     this.fullRenderPending = false;
@@ -1946,6 +1983,7 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
       }
     }
     this.selection = validSel;
+    this.recordHistory();
     const lockedCount = import_obsidian10.Platform.isMobile ? 1 : this.plugin.settings.lockedColumnCount;
     const folderCols = this.folderColumnCount();
     const hasGap = lockedCount !== null && folderCols > lockedCount;
@@ -1962,7 +2000,10 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
       renderFileListColumn(this, this.columnsEl, t("recents"), this.recentFiles(), RECENTS_PATH, 1);
       previewOf(this.selection[1]);
     } else if (special === "bookmarks") {
-      renderFileListColumn(this, this.columnsEl, t("bookmarks"), this.bookmarkedItems(), BOOKMARKS_PATH, 1);
+      const favs = this.plugin.settings.showFavorites ? this.favoriteItems() : [];
+      const favPaths = new Set(favs.map((f) => f.path));
+      const core = this.plugin.settings.showBookmarks && this.bookmarksAvailable() ? this.bookmarkedItems().filter((f) => !favPaths.has(f.path)) : [];
+      renderFileListColumn(this, this.columnsEl, t("bookmarks"), core, BOOKMARKS_PATH, 1, favs);
       previewOf(this.selection[1]);
     } else if (special === "calendar") {
       renderCalendarColumn(this, this.columnsEl);
@@ -2017,8 +2058,41 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     (0, import_obsidian10.setIcon)(badge, "lock");
     header.prepend(badge);
   }
+  /** Записать текущий выбор в стек истории (если не идём по истории и он изменился). */
+  recordHistory() {
+    if (this.navigatingHistory) return;
+    const HISTORY_CAP = 100;
+    const last = this.history[this.historyIndex];
+    if (last && last.length === this.selection.length && last.every((p, i) => p === this.selection[i])) return;
+    this.history = this.history.slice(0, this.historyIndex + 1);
+    this.history.push([...this.selection]);
+    if (this.history.length > HISTORY_CAP) this.history.shift();
+    this.historyIndex = this.history.length - 1;
+  }
+  navigateHistory(delta) {
+    const next = this.historyIndex + delta;
+    if (next < 0 || next >= this.history.length) return;
+    this.historyIndex = next;
+    this.navigatingHistory = true;
+    this.selection = [...this.history[next]];
+    this.clearMulti();
+    this.persistState();
+    this.render();
+    this.navigatingHistory = false;
+  }
   renderBreadcrumbs() {
     this.breadcrumbsEl.empty();
+    const nav = this.breadcrumbsEl.createDiv({ cls: "column-explorer-nav-buttons" });
+    const navBtn = (icon, label, enabled, onClick) => {
+      const btn = nav.createDiv({
+        cls: "clickable-icon column-explorer-nav-btn" + (enabled ? "" : " is-disabled"),
+        attr: { "aria-label": label, role: "button" }
+      });
+      (0, import_obsidian10.setIcon)(btn, icon);
+      if (enabled) btn.addEventListener("click", onClick);
+    };
+    navBtn("arrow-left", t("navBack"), this.historyIndex > 0, () => this.navigateHistory(-1));
+    navBtn("arrow-right", t("navForward"), this.historyIndex < this.history.length - 1, () => this.navigateHistory(1));
     const addSegment = (label, targetDepth, isLast) => {
       const seg = this.breadcrumbsEl.createSpan({
         cls: "column-explorer-crumb" + (isLast ? " is-current" : ""),
@@ -2081,7 +2155,7 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
   specialKind(path) {
     const s = this.plugin.settings;
     if (path === RECENTS_PATH && s.showRecents) return "recents";
-    if (path === BOOKMARKS_PATH && s.showBookmarks && this.bookmarksAvailable()) return "bookmarks";
+    if (path === BOOKMARKS_PATH && (s.showBookmarks && this.bookmarksAvailable() || s.showFavorites && s.favorites.length > 0)) return "bookmarks";
     if (path === CALENDAR_PATH && s.showCalendar) return "calendar";
     return null;
   }
@@ -2173,6 +2247,27 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
       const f = this.app.vault.getAbstractFileByPath(p);
       return f ? [f] : [];
     });
+  }
+  /** Saved favorite files/folders, invalid and excluded paths dropped, add-order kept. */
+  favoriteItems() {
+    const patterns = this.excludePatternsList();
+    return this.plugin.settings.favorites.flatMap((p) => {
+      if (matchesExcludePatterns(p, patterns)) return [];
+      const f = this.app.vault.getAbstractFileByPath(p);
+      return f ? [f] : [];
+    });
+  }
+  isFavorite(path) {
+    return this.plugin.settings.favorites.includes(path);
+  }
+  /** Add or remove a path from favorites, with a notice. */
+  toggleFavorite(path) {
+    const s = this.plugin.settings;
+    const has = s.favorites.includes(path);
+    s.favorites = has ? s.favorites.filter((p) => p !== path) : [...s.favorites, path];
+    void this.plugin.saveSettings();
+    new import_obsidian10.Notice(t(has ? "favoriteRemoved" : "favoriteAdded"));
+    this.render();
   }
   selectItem(f, depth, e) {
     this.selection = this.selection.slice(0, depth);
@@ -2495,12 +2590,13 @@ var ColumnExplorerPlugin = class extends import_obsidian11.Plugin {
     }));
     this.registerEvent(this.app.vault.on("rename", (f, oldPath) => {
       this.settings.recentFiles = remapPathList(this.settings.recentFiles, oldPath, f.path);
+      this.settings.favorites = remapPathList(this.settings.favorites, oldPath, f.path);
       void this.saveSettings();
     }));
     this.registerEvent(this.app.vault.on("delete", (f) => {
-      this.settings.recentFiles = this.settings.recentFiles.filter(
-        (p) => p !== f.path && !p.startsWith(f.path + "/")
-      );
+      const dropDeleted = (p) => p !== f.path && !p.startsWith(f.path + "/");
+      this.settings.recentFiles = this.settings.recentFiles.filter(dropDeleted);
+      this.settings.favorites = this.settings.favorites.filter(dropDeleted);
       void this.saveSettings();
     }));
     this.registerView(VIEW_TYPE_COLUMNS, (leaf) => new ColumnExplorerView(leaf, this));
