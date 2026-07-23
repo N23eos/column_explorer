@@ -306,7 +306,7 @@ var STRINGS = {
     favorites: "Favorites",
     addFavorite: "Add to favorites",
     removeFavorite: "Remove from favorites",
-    favoriteAdded: "Added to favorites",
+    favoriteAdded: "Path added to favorites",
     favoriteRemoved: "Removed from favorites",
     setShowFavorites: "Show favorites",
     setShowFavoritesDesc: "Show your saved favorite files and folders at the top of the Bookmarks column.",
@@ -439,7 +439,7 @@ var STRINGS = {
     favorites: "\u0418\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0435",
     addFavorite: "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0432 \u0438\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0435",
     removeFavorite: "\u0423\u0431\u0440\u0430\u0442\u044C \u0438\u0437 \u0438\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0433\u043E",
-    favoriteAdded: "\u0414\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u043E \u0432 \u0438\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0435",
+    favoriteAdded: "\u041F\u0443\u0442\u044C \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D \u0432 \u0438\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0435",
     favoriteRemoved: "\u0423\u0431\u0440\u0430\u043D\u043E \u0438\u0437 \u0438\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0433\u043E",
     setShowFavorites: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \xAB\u0418\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0435\xBB",
     setShowFavoritesDesc: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D\u043D\u044B\u0435 \u0438\u0437\u0431\u0440\u0430\u043D\u043D\u044B\u0435 \u0444\u0430\u0439\u043B\u044B \u0438 \u043F\u0430\u043F\u043A\u0438 \u0432\u0432\u0435\u0440\u0445\u0443 \u043A\u043E\u043B\u043E\u043D\u043A\u0438 \xAB\u0417\u0430\u043A\u043B\u0430\u0434\u043A\u0438\xBB.",
@@ -2093,6 +2093,14 @@ var ColumnExplorerView = class extends import_obsidian10.ItemView {
     };
     navBtn("arrow-left", t("navBack"), this.historyIndex > 0, () => this.navigateHistory(-1));
     navBtn("arrow-right", t("navForward"), this.historyIndex < this.history.length - 1, () => this.navigateHistory(1));
+    const current = this.currentFolder();
+    const isFav = this.isFavorite(current.path);
+    const star = nav.createDiv({
+      cls: "clickable-icon column-explorer-fav-btn" + (isFav ? " is-active" : ""),
+      attr: { "aria-label": isFav ? t("removeFavorite") : t("addFavorite"), role: "button" }
+    });
+    (0, import_obsidian10.setIcon)(star, "star");
+    star.addEventListener("click", () => this.toggleFavorite(current.path));
     const addSegment = (label, targetDepth, isLast) => {
       const seg = this.breadcrumbsEl.createSpan({
         cls: "column-explorer-crumb" + (isLast ? " is-current" : ""),

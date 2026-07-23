@@ -519,6 +519,16 @@ export class ColumnExplorerView extends ItemView {
 		navBtn("arrow-left", t("navBack"), this.historyIndex > 0, () => this.navigateHistory(-1));
 		navBtn("arrow-right", t("navForward"), this.historyIndex < this.history.length - 1, () => this.navigateHistory(1));
 
+		// Звёздочка: быстро добавить/убрать текущую папку в избранное
+		const current = this.currentFolder();
+		const isFav = this.isFavorite(current.path);
+		const star = nav.createDiv({
+			cls: "clickable-icon column-explorer-fav-btn" + (isFav ? " is-active" : ""),
+			attr: { "aria-label": isFav ? t("removeFavorite") : t("addFavorite"), role: "button" },
+		});
+		setIcon(star, "star");
+		star.addEventListener("click", () => this.toggleFavorite(current.path));
+
 		const addSegment = (label: string, targetDepth: number, isLast: boolean) => {
 			const seg = this.breadcrumbsEl.createSpan({
 				cls: "column-explorer-crumb" + (isLast ? " is-current" : ""),

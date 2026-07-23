@@ -648,6 +648,23 @@
 	height: 15px;
 }
 
+/* Звёздочка «в избранное» в баре крошек */
+.column-explorer-fav-btn {
+	padding: 2px;
+	height: auto;
+	width: auto;
+}
+
+.column-explorer-fav-btn svg {
+	width: 15px;
+	height: 15px;
+}
+
+.column-explorer-fav-btn.is-active svg {
+	color: var(--color-yellow);
+	fill: var(--color-yellow);
+}
+
 /* Секция «Избранное» в колонке закладок: подпись и разделитель */
 .column-explorer-section-label {
 	padding: 6px 10px 2px;
