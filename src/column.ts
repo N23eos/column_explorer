@@ -1,7 +1,8 @@
-import { TAbstractFile, TFile, TFolder, getLanguage, setIcon } from "obsidian";
+import { Platform, TAbstractFile, TFile, TFolder, getLanguage, setIcon } from "obsidian";
 import { t } from "./i18n";
 import { BOOKMARKS_PATH, CALENDAR_PATH, DAY_PATH_PREFIX, RECENTS_PATH, dayKey, monthGrid, splitMatch } from "./pure";
 import { displayName, folderNoteOf, iconFor, isImageFile } from "./utils";
+import { addUpButton, setupLongPress } from "./mobile";
 import { notifyDragManager, setupColumnDnd } from "./dnd";
 import { showColumnHeaderMenu, showFileMenu, showFolderBackgroundMenu } from "./menus";
 import { MAX_COLUMN_WIDTH, MIN_COLUMN_WIDTH, ROOT_COLUMN_EXTRA_WIDTH } from "./settings";
@@ -23,6 +24,7 @@ export function renderColumn(view: ColumnExplorerView, container: HTMLElement, f
 	if (customWidth) col.style.setProperty("--ce-col-width", customWidth + "px");
 
 	const header = col.createDiv({ cls: "column-explorer-column-header" });
+	if (Platform.isMobile) addUpButton(view, header);
 	header.createSpan({ cls: "column-explorer-column-title", text: folder.isRoot() ? view.app.vault.getName() : folder.name });
 	header.createSpan({ cls: "column-explorer-column-count" });
 	header.addEventListener("contextmenu", (e) => {
@@ -33,7 +35,11 @@ export function renderColumn(view: ColumnExplorerView, container: HTMLElement, f
 	const viewMode = view.plugin.settings.columnViewModes[folder.path] ?? "list";
 	const toggle = header.createDiv({
 		cls: "clickable-icon column-explorer-view-toggle",
-		attr: { "aria-label": viewMode === "list" ? t("viewAsGrid") : t("viewAsList") },
+		attr: {
+			"aria-label": viewMode === "list" ? t("viewAsGrid") : t("viewAsList"),
+			role: "button",
+			"aria-pressed": String(viewMode === "grid"),
+		},
 	});
 	setIcon(toggle, viewMode === "list" ? "layout-grid" : "list");
 	toggle.addEventListener("click", () => {
@@ -90,6 +96,7 @@ export function renderColumn(view: ColumnExplorerView, container: HTMLElement, f
 	});
 
 	setupColumnDnd(view, list, folder, depth);
+	if (Platform.isMobile) setupLongPress(view, list, depth);
 	renderColumnList(view, list, folder, depth);
 	addResizeHandle(view, col, folder.path);
 	return col;
@@ -159,7 +166,8 @@ export function renderColumnList(view: ColumnExplorerView, list: HTMLElement, fo
 function buildItem(view: ColumnExplorerView, f: TAbstractFile, depth: number, isGrid = false): HTMLElement {
 	const item = createDiv({ cls: "column-explorer-item", attr: { role: "option" } });
 	item.dataset.path = f.path;
-	item.draggable = true;
+	// На тач-экране HTML5 drag конфликтует с прокруткой и long-press
+	item.draggable = !Platform.isMobile;
 
 	const selected = view.selection[depth] === f.path;
 	item.setAttribute("aria-selected", String(selected));
@@ -261,6 +269,7 @@ export function renderFileListColumn(
 	if (customWidth) col.style.setProperty("--ce-col-width", customWidth + "px");
 
 	const header = col.createDiv({ cls: "column-explorer-column-header" });
+	if (Platform.isMobile) addUpButton(view, header);
 	header.createSpan({ cls: "column-explorer-column-title", text: title });
 	const countEl = header.createSpan({ cls: "column-explorer-column-count" });
 
@@ -301,14 +310,17 @@ export function renderFileListColumn(
 	});
 	// Только dragstart: перетащить файл в обычную колонку — payload через
 	// dataTransfer, drop-приёма у виртуальных колонок нет
-	list.addEventListener("dragstart", (e: DragEvent) => {
-		const hit = itemFromEvent(e);
-		const f = hit ? view.app.vault.getAbstractFileByPath(hit.path) : null;
-		if (!f) return;
-		// dragManager — чтобы drop в редактор вставлял ссылку, а не сырой JSON
-		notifyDragManager(view.app, e, f);
-		e.dataTransfer?.setData("text/plain", JSON.stringify([f.path]));
-	});
+	if (!Platform.isMobile) {
+		list.addEventListener("dragstart", (e: DragEvent) => {
+			const hit = itemFromEvent(e);
+			const f = hit ? view.app.vault.getAbstractFileByPath(hit.path) : null;
+			if (!f) return;
+			// dragManager — чтобы drop в редактор вставлял ссылку, а не сырой JSON
+			notifyDragManager(view.app, e, f);
+			e.dataTransfer?.setData("text/plain", JSON.stringify([f.path]));
+		});
+	}
+	if (Platform.isMobile) setupLongPress(view, list, depth);
 	addResizeHandle(view, col, widthKey);
 	return col;
 }
@@ -326,6 +338,7 @@ export function renderCalendarColumn(view: ColumnExplorerView, container: HTMLEl
 	if (customWidth) col.style.setProperty("--ce-col-width", customWidth + "px");
 
 	const header = col.createDiv({ cls: "column-explorer-column-header" });
+	if (Platform.isMobile) addUpButton(view, header);
 	header.createSpan({ cls: "column-explorer-column-title", text: t("calendar") });
 
 	const { year, month } = view.currentCalendarMonth();

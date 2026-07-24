@@ -1,8 +1,8 @@
-import { FileSystemAdapter, Menu, MenuItem, Notice, TFile, TFolder, TAbstractFile } from "obsidian";
+import { FileSystemAdapter, Menu, MenuItem, Notice, Platform, TFile, TFolder, TAbstractFile } from "obsidian";
 import { t } from "./i18n";
 import { shellEscapePath } from "./pure";
 import { duplicateFile, moveFiles } from "./fileops";
-import { FolderSuggestModal, IconSuggestModal } from "./modals";
+import { FolderSuggestModal, IconSuggestModal, QuickLookModal } from "./modals";
 import { FOLDER_COLOR_KEYS, FolderColorKey, SortMode } from "./settings";
 import type { ColumnExplorerView } from "./view";
 
@@ -118,6 +118,11 @@ export function showFileMenu(view: ColumnExplorerView, e: MouseEvent, f: TAbstra
 	}
 
 	if (f instanceof TFile) {
+		// На телефоне колонки превью нет — Quick Look открывается из меню
+		if (Platform.isMobile) {
+			menu.addItem(i => i.setTitle(t("preview")).setIcon("eye")
+				.onClick(() => new QuickLookModal(app, view, f).open()));
+		}
 		menu.addItem(i => i.setTitle(t("openNewTab")).setIcon("file-plus-2")
 			.onClick(() => app.workspace.getLeaf("tab").openFile(f)));
 		menu.addItem(i => i.setTitle(t("openRight")).setIcon("separator-vertical")
@@ -241,15 +246,51 @@ export function showFolderBackgroundMenu(view: ColumnExplorerView, e: MouseEvent
 	menu.showAtMouseEvent(e);
 }
 
-export function showSortMenu(view: ColumnExplorerView, e: MouseEvent) {
-	const menu = new Menu();
+function fillSortItems(view: ColumnExplorerView, target: Menu) {
 	for (const m of SORT_MODES) {
-		menu.addItem(i => i.setTitle(sortLabel(m)).setChecked(view.plugin.settings.sortMode === m)
+		target.addItem(i => i.setTitle(sortLabel(m)).setChecked(view.plugin.settings.sortMode === m)
 			.onClick(async () => {
 				view.plugin.settings.sortMode = m;
 				await view.plugin.saveSettings();
 				view.render();
 			}));
 	}
+}
+
+export function showSortMenu(view: ColumnExplorerView, e: MouseEvent) {
+	const menu = new Menu();
+	fillSortItems(view, menu);
+	menu.showAtMouseEvent(e);
+}
+
+/** Мобильный toolbar, кнопка «Создать»: пункты создания в текущей папке. */
+export function showMobileCreateMenu(view: ColumnExplorerView, e: MouseEvent) {
+	const folder = view.currentFolder();
+	const menu = new Menu();
+	menu.addItem(i => i.setTitle(t("newNote")).setIcon("file-plus")
+		.onClick(() => void view.createNote(folder)));
+	menu.addItem(i => i.setTitle(t("newFolder")).setIcon("folder-plus")
+		.onClick(() => void view.createFolder(folder)));
+	menu.addItem(i => i.setTitle(t("newCanvas")).setIcon("layout-dashboard")
+		.onClick(() => void view.createNote(folder, "canvas", "{}")));
+	menu.showAtMouseEvent(e);
+}
+
+/** Мобильный toolbar, кнопка «Ещё»: действия, не поместившиеся в тулбар. */
+export function showMobileMoreMenu(view: ColumnExplorerView, e: MouseEvent) {
+	const menu = new Menu();
+	menu.addItem(i => i.setTitle(t("reveal")).setIcon("locate")
+		.onClick(() => view.revealFile(view.app.workspace.getActiveFile())));
+	menu.addItem(i => i.setTitle(t("collapse")).setIcon("chevrons-left")
+		.onClick(() => view.collapseToRoot()));
+	menu.addSeparator();
+	menu.addItem((item: MenuItem) => {
+		item.setTitle(t("sort")).setIcon("arrow-up-narrow-wide");
+		// setSubmenu есть в рантайме, но отсутствует в публичных типах;
+		// при его пропаже пункты лягут плоско в родительское меню
+		const withSubmenu = item as MenuItem & { setSubmenu?: () => Menu };
+		if (typeof withSubmenu.setSubmenu === "function") fillSortItems(view, withSubmenu.setSubmenu());
+		else fillSortItems(view, menu);
+	});
 	menu.showAtMouseEvent(e);
 }

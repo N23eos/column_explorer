@@ -18,8 +18,13 @@ import { t } from "./i18n";
 import {
 	BOOKMARKS_PATH, CALENDAR_PATH, DAY_PATH_PREFIX, RECENTS_PATH,
 	dayKey, desiredPanelWidth, lockedColumnVisible, matchesExcludePatterns,
+	mobileSelectionMode, parentSelection,
 	parseExcludePatterns, prunePathKeys, remapPathKeys, takeFirstExisting,
 } from "./pure";
+import {
+	applyMobileScale as applyMobileScaleVars,
+	buildActionBar, buildMobileToolbar, setupEdgeSwipe, setupViewportTracking,
+} from "./mobile";
 import { displayName, folderNoteOf, visibleChildren } from "./utils";
 import { MIN_COLUMN_WIDTH } from "./settings";
 import { renderCalendarColumn, renderColumn, renderColumnList, renderFileListColumn } from "./column";
@@ -54,7 +59,14 @@ export class ColumnExplorerView extends ItemView {
 	private breadcrumbsEl!: HTMLElement;
 	private searchInput!: HTMLInputElement;
 	private renamingPath: string | null = null;
-	private lockBtn!: HTMLElement;
+	private lockBtn?: HTMLElement;
+	/** Мобильная строка поиска под toolbar (на desktop поиск живёт в toolbar). */
+	private searchRowEl: HTMLElement | null = null;
+	private searchOpen = false;
+	/** Мобильный режим множественного выделения (включается long-press). */
+	private mobileSelActive = false;
+	private updateMobileToolbar?: () => void;
+	private updateActionBar?: () => void;
 	private typeaheadBuffer = "";
 	private typeaheadTimer = 0;
 	/** Показанный месяц календаря; null — от выбранного дня или сегодня. */
@@ -112,22 +124,30 @@ export class ColumnExplorerView extends ItemView {
 		container.addClass("column-explorer-container");
 
 		const toolbar = container.createDiv({ cls: "column-explorer-toolbar" });
-		this.addToolbarButton(toolbar, "file-plus", t("newNote"), () => void this.createNote(this.currentFolder()));
-		this.addToolbarButton(toolbar, "folder-plus", t("newFolder"), () => void this.createFolder(this.currentFolder()));
-		this.addToolbarButton(toolbar, "locate", t("reveal"), () => this.revealFile(this.app.workspace.getActiveFile()));
-		this.addToolbarButton(toolbar, "arrow-up-narrow-wide", t("sort"), (e) => showSortMenu(this, e));
-		this.addToolbarButton(toolbar, "chevrons-left", t("collapse"), () => { this.selection = []; this.clearMulti(); this.render(); });
-		this.lockBtn = this.addToolbarButton(toolbar, "lock-open", t("lockPanel"), () => {
-			const s = this.plugin.settings;
-			s.lockedColumnCount = s.lockedColumnCount === null ? this.folderColumnCount() : null;
-			void this.plugin.saveSettings();
-			this.render();
-		});
-		this.updateLockButton();
-		// На телефоне всегда одна колонка — фиксация числа колонок не нужна
-		if (Platform.isMobile) this.lockBtn.hide();
+		if (Platform.isMobile) {
+			// На телефоне тулбар не вмещает шесть кнопок: назад — поиск — создать — ещё
+			this.updateMobileToolbar = buildMobileToolbar(this, toolbar);
+		} else {
+			this.addToolbarButton(toolbar, "file-plus", t("newNote"), () => void this.createNote(this.currentFolder()));
+			this.addToolbarButton(toolbar, "folder-plus", t("newFolder"), () => void this.createFolder(this.currentFolder()));
+			this.addToolbarButton(toolbar, "locate", t("reveal"), () => this.revealFile(this.app.workspace.getActiveFile()));
+			this.addToolbarButton(toolbar, "arrow-up-narrow-wide", t("sort"), (e) => showSortMenu(this, e));
+			this.addToolbarButton(toolbar, "chevrons-left", t("collapse"), () => this.collapseToRoot());
+			this.lockBtn = this.addToolbarButton(toolbar, "lock-open", t("lockPanel"), () => {
+				const s = this.plugin.settings;
+				s.lockedColumnCount = s.lockedColumnCount === null ? this.folderColumnCount() : null;
+				void this.plugin.saveSettings();
+				this.render();
+			});
+			this.updateLockButton();
+		}
 
-		this.searchInput = toolbar.createEl("input", {
+		// Поиск: на телефоне — отдельная строка под тулбаром, раскрывается кнопкой
+		if (Platform.isMobile) {
+			this.searchRowEl = container.createDiv({ cls: "column-explorer-search-row" });
+			this.searchRowEl.hide();
+		}
+		this.searchInput = (this.searchRowEl ?? toolbar).createEl("input", {
 			type: "search", cls: "column-explorer-search",
 			attr: { placeholder: t("search"), "aria-label": t("search") },
 		});
@@ -135,6 +155,8 @@ export class ColumnExplorerView extends ItemView {
 		this.registerDomEvent(this.searchInput, "keydown", (e) => {
 			if (e.key !== "Escape") return;
 			e.preventDefault();
+			// Аппаратная клавиатура есть и на планшете — Escape закрывает строку целиком
+			if (this.searchOpen) { this.toggleMobileSearch(); return; }
 			this.clearFilter();
 			this.columnsEl.focus();
 		});
@@ -147,6 +169,15 @@ export class ColumnExplorerView extends ItemView {
 		this.columnsEl = container.createDiv({ cls: "column-explorer-columns" });
 		this.columnsEl.tabIndex = 0;
 		this.registerDomEvent(this.columnsEl, "keydown", (e) => this.onKeyDown(e));
+
+		if (Platform.isMobile) {
+			this.updateActionBar = buildActionBar(this, container);
+			setupEdgeSwipe(this, this.columnsEl);
+			setupViewportTracking(this, container);
+			this.applyMobileScale();
+			// Поворот экрана меняет доступную ширину — пересчитываем размер кнопок
+			this.registerDomEvent(window, "resize", debounce(() => this.applyMobileScale(), 150, true));
+		}
 
 		// При открытой виртуальной колонке точечный refresh её не найдёт
 		// (сентинел — не путь папки), поэтому create/delete → полный рендер
@@ -189,10 +220,96 @@ export class ColumnExplorerView extends ItemView {
 	}
 
 	private updateLockButton() {
+		// На телефоне кнопки фиксации нет — колонка всегда одна
+		if (!this.lockBtn) return;
 		const locked = this.plugin.settings.lockedColumnCount !== null;
 		setIcon(this.lockBtn, locked ? "lock" : "lock-open");
 		this.lockBtn.setAttribute("aria-label", locked ? t("unlockPanel") : t("lockPanel"));
 		this.lockBtn.toggleClass("is-active", locked);
+	}
+
+	/* ------------------------------ mobile --------------------------- */
+
+	canGoBack(): boolean { return this.historyIndex > 0; }
+	canGoForward(): boolean { return this.historyIndex < this.history.length - 1; }
+	goBack() { this.navigateHistory(-1); }
+	goForward() { this.navigateHistory(1); }
+	isSearchOpen(): boolean { return this.searchOpen; }
+	isMobileSelecting(): boolean { return this.mobileSelActive; }
+
+	/** Мобильные размеры в CSS-переменных: слайдеры настроек зовут это вместо render(). */
+	applyMobileScale() {
+		if (!Platform.isMobile) return;
+		applyMobileScaleVars(this, this.contentEl);
+	}
+
+	collapseToRoot() {
+		this.selection = [];
+		this.clearMulti();
+		this.render();
+	}
+
+	/** Мобильная строка поиска: раскрыть или закрыть со сбросом фильтра. */
+	toggleMobileSearch() {
+		this.searchOpen = !this.searchOpen;
+		if (this.searchOpen) {
+			this.searchRowEl?.show();
+			this.searchInput.focus();
+		} else {
+			this.searchRowEl?.hide();
+			if (this.hasFilter()) this.clearFilter();
+			else this.searchInput.value = "";
+		}
+		this.updateMobileToolbar?.();
+	}
+
+	/** Selection родительской колонки, либо null — уже в корне. */
+	private parentOfSelection(): string[] | null {
+		return parentSelection(this.selection, (p) => this.app.vault.getAbstractFileByPath(p) instanceof TFolder);
+	}
+
+	canGoUp(): boolean { return this.parentOfSelection() !== null; }
+
+	/** Стрелка в заголовке колонки: на уровень вверх (не путать с историей). */
+	goUp() {
+		const parent = this.parentOfSelection();
+		if (!parent) return;
+		this.selection = parent;
+		this.clearMulti();
+		this.persistState();
+		this.render();
+	}
+
+	enterMobileSelection(f: TAbstractFile, depth: number) {
+		if (this.multiSelDepth !== depth) this.clearMulti();
+		this.multiSelDepth = depth;
+		this.multiSel.add(f.path);
+		this.mobileSelActive = true;
+		this.syncMultiSelDom();
+	}
+
+	toggleMobileSelection(f: TAbstractFile, depth: number) {
+		this.applyToggleMulti(f, depth);
+		this.mobileSelActive = mobileSelectionMode(true, this.multiSel.size);
+		this.syncMultiSelDom();
+	}
+
+	exitMobileSelection() {
+		this.mobileSelActive = false;
+		this.clearMulti();
+		this.syncMultiSelDom();
+	}
+
+	/** Выделение меняет только классы элементов — полный render не нужен. */
+	private syncMultiSelDom() {
+		this.columnsEl.querySelectorAll(".column-explorer-item.is-multi-selected")
+			.forEach((el) => el.removeClass("is-multi-selected"));
+		for (const path of this.multiSel) {
+			this.columnsEl.querySelector<HTMLElement>(
+				`.column-explorer-item[data-path="${CSS.escape(path)}"]`
+			)?.addClass("is-multi-selected");
+		}
+		this.updateActionBar?.();
 	}
 
 	/* -------------------------- shared accessors --------------------- */
@@ -234,6 +351,8 @@ export class ColumnExplorerView extends ItemView {
 		this.multiSel.clear();
 		this.multiSelDepth = -1;
 		this.shiftAnchor = null;
+		// Нет выделения — нет и мобильного режима выделения
+		this.mobileSelActive = false;
 	}
 
 	/** Number of folder columns for the current selection chain (root column included). */
@@ -398,10 +517,13 @@ export class ColumnExplorerView extends ItemView {
 		this.updateLockButton();
 		this.columnsEl.toggleClass("is-locked", hasGap);
 
-		if (lockedColumnVisible(0, folderCols, lockedCount)) {
+		// На телефоне спецколонка занимает весь экран — корневую рядом не рисуем
+		if (!(Platform.isMobile && special) && lockedColumnVisible(0, folderCols, lockedCount)) {
 			renderColumn(this, this.columnsEl, this.app.vault.getRoot(), 0);
 		}
+		// Превью-колонки на телефоне нет вовсе: там превью — Quick Look из меню файла
 		const previewOf = (path: string | undefined) => {
+			if (Platform.isMobile) return;
 			const f = path ? this.app.vault.getAbstractFileByPath(path) : null;
 			if (f instanceof TFile && this.plugin.settings.showPreview) renderPreviewColumn(this, this.columnsEl, f);
 		};
@@ -417,8 +539,9 @@ export class ColumnExplorerView extends ItemView {
 			renderFileListColumn(this, this.columnsEl, t("bookmarks"), core, BOOKMARKS_PATH, 1, favs);
 			previewOf(this.selection[1]);
 		} else if (special === "calendar") {
-			renderCalendarColumn(this, this.columnsEl);
 			const daySentinel = this.selection[1];
+			// На телефоне колонка одна: открытый день заменяет сетку месяца
+			if (!Platform.isMobile || !daySentinel) renderCalendarColumn(this, this.columnsEl);
 			if (daySentinel) {
 				const day = daySentinel.slice(DAY_PATH_PREFIX.length);
 				const title = new Date(Number(day.slice(0, 4)), Number(day.slice(5, 7)) - 1, Number(day.slice(8)))
@@ -432,7 +555,7 @@ export class ColumnExplorerView extends ItemView {
 				if (f instanceof TFolder) {
 					if (!lockedColumnVisible(depth + 1, folderCols, lockedCount)) continue;
 					renderColumn(this, this.columnsEl, f, depth + 1);
-				} else if (f instanceof TFile && this.plugin.settings.showPreview) {
+				} else if (f instanceof TFile && this.plugin.settings.showPreview && !Platform.isMobile) {
 					renderPreviewColumn(this, this.columnsEl, f);
 				}
 			}
@@ -440,6 +563,9 @@ export class ColumnExplorerView extends ItemView {
 		if (hasGap && !Platform.isMobile) this.markLockedColumn();
 
 		this.renderBreadcrumbs();
+		this.applyMobileScale();
+		this.updateMobileToolbar?.();
+		this.updateActionBar?.();
 		this.restoreScrollTops(scrollTops);
 		// Вправо прокручиваем только когда набор колонок изменился (открыли новую);
 		// при клике внутри тех же колонок скролл остаётся на месте
@@ -516,8 +642,11 @@ export class ColumnExplorerView extends ItemView {
 			setIcon(btn, icon);
 			if (enabled) btn.addEventListener("click", onClick);
 		};
-		navBtn("arrow-left", t("navBack"), this.historyIndex > 0, () => this.navigateHistory(-1));
-		navBtn("arrow-right", t("navForward"), this.historyIndex < this.history.length - 1, () => this.navigateHistory(1));
+		// На телефоне «назад» живёт в тулбаре — здесь дублировать его незачем
+		if (!Platform.isMobile) {
+			navBtn("arrow-left", t("navBack"), this.canGoBack(), () => this.goBack());
+			navBtn("arrow-right", t("navForward"), this.canGoForward(), () => this.goForward());
+		}
 
 		// Звёздочка: быстро добавить/убрать текущую папку в избранное
 		const current = this.currentFolder();
@@ -555,6 +684,13 @@ export class ColumnExplorerView extends ItemView {
 				: path.split("/").pop() ?? path;
 			addSegment(label, i + 1, i === this.selection.length - 1);
 		});
+
+		// Длинный путь на узком экране: держим в виду текущий, последний сегмент
+		if (Platform.isMobile) {
+			window.requestAnimationFrame(() => {
+				this.breadcrumbsEl.scrollLeft = this.breadcrumbsEl.scrollWidth;
+			});
+		}
 	}
 
 	/** Cheap highlight update on active-leaf-change — no full re-render. */
@@ -747,13 +883,18 @@ export class ColumnExplorerView extends ItemView {
 	}
 
 	toggleMulti(f: TAbstractFile, depth: number) {
+		this.applyToggleMulti(f, depth);
+		this.render();
+	}
+
+	/** Мутация мультивыделения без перерисовки — общая с мобильным режимом. */
+	private applyToggleMulti(f: TAbstractFile, depth: number) {
 		if (this.multiSelDepth !== depth) this.clearMulti();
 		this.multiSelDepth = depth;
 		if (this.multiSel.has(f.path)) this.multiSel.delete(f.path);
 		else this.multiSel.add(f.path);
 		this.shiftAnchor = f.path;
 		if (this.multiSel.size === 0) this.multiSelDepth = -1;
-		this.render();
 	}
 
 	rangeMulti(f: TAbstractFile, depth: number, siblings: TAbstractFile[]) {
@@ -810,7 +951,8 @@ export class ColumnExplorerView extends ItemView {
 	deleteMany(paths: string[]) {
 		const doDelete = async () => {
 			await trashFiles(this.app, paths);
-			this.clearMulti();
+			// Снимает и мультивыделение, и мобильный режим выделения
+			this.exitMobileSelection();
 		};
 		if (!this.plugin.settings.confirmDelete) { void doDelete(); return; }
 		const first = this.app.vault.getAbstractFileByPath(paths[0]);
@@ -895,6 +1037,12 @@ export class ColumnExplorerView extends ItemView {
 
 	private onKeyDown(e: KeyboardEvent) {
 		if (this.renamingPath) return;
+		// В режиме выделения Escape сначала закрывает сам режим
+		if (this.mobileSelActive && e.key === "Escape") {
+			e.preventDefault();
+			this.exitMobileSelection();
+			return;
+		}
 		const depth = Math.max(0, this.selection.length - 1);
 		const selectedPath = this.selection[depth];
 		const children = this.siblingsAt(depth);

@@ -665,6 +665,234 @@
 	fill: var(--color-yellow);
 }
 
+/* ---------------------------------------------------------------
+   Mobile: тач-цели 44px, компактный тулбар, панель выделения.
+   Все правила под `.is-mobile` — на desktop ничего не меняется.
+   --------------------------------------------------------------- */
+
+/* Размеры берутся из CSS-переменных контейнера (см. applyMobileScale
+   в src/mobile.ts); fallback-значения — минимальные тач-цели */
+.is-mobile .column-explorer-item {
+	min-height: var(--ce-mobile-row-height, 44px);
+	padding: calc(6px * var(--ce-mobile-scale, 1)) calc(10px * var(--ce-mobile-scale, 1));
+	gap: calc(6px * var(--ce-mobile-scale, 1));
+	font-size: calc(var(--font-ui-medium) * var(--ce-mobile-scale, 1));
+}
+
+/* Иконки строк следуют общему масштабу, но не размеру кнопочных иконок */
+.is-mobile .column-explorer-item-icon svg {
+	width: calc(16px * var(--ce-mobile-scale, 1));
+	height: calc(16px * var(--ce-mobile-scale, 1));
+}
+
+/* Тач-цель кнопок — --ce-mobile-control-size, не меньше 44px */
+.is-mobile .column-explorer-toolbar-btn,
+.is-mobile .column-explorer-nav-btn,
+.is-mobile .column-explorer-up-btn,
+.is-mobile .column-explorer-action-btn,
+.is-mobile .column-explorer-fav-btn,
+.is-mobile .column-explorer-view-toggle,
+.is-mobile .column-explorer-quicklook-bar button {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	min-width: var(--ce-mobile-control-size, 44px);
+	min-height: var(--ce-mobile-control-size, 44px);
+	width: auto;
+	height: auto;
+	margin: 0;
+	padding: 0;
+	background: none;
+	border: none;
+	box-shadow: none;
+}
+
+.is-mobile .column-explorer-toolbar-btn svg,
+.is-mobile .column-explorer-nav-btn svg,
+.is-mobile .column-explorer-up-btn svg,
+.is-mobile .column-explorer-action-btn svg,
+.is-mobile .column-explorer-fav-btn svg,
+.is-mobile .column-explorer-view-toggle svg {
+	width: var(--ce-mobile-icon-size, 28px);
+	height: var(--ce-mobile-icon-size, 28px);
+	stroke-width: 2.25;
+}
+
+/* Пять кнопок делят ширину поровну и никогда не переносятся.
+   Padding нулевой: размер кнопки считается как floor(ширина / 5),
+   боковые отступы съели бы этот расчёт на максимальном масштабе */
+.is-mobile .column-explorer-toolbar {
+	gap: 0;
+	padding: 0;
+	justify-content: space-around;
+	flex-wrap: nowrap;
+	overflow: hidden;
+}
+
+.is-mobile .column-explorer-up-btn.is-disabled,
+.is-mobile .column-explorer-nav-btn.is-disabled,
+.is-mobile .column-explorer-toolbar-btn.is-disabled {
+	opacity: 0.35;
+	pointer-events: none;
+}
+
+/* Нажатие видно и без hover */
+.is-mobile .column-explorer-toolbar-btn:active,
+.is-mobile .column-explorer-nav-btn:active,
+.is-mobile .column-explorer-up-btn:active,
+.is-mobile .column-explorer-action-btn:active,
+.is-mobile .column-explorer-view-toggle:active {
+	background-color: var(--background-modifier-hover);
+	border-radius: var(--radius-s);
+}
+
+/* Строка поиска: раскрывается кнопкой в тулбаре */
+.column-explorer-search-row {
+	display: flex;
+	align-items: center;
+	padding: calc(4px * var(--ce-mobile-scale, 1)) calc(8px * var(--ce-mobile-scale, 1));
+	border-bottom: 1px solid var(--background-modifier-border);
+	flex-shrink: 0;
+}
+
+.is-mobile .column-explorer-search {
+	flex: 1;
+	height: calc(40px * var(--ce-mobile-scale, 1));
+	margin-left: 0;
+	font-size: calc(var(--font-ui-small) * var(--ce-mobile-scale, 1));
+}
+
+/* Заголовок колонки: стрелка вверх — название — счётчик — вид */
+.is-mobile .column-explorer-column-header {
+	min-height: var(--ce-mobile-control-size, 44px);
+	padding: 0 calc(6px * var(--ce-mobile-scale, 1));
+	gap: calc(6px * var(--ce-mobile-scale, 1));
+	font-size: calc(var(--font-ui-smaller) * var(--ce-mobile-scale, 1));
+}
+
+/* На тач-экране нет hover — переключатель списка/значков виден всегда */
+.is-mobile .column-explorer-view-toggle {
+	opacity: 1;
+}
+
+.is-mobile .column-explorer-breadcrumbs {
+	padding: 0 calc(6px * var(--ce-mobile-scale, 1));
+	gap: calc(4px * var(--ce-mobile-scale, 1));
+	font-size: calc(var(--font-ui-small) * var(--ce-mobile-scale, 1));
+}
+
+.is-mobile .column-explorer-crumb {
+	display: inline-flex;
+	align-items: center;
+	min-height: var(--ce-mobile-row-height, 44px);
+	padding: 0 calc(6px * var(--ce-mobile-scale, 1));
+}
+
+/* Плитка на телефоне: ячейки крупнее, подпись занимает ровно две строки.
+   Высоту подписи держит max-height, а не -webkit-line-clamp — в мобильном
+   WebKit он не резервирует место, и названия наезжали друг на друга */
+.is-mobile .column-explorer-list.is-grid {
+	grid-template-columns: repeat(auto-fill, minmax(calc(80px * var(--ce-mobile-scale, 1)), 1fr));
+	gap: calc(6px * var(--ce-mobile-scale, 1));
+}
+
+.is-mobile .column-explorer-list.is-grid .column-explorer-item {
+	padding: calc(8px * var(--ce-mobile-scale, 1)) calc(4px * var(--ce-mobile-scale, 1));
+	gap: calc(4px * var(--ce-mobile-scale, 1));
+	justify-content: flex-start;
+}
+
+.is-mobile .column-explorer-list.is-grid .column-explorer-item-icon svg {
+	width: calc(28px * var(--ce-mobile-scale, 1));
+	height: calc(28px * var(--ce-mobile-scale, 1));
+}
+
+.is-mobile .column-explorer-list.is-grid .column-explorer-item-title {
+	font-size: calc(var(--font-ui-smaller) * var(--ce-mobile-scale, 1));
+	line-height: 1.3;
+	/* Резерв под две строки, но текст волен занять три: max-height срезал
+	   бы строку по середине букв. Ячейку выравнивает min-height */
+	-webkit-line-clamp: 3;
+	min-height: 2.6em;
+	max-height: none;
+	overflow: hidden;
+	word-break: break-word;
+}
+
+/* Миниатюры не должны растягивать ячейку выше подписи */
+.is-mobile .column-explorer-list.is-grid .column-explorer-item.has-thumbnail .column-explorer-item-icon {
+	height: calc(48px * var(--ce-mobile-scale, 1));
+}
+
+.is-mobile .column-explorer-cal-cell {
+	min-height: var(--ce-mobile-row-height, 44px);
+}
+
+.is-mobile .column-explorer-cal-daynum,
+.is-mobile .column-explorer-cal-month {
+	font-size: calc(var(--font-ui-small) * var(--ce-mobile-scale, 1));
+}
+
+/* Нижняя панель режима выделения — обычная flex-строка контейнера,
+   поэтому она не накрывает список, а ужимает его */
+.column-explorer-action-bar {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	padding: 0 calc(8px * var(--ce-mobile-scale, 1));
+	padding-bottom: env(safe-area-inset-bottom);
+	border-top: 1px solid var(--background-modifier-border);
+	background-color: var(--background-secondary);
+	flex-shrink: 0;
+}
+
+/* Экранная клавиатура: содержимое вью ужимается, а не уезжает под неё.
+   Селектор длинный, чтобы перебить `padding: 0` из правила в начале файла */
+.is-mobile .workspace-leaf-content .view-content.column-explorer-container,
+.is-mobile .column-explorer-container {
+	padding-bottom: var(--ce-keyboard-inset, 0px);
+}
+
+.column-explorer-action-count {
+	flex: 1;
+	min-width: 0;
+	font-size: calc(var(--font-ui-smaller) * var(--ce-mobile-scale, 1));
+	color: var(--text-muted);
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+/* Quick Look как bottom sheet */
+.is-mobile .column-explorer-quicklook {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	width: 100%;
+	max-width: 100%;
+	max-height: 85vh;
+	margin: 0;
+	display: flex;
+	flex-direction: column;
+	border-radius: var(--radius-l) var(--radius-l) 0 0;
+	padding-bottom: env(safe-area-inset-bottom);
+}
+
+.is-mobile .column-explorer-quicklook .modal-content {
+	overflow-y: auto;
+	margin: 0;
+}
+
+.column-explorer-quicklook-bar {
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	display: flex;
+	justify-content: flex-end;
+	background-color: var(--background-primary);
+}
+
 /* Секция «Избранное» в колонке закладок: подпись и разделитель */
 .column-explorer-section-label {
 	padding: 6px 10px 2px;
