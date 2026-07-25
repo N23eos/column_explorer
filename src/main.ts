@@ -17,6 +17,8 @@ export default class ColumnExplorerPlugin extends Plugin {
 		if (this.shouldSeedRecents) {
 			this.settings.recentFiles = this.app.workspace.getLastOpenFiles();
 		}
+		// Отложенная запись «недавних» не должна теряться при выгрузке плагина
+		this.register(() => this.saveRecentsDebounced.run());
 		this.registerEvent(this.app.workspace.on("file-open", (f) => {
 			if (!f) return;
 			this.settings.recentFiles = pushRecent(this.settings.recentFiles, f.path, MAX_RECENT_FILES);

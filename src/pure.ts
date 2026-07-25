@@ -227,6 +227,137 @@ export function takeFirstExisting(paths: string[], exists: (path: string) => boo
 	return result;
 }
 
+/* ------------------------------ mobile --------------------------------- */
+
+/** Свайп засчитывается, только если палец начал не дальше этого от края. */
+export const EDGE_ZONE_PX = 24;
+/** Минимальный горизонтальный путь свайпа. */
+export const SWIPE_MIN_DISTANCE_PX = 60;
+/** Во сколько раз горизонталь должна превосходить вертикаль. */
+export const SWIPE_RATIO = 1.5;
+
+export interface EdgeSwipe {
+	startX: number;
+	startY: number;
+	endX: number;
+	endY: number;
+	containerWidth: number;
+}
+
+/**
+ * Edge-swipe навигация: жест от левого края вправо — «назад», от правого
+ * края влево — «вперёд». Null, если жест слишком короткий, слишком
+ * вертикальный, начался вне краевой зоны или направлен «наружу».
+ */
+export function detectEdgeSwipe(swipe: EdgeSwipe): "back" | "forward" | null {
+	const dx = swipe.endX - swipe.startX;
+	const dy = swipe.endY - swipe.startY;
+	if (Math.abs(dx) < SWIPE_MIN_DISTANCE_PX) return null;
+	if (Math.abs(dx) < SWIPE_RATIO * Math.abs(dy)) return null;
+	if (dx > 0 && swipe.startX <= EDGE_ZONE_PX) return "back";
+	if (dx < 0 && swipe.startX >= swipe.containerWidth - EDGE_ZONE_PX) return "forward";
+	return null;
+}
+
+/** Минимальная тач-цель: ниже неё палец промахивается. */
+export const MIN_TOUCH_TARGET_PX = 44;
+
+export const MIN_MOBILE_SCALE = 90;
+export const MAX_MOBILE_SCALE = 150;
+export const DEFAULT_MOBILE_SCALE = 115;
+export const MIN_MOBILE_ICON = 22;
+export const MAX_MOBILE_ICON = 36;
+export const DEFAULT_MOBILE_ICON = 28;
+
+function clampOrDefault(value: unknown, min: number, max: number, fallback: number): number {
+	if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+	return Math.max(min, Math.min(max, Math.round(value)));
+}
+
+/**
+ * Мобильные размеры из сохранённых настроек: значения вне диапазона
+ * подрезаются, отсутствующие и нечисловые заменяются дефолтными.
+ */
+export function normalizeMobileSettings(raw: { mobileUiScale?: unknown; mobileIconSize?: unknown }): {
+	mobileUiScale: number;
+	mobileIconSize: number;
+} {
+	return {
+		mobileUiScale: clampOrDefault(raw.mobileUiScale, MIN_MOBILE_SCALE, MAX_MOBILE_SCALE, DEFAULT_MOBILE_SCALE),
+		mobileIconSize: clampOrDefault(raw.mobileIconSize, MIN_MOBILE_ICON, MAX_MOBILE_ICON, DEFAULT_MOBILE_ICON),
+	};
+}
+
+/**
+ * Размер кнопки тулбара: масштабированная тач-цель, но не шире, чем
+ * позволяет разделить контейнер между кнопками. Ниже 44px не опускается
+ * никогда — лучше горизонтальный поджим, чем непопадаемая кнопка.
+ * `containerWidth` 0 — контейнер ещё не измерен.
+ */
+export function mobileControlSize(scale: number, containerWidth: number, buttonCount: number): number {
+	const configured = Math.round(MIN_TOUCH_TARGET_PX * scale);
+	const available = containerWidth > 0 ? Math.floor(containerWidth / buttonCount) : configured;
+	return Math.max(MIN_TOUCH_TARGET_PX, Math.min(configured, available));
+}
+
+/** Долгое нажатие: длительность до срабатывания. */
+export const LONG_PRESS_MS = 500;
+/** Долгое нажатие: смещение пальца, после которого нажатие отменяется. */
+export const LONG_PRESS_TOLERANCE_PX = 10;
+
+export function exceedsMoveTolerance(dx: number, dy: number): boolean {
+	return Math.hypot(dx, dy) > LONG_PRESS_TOLERANCE_PX;
+}
+
+export type PressPhase = "idle" | "pending" | "fired" | "cancelled";
+
+export type PressEvent =
+	| { type: "down" }
+	| { type: "move"; dx: number; dy: number }
+	| { type: "timeout" }
+	| { type: "up" }
+	| { type: "cancel" }
+	| { type: "click" };
+
+/**
+ * Состояние жеста нажатия. "fired" переживает отпускание пальца — именно
+ * по нему следующий click подавляется, а сам click гасит состояние.
+ */
+export function nextPressPhase(phase: PressPhase, event: PressEvent): PressPhase {
+	switch (event.type) {
+		case "down": return "pending";
+		case "move": return phase === "pending" && exceedsMoveTolerance(event.dx, event.dy) ? "cancelled" : phase;
+		case "timeout": return phase === "pending" ? "fired" : phase;
+		case "up": return phase === "pending" ? "cancelled" : phase;
+		case "cancel": return "cancelled";
+		case "click": return phase === "fired" ? "idle" : phase;
+	}
+}
+
+/** Что делает обычный тап по элементу на мобильном. */
+export function mobileTapAction(state: { selectionMode: boolean; pressPhase: PressPhase }): "suppress" | "toggle" | "activate" {
+	if (state.pressPhase === "fired") return "suppress";
+	return state.selectionMode ? "toggle" : "activate";
+}
+
+/** Режим выделения закрывается, когда снято последнее выделение. */
+export function mobileSelectionMode(active: boolean, selectedCount: number): boolean {
+	return active && selectedCount > 0;
+}
+
+/**
+ * Selection для перехода на уровень вверх: обрезаем цепочку до колонки,
+ * родительской для самой глубокой видимой. Сентинелы спецпунктов ("::…")
+ * считаются такими же «корнями колонки», как папки. Null — уже в корне.
+ */
+export function parentSelection(selection: string[], isFolder: (path: string) => boolean): string[] | null {
+	const isColumnRoot = (path: string) => path.startsWith("::") || isFolder(path);
+	for (let i = selection.length - 1; i >= 0; i--) {
+		if (isColumnRoot(selection[i])) return selection.slice(0, i);
+	}
+	return null;
+}
+
 /**
  * Pattern semantics:
  * - "folder/"  — the folder itself and everything inside it

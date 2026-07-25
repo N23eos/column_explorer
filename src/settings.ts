@@ -1,5 +1,10 @@
-import { App, Notice, PluginSettingTab, Setting, SettingDefinitionItem } from "obsidian";
+import { App, Notice, PluginSettingTab, Setting, SettingDefinitionItem, SliderComponent } from "obsidian";
 import { t } from "./i18n";
+import {
+	DEFAULT_MOBILE_ICON, DEFAULT_MOBILE_SCALE,
+	MAX_MOBILE_ICON, MAX_MOBILE_SCALE, MIN_MOBILE_ICON, MIN_MOBILE_SCALE,
+	normalizeMobileSettings,
+} from "./pure";
 import type ColumnExplorerPlugin from "./main";
 
 export type SortMode =
@@ -55,6 +60,10 @@ export interface ColumnExplorerSettings {
 	favorites: string[];
 	/** Show the favorites section in the Bookmarks column. */
 	showFavorites: boolean;
+	/** Mobile UI scale in percent (90–150): rows, controls, text and spacing. */
+	mobileUiScale: number;
+	/** Icon size in px (22–36) for mobile toolbar, navigation and action bar. */
+	mobileIconSize: number;
 }
 
 export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
@@ -84,6 +93,8 @@ export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
 	specialItemsPosition: "top",
 	favorites: [],
 	showFavorites: true,
+	mobileUiScale: DEFAULT_MOBILE_SCALE,
+	mobileIconSize: DEFAULT_MOBILE_ICON,
 };
 
 export const MIN_RECENT_FILES = 5;
@@ -95,6 +106,9 @@ export const MAX_COLUMN_WIDTH = 500;
 export const ROOT_COLUMN_EXTRA_WIDTH = 60;
 
 export class ColumnExplorerSettingTab extends PluginSettingTab {
+	/** Синхронизация мобильных слайдеров и подписей после сброса. */
+	private refreshMobileSliders?: () => void;
+
 	constructor(app: App, private plugin: ColumnExplorerPlugin) {
 		super(app, plugin);
 	}
@@ -160,6 +174,19 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 					{ name: t("setShowCalendar"), desc: t("setShowCalendarDesc"), control: { type: "toggle", key: "showCalendar" } },
 				],
 			},
+			{
+				type: "group", heading: t("headMobile"), items: [
+					{
+						name: t("setMobileScale"), desc: t("setMobileScaleDesc"),
+						control: { type: "slider", key: "mobileUiScale", min: MIN_MOBILE_SCALE, max: MAX_MOBILE_SCALE, step: 5 },
+					},
+					{
+						name: t("setMobileIcon"), desc: t("setMobileIconDesc"),
+						control: { type: "slider", key: "mobileIconSize", min: MIN_MOBILE_ICON, max: MAX_MOBILE_ICON, step: 2 },
+					},
+					{ name: t("resetMobileSizes"), action: () => void this.resetMobileSizes() },
+				],
+			},
 		];
 	}
 
@@ -177,8 +204,29 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 		new Notice(t("recentsCleared"));
 	}
 
+	/** Сброс мобильных размеров к дефолтным, с обновлением открытых слайдеров. */
+	private async resetMobileSizes() {
+		const s = this.plugin.settings;
+		s.mobileUiScale = DEFAULT_MOBILE_SCALE;
+		s.mobileIconSize = DEFAULT_MOBILE_ICON;
+		await this.plugin.saveSettings();
+		this.plugin.getView()?.applyMobileScale();
+		this.refreshMobileSliders?.();
+		new Notice(t("mobileSizesReset"));
+	}
+
 	/** Self-contained override — avoids calling the 1.13-only base implementation. */
 	async setControlValue(key: string, value: unknown) {
+		if (key === "mobileUiScale" || key === "mobileIconSize") {
+			const s = this.plugin.settings;
+			const normalized = normalizeMobileSettings({ ...s, [key]: value });
+			s.mobileUiScale = normalized.mobileUiScale;
+			s.mobileIconSize = normalized.mobileIconSize;
+			await this.plugin.saveSettings();
+			// Размеры живут в CSS-переменных — полный render не нужен
+			this.plugin.getView()?.applyMobileScale();
+			return;
+		}
 		if (key === "recentFilesCount" && typeof value === "number") {
 			value = Math.max(MIN_RECENT_FILES, Math.min(MAX_RECENT_FILES, Math.round(value)));
 		}
@@ -286,5 +334,41 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl).setName(t("setShowCalendar")).setDesc(t("setShowCalendarDesc"))
 			.addToggle(tg => tg.setValue(s.showCalendar).onChange(async (v) => { s.showCalendar = v; await save(); }));
+
+		new Setting(containerEl).setName(t("headMobile")).setHeading();
+
+		// Размеры живут в CSS-переменных — на каждое движение слайдера
+		// перерисовывать колонки не нужно
+		const saveMobile = async () => {
+			await this.plugin.saveSettings();
+			this.plugin.getView()?.applyMobileScale();
+		};
+
+		// Текущее значение Obsidian показывает рядом со слайдером сам
+		let scaleSlider: SliderComponent | null = null;
+		new Setting(containerEl).setName(t("setMobileScale")).setDesc(t("setMobileScaleDesc"))
+			.addSlider(sl => {
+				scaleSlider = sl;
+				sl.setLimits(MIN_MOBILE_SCALE, MAX_MOBILE_SCALE, 5)
+					.setValue(s.mobileUiScale)
+					.onChange(async (v) => { s.mobileUiScale = v; await saveMobile(); });
+			});
+
+		let iconSlider: SliderComponent | null = null;
+		new Setting(containerEl).setName(t("setMobileIcon")).setDesc(t("setMobileIconDesc"))
+			.addSlider(sl => {
+				iconSlider = sl;
+				sl.setLimits(MIN_MOBILE_ICON, MAX_MOBILE_ICON, 2)
+					.setValue(s.mobileIconSize)
+					.onChange(async (v) => { s.mobileIconSize = v; await saveMobile(); });
+			});
+
+		this.refreshMobileSliders = () => {
+			scaleSlider?.setValue(s.mobileUiScale);
+			iconSlider?.setValue(s.mobileIconSize);
+		};
+
+		new Setting(containerEl).setName(t("resetMobileSizes"))
+			.addButton(b => b.setButtonText(t("reset")).onClick(() => void this.resetMobileSizes()));
 	}
 }

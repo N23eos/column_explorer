@@ -1,4 +1,4 @@
-import { App, TAbstractFile, TFile, TFolder } from "obsidian";
+import { App, Platform, TAbstractFile, TFile, TFolder } from "obsidian";
 import { importExternalFiles, moveFiles } from "./fileops";
 import { movePinnedBefore, parseDragPaths } from "./pure";
 import type { ColumnExplorerView } from "./view";
@@ -49,6 +49,9 @@ function folderForItem(app: App, item: HTMLElement | null): TFolder | null {
  * own folder.
  */
 export function setupColumnDnd(view: ColumnExplorerView, listEl: HTMLElement, columnFolder: TFolder, depth: number) {
+	// На телефоне HTML5 drag&drop не используется: перемещение идёт через
+	// режим выделения и выбор целевой папки
+	if (Platform.isMobile) return;
 	const app = view.app;
 	let highlighted: HTMLElement | null = null;
 

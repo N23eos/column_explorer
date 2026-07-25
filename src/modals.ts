@@ -1,4 +1,4 @@
-import { App, FuzzyMatch, FuzzySuggestModal, Modal, TFile, TFolder, getIconIds, setIcon } from "obsidian";
+import { App, Component, FuzzyMatch, FuzzySuggestModal, Modal, Platform, TFile, TFolder, getIconIds, setIcon } from "obsidian";
 import { t } from "./i18n";
 import { renderPreviewContent } from "./preview";
 import type { ColumnExplorerView } from "./view";
@@ -21,16 +21,31 @@ export class ConfirmModal extends Modal {
 
 /** Quick Look (как в Finder): пробел открывает превью, пробел/Esc закрывают. */
 export class QuickLookModal extends Modal {
+	/** Владелец отрисованного markdown — выгружается вместе с модалкой. */
+	private owner = new Component();
+
 	constructor(app: App, private view: ColumnExplorerView, private file: TFile) {
 		super(app);
 	}
 	onOpen() {
+		this.owner.load();
 		this.modalEl.addClass("column-explorer-quicklook");
+		// На телефоне окно раскрывается снизу как bottom sheet — клавиатуры,
+		// чтобы закрыть его пробелом, там нет, нужна явная кнопка
+		if (Platform.isMobile) {
+			const bar = this.contentEl.createDiv({ cls: "column-explorer-quicklook-bar" });
+			const close = bar.createEl("button", { cls: "clickable-icon", attr: { "aria-label": t("close") } });
+			setIcon(close, "x");
+			close.addEventListener("click", () => this.close());
+		}
 		const inner = this.contentEl.createDiv({ cls: "column-explorer-preview-inner" });
-		renderPreviewContent(this.view, inner, this.file);
+		renderPreviewContent(this.view, inner, this.file, this.owner);
 		this.scope.register([], " ", () => { this.close(); return false; });
 	}
-	onClose() { this.contentEl.empty(); }
+	onClose() {
+		this.owner.unload();
+		this.contentEl.empty();
+	}
 }
 
 /** Fuzzy folder picker used by "Move to folder…". */
