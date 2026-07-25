@@ -108,6 +108,18 @@ const RENDER_CHUNK = 300;
 /** Живые сентинел-обсерверы по спискам — отключаем старый при перерендере. */
 const listObservers = new WeakMap<HTMLElement, IntersectionObserver>();
 
+/**
+ * Отключить сентинел-обсерверы всех списков контейнера. Обязательно перед
+ * удалением колонок из DOM: активный IntersectionObserver держит ссылку на
+ * свою цель, и оторванный список с ним вместе не собирается сборщиком.
+ */
+export function disconnectListObservers(container: HTMLElement) {
+	container.querySelectorAll<HTMLElement>(".column-explorer-list").forEach((list) => {
+		listObservers.get(list)?.disconnect();
+		listObservers.delete(list);
+	});
+}
+
 /** (Re)fill a column's list — used both on full render and targeted refresh. */
 export function renderColumnList(view: ColumnExplorerView, list: HTMLElement, folder: TFolder, depth: number) {
 	listObservers.get(list)?.disconnect();

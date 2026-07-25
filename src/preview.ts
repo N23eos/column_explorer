@@ -1,4 +1,4 @@
-import { Keymap, MarkdownRenderer, Platform, TFile, setIcon } from "obsidian";
+import { Component, Keymap, MarkdownRenderer, Platform, TFile, setIcon } from "obsidian";
 import { t } from "./i18n";
 import { humanSize } from "./pure";
 import { displayName, iconFor, isImageFile } from "./utils";
@@ -11,11 +11,15 @@ const VIDEO_EXTENSIONS = ["mp4", "mov", "webm", "ogv"];
 export function renderPreviewColumn(view: ColumnExplorerView, container: HTMLElement, file: TFile) {
 	const col = container.createDiv({ cls: "column-explorer-column column-explorer-preview" });
 	const inner = col.createDiv({ cls: "column-explorer-preview-inner" });
-	renderPreviewContent(view, inner, file);
+	renderPreviewContent(view, inner, file, view.newPreviewOwner());
 }
 
-/** Shared preview body — used by the preview column and the Quick Look modal. */
-export function renderPreviewContent(view: ColumnExplorerView, inner: HTMLElement, file: TFile) {
+/**
+ * Shared preview body — used by the preview column and the Quick Look modal.
+ * `owner` управляет жизнью отрисованного markdown (эмбеды, ссылки): его
+ * выгрузка снимает всё, что отрисовал MarkdownRenderer.
+ */
+export function renderPreviewContent(view: ColumnExplorerView, inner: HTMLElement, file: TFile, owner: Component) {
 	if (!renderMediaPreview(view, inner, file)) {
 		const big = inner.createDiv({ cls: "column-explorer-preview-icon" });
 		setIcon(big, iconFor(file));
@@ -33,7 +37,7 @@ export function renderPreviewContent(view: ColumnExplorerView, inner: HTMLElemen
 	});
 
 	if (file.extension === "md" && view.plugin.settings.showMarkdownPreview) {
-		void renderMarkdownSnippet(view, inner, file);
+		void renderMarkdownSnippet(view, inner, file, owner);
 	}
 }
 
@@ -59,15 +63,16 @@ function renderMediaPreview(view: ColumnExplorerView, inner: HTMLElement, file: 
 	return false;
 }
 
-async function renderMarkdownSnippet(view: ColumnExplorerView, inner: HTMLElement, file: TFile) {
+async function renderMarkdownSnippet(view: ColumnExplorerView, inner: HTMLElement, file: TFile, owner: Component) {
 	try {
 		const content = await view.app.vault.cachedRead(file);
-		// Файл мог смениться, пока читали — не рисуем устаревшее превью
-		if (view.selectedFilePath() !== file.path) return;
+		// Колонку могли перерисовать, пока читали — оторванный от DOM контейнер
+		// не наполняем. Модалку Quick Look это не задевает: она открыта
+		if (!inner.isConnected) return;
 		let snippet = content.slice(0, MARKDOWN_PREVIEW_CHARS);
 		if (content.length > MARKDOWN_PREVIEW_CHARS) snippet += "…";
 		if (!snippet.trim()) return;
 		const box = inner.createDiv({ cls: "column-explorer-preview-md markdown-rendered" });
-		await MarkdownRenderer.render(view.app, snippet, box, file.path, view);
+		await MarkdownRenderer.render(view.app, snippet, box, file.path, owner);
 	} catch { /* превью — best effort, ошибок чтения не показываем */ }
 }

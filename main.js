@@ -1049,9 +1049,9 @@ var VIDEO_EXTENSIONS = ["mp4", "mov", "webm", "ogv"];
 function renderPreviewColumn(view, container, file) {
   const col = container.createDiv({ cls: "column-explorer-column column-explorer-preview" });
   const inner = col.createDiv({ cls: "column-explorer-preview-inner" });
-  renderPreviewContent(view, inner, file);
+  renderPreviewContent(view, inner, file, view.newPreviewOwner());
 }
-function renderPreviewContent(view, inner, file) {
+function renderPreviewContent(view, inner, file, owner) {
   if (!renderMediaPreview(view, inner, file)) {
     const big = inner.createDiv({ cls: "column-explorer-preview-icon" });
     (0, import_obsidian5.setIcon)(big, iconFor(file));
@@ -1066,7 +1066,7 @@ function renderPreviewContent(view, inner, file) {
     void view.app.workspace.getLeaf(import_obsidian5.Keymap.isModEvent(e)).openFile(file);
   });
   if (file.extension === "md" && view.plugin.settings.showMarkdownPreview) {
-    void renderMarkdownSnippet(view, inner, file);
+    void renderMarkdownSnippet(view, inner, file, owner);
   }
 }
 function renderMediaPreview(view, inner, file) {
@@ -1089,15 +1089,15 @@ function renderMediaPreview(view, inner, file) {
   }
   return false;
 }
-async function renderMarkdownSnippet(view, inner, file) {
+async function renderMarkdownSnippet(view, inner, file, owner) {
   try {
     const content = await view.app.vault.cachedRead(file);
-    if (view.selectedFilePath() !== file.path) return;
+    if (!inner.isConnected) return;
     let snippet = content.slice(0, MARKDOWN_PREVIEW_CHARS);
     if (content.length > MARKDOWN_PREVIEW_CHARS) snippet += "\u2026";
     if (!snippet.trim()) return;
     const box = inner.createDiv({ cls: "column-explorer-preview-md markdown-rendered" });
-    await import_obsidian5.MarkdownRenderer.render(view.app, snippet, box, file.path, view);
+    await import_obsidian5.MarkdownRenderer.render(view.app, snippet, box, file.path, owner);
   } catch (e) {
   }
 }
@@ -1130,8 +1130,11 @@ var QuickLookModal = class extends import_obsidian6.Modal {
     super(app);
     this.view = view;
     this.file = file;
+    /** Владелец отрисованного markdown — выгружается вместе с модалкой. */
+    this.owner = new import_obsidian6.Component();
   }
   onOpen() {
+    this.owner.load();
     this.modalEl.addClass("column-explorer-quicklook");
     if (import_obsidian6.Platform.isMobile) {
       const bar = this.contentEl.createDiv({ cls: "column-explorer-quicklook-bar" });
@@ -1140,13 +1143,14 @@ var QuickLookModal = class extends import_obsidian6.Modal {
       close.addEventListener("click", () => this.close());
     }
     const inner = this.contentEl.createDiv({ cls: "column-explorer-preview-inner" });
-    renderPreviewContent(this.view, inner, this.file);
+    renderPreviewContent(this.view, inner, this.file, this.owner);
     this.scope.register([], " ", () => {
       this.close();
       return false;
     });
   }
   onClose() {
+    this.owner.unload();
     this.contentEl.empty();
   }
 };
@@ -1813,6 +1817,13 @@ function renderColumn(view, container, folder, depth) {
 }
 var RENDER_CHUNK = 300;
 var listObservers = /* @__PURE__ */ new WeakMap();
+function disconnectListObservers(container) {
+  container.querySelectorAll(".column-explorer-list").forEach((list) => {
+    var _a;
+    (_a = listObservers.get(list)) == null ? void 0 : _a.disconnect();
+    listObservers.delete(list);
+  });
+}
 function renderColumnList(view, list, folder, depth) {
   var _a, _b, _c;
   (_a = listObservers.get(list)) == null ? void 0 : _a.disconnect();
@@ -2110,6 +2121,8 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     this.typeaheadTimer = 0;
     /** Показанный месяц календаря; null — от выбранного дня или сегодня. */
     this.calendarMonth = null;
+    /** Владелец markdown-превью колонки: живёт до следующего рендера. */
+    this.previewOwner = null;
     /** Стек истории навигации (снимки selection) для кнопок назад/вперёд. */
     this.history = [];
     this.historyIndex = -1;
@@ -2425,6 +2438,16 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
   applyColumnWidth() {
     this.columnsEl.style.setProperty("--ce-col-width", this.plugin.settings.columnWidth + "px");
   }
+  /**
+   * Свежий владелец markdown-превью колонки. Предыдущий выгружается: без
+   * этого дочерние компоненты MarkdownRenderer копились бы на view до
+   * закрытия вью — вместе с эмбедами, которые они держат.
+   */
+  newPreviewOwner() {
+    if (this.previewOwner) this.removeChild(this.previewOwner);
+    this.previewOwner = this.addChild(new import_obsidian11.Component());
+    return this.previewOwner;
+  }
   markDirty(folderPath) {
     if (folderPath === null) this.fullRenderPending = true;
     else this.dirtyFolders.add(folderPath);
@@ -2483,6 +2506,7 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     const scrollTops = this.captureScrollTops();
     const prevKey = this.columnsKey();
     const prevScrollLeft = this.columnsEl.scrollLeft;
+    disconnectListObservers(this.columnsEl);
     this.columnsEl.empty();
     this.applyColumnWidth();
     const validSel = [];
@@ -3136,6 +3160,7 @@ var ColumnExplorerPlugin = class extends import_obsidian12.Plugin {
     if (this.shouldSeedRecents) {
       this.settings.recentFiles = this.app.workspace.getLastOpenFiles();
     }
+    this.register(() => this.saveRecentsDebounced.run());
     this.registerEvent(this.app.workspace.on("file-open", (f) => {
       var _a;
       if (!f) return;

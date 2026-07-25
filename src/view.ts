@@ -1,4 +1,5 @@
 import {
+	Component,
 	ItemView,
 	Notice,
 	TAbstractFile,
@@ -27,7 +28,7 @@ import {
 } from "./mobile";
 import { displayName, folderNoteOf, visibleChildren } from "./utils";
 import { MIN_COLUMN_WIDTH } from "./settings";
-import { renderCalendarColumn, renderColumn, renderColumnList, renderFileListColumn } from "./column";
+import { disconnectListObservers, renderCalendarColumn, renderColumn, renderColumnList, renderFileListColumn } from "./column";
 import { renderPreviewColumn } from "./preview";
 import { showSortMenu } from "./menus";
 import { ConfirmModal, QuickLookModal } from "./modals";
@@ -71,6 +72,8 @@ export class ColumnExplorerView extends ItemView {
 	private typeaheadTimer = 0;
 	/** Показанный месяц календаря; null — от выбранного дня или сегодня. */
 	private calendarMonth: { year: number; month: number } | null = null;
+	/** Владелец markdown-превью колонки: живёт до следующего рендера. */
+	private previewOwner: Component | null = null;
 
 	/** Стек истории навигации (снимки selection) для кнопок назад/вперёд. */
 	private history: string[][] = [];
@@ -416,6 +419,17 @@ export class ColumnExplorerView extends ItemView {
 		this.columnsEl.style.setProperty("--ce-col-width", this.plugin.settings.columnWidth + "px");
 	}
 
+	/**
+	 * Свежий владелец markdown-превью колонки. Предыдущий выгружается: без
+	 * этого дочерние компоненты MarkdownRenderer копились бы на view до
+	 * закрытия вью — вместе с эмбедами, которые они держат.
+	 */
+	newPreviewOwner(): Component {
+		if (this.previewOwner) this.removeChild(this.previewOwner);
+		this.previewOwner = this.addChild(new Component());
+		return this.previewOwner;
+	}
+
 	private markDirty(folderPath: string | null) {
 		if (folderPath === null) this.fullRenderPending = true;
 		else this.dirtyFolders.add(folderPath);
@@ -476,6 +490,8 @@ export class ColumnExplorerView extends ItemView {
 		const prevKey = this.columnsKey();
 		const prevScrollLeft = this.columnsEl.scrollLeft;
 
+		// Обсерверы догрузки живут на списках — снимаем их до удаления колонок
+		disconnectListObservers(this.columnsEl);
 		this.columnsEl.empty();
 		this.applyColumnWidth();
 
