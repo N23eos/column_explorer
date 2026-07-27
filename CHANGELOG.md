@@ -5,6 +5,18 @@ All notable changes to Column Explorer are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.11.0] — 2026-07-27
+
+### Added
+- **Chinese (Simplified), German, Japanese, Korean and Brazilian Portuguese** translations,
+  bringing the plugin to ten languages. As before, the UI follows Obsidian's own language setting.
+- The locale test now derives its list from the locale registry, so a newly added language is
+  checked for missing keys, empty strings and lost placeholders without touching the test.
+
+### Notes
+- Right-to-left languages are deliberately absent: the layout is left-to-right throughout, so
+  they need CSS work rather than translations.
+
 ## [1.10.0] — 2026-07-27
 
 ### Added
@@ -111,6 +123,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Accepted into the Obsidian community plugin directory.
 
+[1.11.0]: https://github.com/n23eos/column_explorer/releases/tag/1.11.0
 [1.10.0]: https://github.com/n23eos/column_explorer/releases/tag/1.10.0
 [1.9.0]: https://github.com/n23eos/column_explorer/releases/tag/1.9.0
 [1.8.0]: https://github.com/n23eos/column_explorer/releases/tag/1.8.0

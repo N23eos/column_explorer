@@ -47,3 +47,8 @@ export class SliderComponent {}
 export class PluginSettingTab {
 	constructor(public app: App, public plugin: unknown) {}
 }
+
+/** Тесты локалей проверяют таблицы напрямую, язык приложения им не важен. */
+export function getLanguage(): string {
+	return "en";
+}
