@@ -42,7 +42,7 @@ See the [changelog](CHANGELOG.md) for what changed in each release.
 - **File preview column** — image, audio, video and PDF previews, note content, size, dates
 - **Item counts** — each column header shows how many items it lists
 - **Resizable columns** — drag the right edge of any column
-- **Localized** — English, Russian, Spanish, French and Italian, following Obsidian's own language setting
+- **Localized** — English, Chinese (Simplified), German, Japanese, Korean, Brazilian Portuguese, Spanish, French, Italian and Russian, following Obsidian's own language setting
 
 ### File management
 - **All standard operations** — create notes, canvases and folders (with inline rename), rename, trash, duplicate, move to folder, copy path
@@ -122,13 +122,19 @@ Feature work happens on `dev`; `main` only moves on a release.
 
 ### Translations
 
-Each locale is one file in `src/locales/`. English is the source of truth: the others are typed
-against it, so a missing key fails the build, and `tests/i18n.test.ts` additionally checks for
-empty strings and placeholders (`{n}`, `{name}`) lost in translation.
+Each locale is one file in `src/locales/`, named with Obsidian's own language code. English is
+the source of truth: the others are typed against it, so a missing key fails the build, and
+`tests/i18n.test.ts` additionally checks for extra keys, empty strings and placeholders (`{n}`,
+`{name}`) lost in translation — for every locale registered in `src/i18n.ts`, automatically.
 
-The Spanish, French and Italian translations were not reviewed by native speakers — corrections
-are very welcome. To fix a wording, edit the one file and open a pull request; to add a language,
-copy `src/locales/en.ts`, translate the values, and register it in `src/i18n.ts`.
+**None of the translations except Russian were reviewed by a native speaker.** Corrections are
+very welcome and are a one-file change: edit `src/locales/<code>.ts` and open a pull request.
+To add a language, copy `src/locales/en.ts`, translate the values, and register it in
+`src/i18n.ts` under its [Obsidian language code](https://github.com/obsidianmd/obsidian-translations#existing-languages).
+
+Right-to-left languages (Arabic, Hebrew, Persian) are not offered yet: the layout is
+left-to-right throughout — columns grow rightwards, breadcrumbs are separated by `›`, and the
+mobile edge swipe maps the left edge to "back". That needs CSS work, not just strings.
 
 Tests cover `pure.ts` and `utils.ts`. The npm `obsidian` package ships types only, so
 `tests/__mocks__/obsidian.ts` provides the handful of runtime classes those modules need,
