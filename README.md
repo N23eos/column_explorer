@@ -1,5 +1,3 @@
-
-
 # Column Explorer
 
 Browse your Obsidian vault in **Finder-style Miller columns** — click a folder and its contents open in a new column to the right. A full file manager: create, rename, move, drag & drop, multi-select, context menus, folder colors and more.
@@ -12,6 +10,8 @@ Browse your Obsidian vault in **Finder-style Miller columns** — click a folder
 
 ![Column Explorer — special items settings](docs/screenshot-4.jpg)
 
+See the [changelog](CHANGELOG.md) for what changed in each release.
+
 ## Highlights
 
 - **Miller columns** — Finder-style navigation, each folder opens a new column
@@ -22,6 +22,7 @@ Browse your Obsidian vault in **Finder-style Miller columns** — click a folder
 - **Quick Look & preview column** — `Space` previews the selected file; optional details column with media previews
 - **Resizable everything** — per-column widths, auto-resizing side panel, lockable column count
 - **Full file manager** — multi-select, drag & drop with undo, context menus, per-folder sort, excluded files
+- **Built for phones too** — one column at a time, a compact toolbar, long-press multi-select, edge-swipe navigation and an adjustable interface scale
 
 ## Features
 
@@ -29,7 +30,9 @@ Browse your Obsidian vault in **Finder-style Miller columns** — click a folder
 - **Miller columns** — drill down through folders, each level in its own column
 - **Breadcrumbs** — clickable path bar for quick jumps to any ancestor folder
 - **Folder notes** — optionally open the note named like its folder when selecting the folder
-- **Keyboard navigation** — `↑`/`↓` select, `→`/`←` drill in/out, `Home`/`End`/`PageUp`/`PageDown`, type-ahead (start typing to jump, like in Finder), `Enter` open, `F2` rename, `Delete` trash
+- **Keyboard navigation** — `↑`/`↓` select, `→`/`←` drill in/out, `Home`/`End`/`PageUp`/`PageDown`, type-ahead (start typing to jump, like in Finder), `Enter` open, `Space` Quick Look, `F2` rename, `Delete` trash, `Ctrl`/`Cmd`+`A` select all in the column, `Ctrl`/`Cmd`+`D` duplicate
+- **Back & forward** — navigation history buttons in the breadcrumbs bar
+- **Favorites** — star any file or folder (context menu, or the star button in the breadcrumbs bar); they sit atop the Bookmarks column
 - **Filter** — live search box that filters files in every column
 - **Auto-reveal** — optionally follow the active editor tab
 - **Persistent state** — selected path survives app restarts
@@ -49,27 +52,47 @@ Browse your Obsidian vault in **Finder-style Miller columns** — click a folder
 - **Multi-select** — `Ctrl`/`Cmd`-click to toggle, `Shift`-click for range; move, duplicate, delete or drag many at once
 - **Drag & drop** — move files/folders between columns or straight onto a folder row; drag a file into an editor to insert a link
 - **Full Obsidian context menu** — core & community plugin items (bookmarks, "Reveal in Finder", copy link, …) are injected via the `file-menu` event
-- **Copy links** — copy a file's Markdown link or `obsidian://` URL from the context menu
-- **Excluded files** — hide files and folders by patterns (`*.tmp`, `archive/`, `.trash`)
-- **Sort options** — global default plus per-folder overrides (right-click a column header)
+- **Copy links & paths** — vault path, absolute system path, wikilink, Markdown link or `obsidian://` URL, from the context menu
+- **Excluded files** — hide files and folders by comma-separated patterns. `*.tmp` matches by file name at any depth; `.trash` matches any path containing it; a trailing slash (`archive/`) is a path prefix **from the vault root**, so nested folders need their full path (`Notes/archive/`)
+- **Sort options** — global default plus per-folder overrides (right-click a column header): name, modified, created or size, both directions
+
+### Mobile
+
+The plugin works on Android and iOS, with a layout of its own — desktop behaviour is unchanged.
+
+- **One column at a time** — the deepest folder fills the screen; an *up* arrow in the column header walks back out
+- **Compact toolbar** — back, forward, search, create and a *more* menu (reveal, collapse, sort)
+- **Long-press to select** — hold an item to enter selection mode, then tap to add more; a bottom bar moves, duplicates, deletes or opens the full menu
+- **Edge swipe** — swipe in from the left or right edge to go back or forward
+- **Quick Look instead of a preview column** — open *Preview* from a file's menu; it slides up as a sheet
+- **Adjustable scale** — *Settings → Mobile interface*: interface scale (90–150%) and icon size (22–36px), applied live. Touch targets never drop below 44px
+- **No drag & drop** — on touch screens it fights with scrolling; move files through selection mode instead
 
 ## Installation
 
 ### Manual
 
-1. Download `main.js`, `manifest.json`, `styles.css` from the [latest release](https://github.com/N23eos/column_explorer/releases/latest)
+1. Download `main.js`, `manifest.json`, `styles.css` from the [latest release](https://github.com/n23eos/column_explorer/releases/latest)
 2. Copy them into `<vault>/.obsidian/plugins/column-explorer/`
 3. Enable the plugin in **Settings → Community plugins**
 
 ### Community plugins
 
-Pending review for the community plugin directory.
+Browse **Settings → Community plugins → Browse** and search for *Column Explorer*.
 
 ## Usage
 
 - Open via the **columns icon** in the ribbon, or the command *Open column explorer*
-- *Reveal active file in columns* command (and toolbar button) jumps to the current note
 - Right-click items for the context menu, right-click empty space to create a note, folder or canvas
+
+Commands (all bindable to hotkeys):
+
+| Command | What it does |
+|---------|--------------|
+| *Open column explorer* | opens (or reveals) the view |
+| *Reveal active file in columns* | jumps to the note open in the editor |
+| *New note in current folder* | creates a note in the deepest selected folder |
+| *New folder in current folder* | same, for a folder |
 
 ## Development
 
@@ -88,23 +111,37 @@ The code lives in `src/`:
 | `main.ts` | plugin entry, commands, view registration |
 | `view.ts` | columns view: state, rendering orchestration, keyboard |
 | `column.ts` | single column rendering with delegated events |
+| `mobile.ts` | mobile-only layer: toolbar, long-press selection, edge swipe, scale |
 | `preview.ts` | file preview column |
 | `dnd.ts` | drag & drop |
 | `menus.ts` | context menus |
 | `fileops.ts` | move/duplicate/trash operations |
-| `modals.ts` | confirm & folder-picker modals |
+| `modals.ts` | confirm, Quick Look, folder- and icon-picker modals |
 | `settings.ts` | settings tab |
 | `i18n.ts` | translations |
 | `pure.ts` | pure helpers (unit-tested) |
 
+Feature work happens on `dev`; `main` only moves on a release.
+
+Tests cover `pure.ts` and `utils.ts`. The npm `obsidian` package ships types only, so
+`tests/__mocks__/obsidian.ts` provides the handful of runtime classes those modules need,
+wired up through `resolve.alias` in `vitest.config.ts`.
+
 ### Releasing
 
+Tags carry no `v` prefix, so the version is set explicitly rather than through `npm version`:
+
 ```bash
-npm version minor   # bumps package.json, manifest.json, versions.json
-git push && git push --tags
+npm pkg set version=X.Y.Z
+npm_package_version=X.Y.Z node version-bump.mjs   # manifest.json + versions.json
+npm run build
+git commit -am "chore: bump version to X.Y.Z"
+git checkout main && git merge --no-ff dev
+git tag X.Y.Z && git push origin main --tags
 ```
 
-The GitHub Action builds and attaches `main.js`, `manifest.json`, `styles.css` to the release.
+The GitHub Action lints, tests, builds, and attaches `main.js`, `manifest.json`, `styles.css`
+to the release with a build attestation.
 
 ## License
 
