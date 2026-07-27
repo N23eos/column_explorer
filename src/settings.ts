@@ -1,17 +1,21 @@
 import { App, Notice, PluginSettingTab, Setting, SettingDefinitionItem, SliderComponent } from "obsidian";
 import { t } from "./i18n";
 import {
-	DEFAULT_MOBILE_ICON, DEFAULT_MOBILE_SCALE,
-	MAX_MOBILE_ICON, MAX_MOBILE_SCALE, MIN_MOBILE_ICON, MIN_MOBILE_SCALE,
-	normalizeMobileSettings,
+	DEFAULT_COLUMN_WIDTH, DEFAULT_MOBILE_ICON, DEFAULT_MOBILE_SCALE, DEFAULT_RECENT_FILES,
+	MAX_COLUMN_WIDTH, MAX_MOBILE_ICON, MAX_MOBILE_SCALE, MAX_RECENT_FILES,
+	MIN_COLUMN_WIDTH, MIN_MOBILE_ICON, MIN_MOBILE_SCALE, MIN_RECENT_FILES,
+	SORT_MODE_VALUES, normalizeMobileSettings,
 } from "./pure";
 import type ColumnExplorerPlugin from "./main";
 
-export type SortMode =
-	| "name-asc" | "name-desc"
-	| "mtime-desc" | "mtime-asc"
-	| "ctime-desc" | "ctime-asc"
-	| "size-desc" | "size-asc";
+// Границы и список режимов живут в pure.ts (их использует normalizeSettings);
+// здесь реэкспорт, чтобы остальные модули импортировали их как раньше
+export {
+	MAX_COLUMN_WIDTH, MAX_RECENT_FILES, MIN_COLUMN_WIDTH, MIN_RECENT_FILES,
+	ROOT_COLUMN_EXTRA_WIDTH, SORT_MODE_VALUES,
+} from "./pure";
+
+export type SortMode = (typeof SORT_MODE_VALUES)[number];
 export type ColumnViewMode = "list" | "grid";
 
 /** Theme color keys — resolve to Obsidian's native `--color-*` CSS variables. */
@@ -73,7 +77,7 @@ export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
 	showMarkdownPreview: true,
 	confirmDelete: true,
 	autoReveal: false,
-	columnWidth: 200,
+	columnWidth: DEFAULT_COLUMN_WIDTH,
 	columnWidths: {},
 	autoPanelResize: true,
 	sortMode: "name-asc",
@@ -85,7 +89,7 @@ export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
 	folderIcons: {},
 	openFolderNote: false,
 	lockedColumnCount: null,
-	recentFilesCount: 10,
+	recentFilesCount: DEFAULT_RECENT_FILES,
 	recentFiles: [],
 	showRecents: true,
 	showBookmarks: true,
@@ -96,14 +100,6 @@ export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
 	mobileUiScale: DEFAULT_MOBILE_SCALE,
 	mobileIconSize: DEFAULT_MOBILE_ICON,
 };
-
-export const MIN_RECENT_FILES = 5;
-export const MAX_RECENT_FILES = 50;
-
-export const MIN_COLUMN_WIDTH = 140;
-export const MAX_COLUMN_WIDTH = 500;
-/** Корневая колонка по умолчанию шире остальных — там самые длинные ярлыки. */
-export const ROOT_COLUMN_EXTRA_WIDTH = 60;
 
 export class ColumnExplorerSettingTab extends PluginSettingTab {
 	/** Синхронизация мобильных слайдеров и подписей после сброса. */

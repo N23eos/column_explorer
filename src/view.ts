@@ -18,7 +18,7 @@ import {
 import { t } from "./i18n";
 import {
 	BOOKMARKS_PATH, CALENDAR_PATH, DAY_PATH_PREFIX, RECENTS_PATH,
-	dayKey, desiredPanelWidth, lockedColumnVisible, matchesExcludePatterns,
+	dayKey, desiredPanelWidth, errorMessage, lockedColumnVisible, matchesExcludePatterns,
 	mobileSelectionMode, parentSelection,
 	parseExcludePatterns, prunePathKeys, remapPathKeys, takeFirstExisting,
 } from "./pure";
@@ -399,7 +399,8 @@ export class ColumnExplorerView extends ItemView {
 		s.columnSortModes = remapPathKeys(s.columnSortModes, oldPath, newPath);
 		s.folderIcons = remapPathKeys(s.folderIcons, oldPath, newPath);
 		s.columnWidths = remapPathKeys(s.columnWidths, oldPath, newPath);
-		void this.plugin.saveSettings();
+		// Перемещение пачки файлов даёт событие на каждый — склеиваем записи
+		this.plugin.queueSaveSettings();
 	}
 
 	private prunePathRecords(deletedPath: string) {
@@ -410,7 +411,8 @@ export class ColumnExplorerView extends ItemView {
 		s.columnSortModes = prunePathKeys(s.columnSortModes, deletedPath);
 		s.folderIcons = prunePathKeys(s.folderIcons, deletedPath);
 		s.columnWidths = prunePathKeys(s.columnWidths, deletedPath);
-		void this.plugin.saveSettings();
+		// Удаление папки даёт событие на каждый вложенный файл — склеиваем
+		this.plugin.queueSaveSettings();
 	}
 
 	/* ------------------------------ render --------------------------- */
@@ -985,10 +987,14 @@ export class ColumnExplorerView extends ItemView {
 		while (this.app.vault.getAbstractFileByPath(path)) {
 			path = normalizePath(base + " " + n++ + "." + extension);
 		}
-		const file = await this.app.vault.create(path, initialContent);
-		this.revealFile(file);
-		await this.app.workspace.getLeaf(false).openFile(file);
-		window.setTimeout(() => this.startRenameByPath(file.path), 100);
+		try {
+			const file = await this.app.vault.create(path, initialContent);
+			this.revealFile(file);
+			await this.app.workspace.getLeaf(false).openFile(file);
+			window.setTimeout(() => this.startRenameByPath(file.path), 100);
+		} catch (err) {
+			new Notice(t("createFailed", { name: path, error: errorMessage(err) }));
+		}
 	}
 
 	async createFolder(folder: TFolder) {
@@ -998,8 +1004,12 @@ export class ColumnExplorerView extends ItemView {
 		while (this.app.vault.getAbstractFileByPath(path)) {
 			path = normalizePath(base + " " + n++);
 		}
-		await this.app.vault.createFolder(path);
-		window.setTimeout(() => this.startRenameByPath(path), 100);
+		try {
+			await this.app.vault.createFolder(path);
+			window.setTimeout(() => this.startRenameByPath(path), 100);
+		} catch (err) {
+			new Notice(t("createFailed", { name: path, error: errorMessage(err) }));
+		}
 	}
 
 	private startRenameByPath(path: string) {
@@ -1035,7 +1045,7 @@ export class ColumnExplorerView extends ItemView {
 				try {
 					await this.app.fileManager.renameFile(f, normalizePath(dir + finalName));
 				} catch (err) {
-					new Notice(t("renameFailed") + String(err));
+					new Notice(t("renameFailed") + errorMessage(err));
 				}
 			}
 			this.render();

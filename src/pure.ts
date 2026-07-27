@@ -378,3 +378,86 @@ export function matchesExcludePatterns(path: string, patterns: string[]): boolea
 		return path.includes(pattern);
 	});
 }
+
+/* ------------------------------ errors --------------------------------- */
+
+/** Текст ошибки для Notice: у Error берём message, остальное печатаем как есть. */
+export function errorMessage(err: unknown): string {
+	if (err instanceof Error) return err.message;
+	if (typeof err === "string") return err;
+	return String(err);
+}
+
+/* ---------------------------- settings --------------------------------- */
+
+export const MIN_COLUMN_WIDTH = 140;
+export const MAX_COLUMN_WIDTH = 500;
+export const DEFAULT_COLUMN_WIDTH = 200;
+/** Корневая колонка по умолчанию шире остальных — там самые длинные ярлыки. */
+export const ROOT_COLUMN_EXTRA_WIDTH = 60;
+
+export const MIN_RECENT_FILES = 5;
+export const MAX_RECENT_FILES = 50;
+export const DEFAULT_RECENT_FILES = 10;
+
+/** Единственный список режимов сортировки: меню и настройки берут его. */
+export const SORT_MODE_VALUES = [
+	"name-asc", "name-desc",
+	"mtime-desc", "mtime-asc",
+	"ctime-desc", "ctime-asc",
+	"size-desc", "size-asc",
+] as const;
+
+export const SPECIAL_POSITIONS = ["top", "bottom"] as const;
+
+function clampInt(value: unknown, min: number, max: number, fallback: number): number {
+	if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+	return Math.max(min, Math.min(max, Math.round(value)));
+}
+
+function oneOf<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
+	return typeof value === "string" && (allowed as readonly string[]).includes(value)
+		? (value as T)
+		: fallback;
+}
+
+/** Числовые значения записи путь → ширина, вышедшие за пределы, отбрасываются. */
+function cleanWidths(value: unknown): Record<string, number> {
+	if (typeof value !== "object" || value === null || Array.isArray(value)) return {};
+	const result: Record<string, number> = {};
+	for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+		if (typeof raw !== "number" || !Number.isFinite(raw)) continue;
+		if (raw < MIN_COLUMN_WIDTH || raw > MAX_COLUMN_WIDTH) continue;
+		result[key] = Math.round(raw);
+	}
+	return result;
+}
+
+export interface NormalizedSettings {
+	columnWidth: number;
+	columnWidths: Record<string, number>;
+	recentFilesCount: number;
+	lockedColumnCount: number | null;
+	sortMode: (typeof SORT_MODE_VALUES)[number];
+	specialItemsPosition: (typeof SPECIAL_POSITIONS)[number];
+}
+
+/**
+ * Приводит в чувство поля, приехавшие из data.json: файл правится руками,
+ * переживает откаты версий и может содержать что угодно. Возвращает только
+ * исправленные ключи — вызывающий накладывает их поверх своих настроек.
+ */
+export function normalizeSettings(raw: Record<string, unknown>): NormalizedSettings {
+	const locked = raw.lockedColumnCount;
+	return {
+		columnWidth: clampInt(raw.columnWidth, MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH),
+		columnWidths: cleanWidths(raw.columnWidths),
+		recentFilesCount: clampInt(raw.recentFilesCount, MIN_RECENT_FILES, MAX_RECENT_FILES, DEFAULT_RECENT_FILES),
+		// null — режим «показывать все колонки», это валидное значение
+		lockedColumnCount: typeof locked === "number" && Number.isFinite(locked)
+			? Math.max(1, Math.round(locked))
+			: null,
+		sortMode: oneOf(raw.sortMode, SORT_MODE_VALUES, "name-asc"),
+		specialItemsPosition: oneOf(raw.specialItemsPosition, SPECIAL_POSITIONS, "top"),
+	};
+}

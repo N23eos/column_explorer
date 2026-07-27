@@ -6,12 +6,14 @@ import {
 	MIN_TOUCH_TARGET_PX,
 	SWIPE_MIN_DISTANCE_PX,
 	detectEdgeSwipe,
+	errorMessage,
 	exceedsMoveTolerance,
 	mobileControlSize,
 	mobileSelectionMode,
 	mobileTapAction,
 	nextPressPhase,
 	normalizeMobileSettings,
+	normalizeSettings,
 	parentSelection,
 } from "../src/pure";
 
@@ -240,5 +242,104 @@ describe("parentSelection", () => {
 
 	test("goes from recents back to the root", () => {
 		expect(parentSelection(["::recents::", "a.md"], isFolder)).toEqual([]);
+	});
+});
+
+/* --------------------------- normalizeSettings ------------------------- */
+
+describe("normalizeSettings", () => {
+	test("keeps valid values untouched", () => {
+		const result = normalizeSettings({
+			columnWidth: 260,
+			columnWidths: { Notes: 300 },
+			recentFilesCount: 25,
+			lockedColumnCount: 2,
+			sortMode: "size-desc",
+			specialItemsPosition: "bottom",
+		});
+
+		expect(result).toEqual({
+			columnWidth: 260,
+			columnWidths: { Notes: 300 },
+			recentFilesCount: 25,
+			lockedColumnCount: 2,
+			sortMode: "size-desc",
+			specialItemsPosition: "bottom",
+		});
+	});
+
+	test("falls back to defaults on missing keys", () => {
+		const result = normalizeSettings({});
+
+		expect(result.columnWidth).toBe(200);
+		expect(result.recentFilesCount).toBe(10);
+		expect(result.lockedColumnCount).toBeNull();
+		expect(result.sortMode).toBe("name-asc");
+		expect(result.specialItemsPosition).toBe("top");
+		expect(result.columnWidths).toEqual({});
+	});
+
+	test("clamps out-of-range numbers", () => {
+		expect(normalizeSettings({ columnWidth: 9000 }).columnWidth).toBe(500);
+		expect(normalizeSettings({ columnWidth: 10 }).columnWidth).toBe(140);
+		expect(normalizeSettings({ recentFilesCount: 0 }).recentFilesCount).toBe(5);
+		expect(normalizeSettings({ recentFilesCount: 999 }).recentFilesCount).toBe(50);
+	});
+
+	test("rounds fractional numbers", () => {
+		expect(normalizeSettings({ columnWidth: 233.7 }).columnWidth).toBe(234);
+		expect(normalizeSettings({ recentFilesCount: 12.4 }).recentFilesCount).toBe(12);
+	});
+
+	test("replaces non-numeric values with defaults", () => {
+		expect(normalizeSettings({ columnWidth: "wide" }).columnWidth).toBe(200);
+		expect(normalizeSettings({ columnWidth: NaN }).columnWidth).toBe(200);
+		expect(normalizeSettings({ columnWidth: null }).columnWidth).toBe(200);
+		expect(normalizeSettings({ recentFilesCount: [] }).recentFilesCount).toBe(10);
+	});
+
+	test("treats an unknown sort mode or position as the default", () => {
+		expect(normalizeSettings({ sortMode: "chaos" }).sortMode).toBe("name-asc");
+		expect(normalizeSettings({ sortMode: 7 }).sortMode).toBe("name-asc");
+		expect(normalizeSettings({ specialItemsPosition: "middle" }).specialItemsPosition).toBe("top");
+	});
+
+	test("keeps null as a valid locked column count and floors bogus ones at 1", () => {
+		expect(normalizeSettings({ lockedColumnCount: null }).lockedColumnCount).toBeNull();
+		expect(normalizeSettings({ lockedColumnCount: "two" }).lockedColumnCount).toBeNull();
+		expect(normalizeSettings({ lockedColumnCount: 0 }).lockedColumnCount).toBe(1);
+		expect(normalizeSettings({ lockedColumnCount: -3 }).lockedColumnCount).toBe(1);
+	});
+
+	test("drops column widths that are not numbers or are out of range", () => {
+		const result = normalizeSettings({
+			columnWidths: { good: 250, tiny: 5, huge: 9000, text: "200", missing: null },
+		});
+
+		expect(result.columnWidths).toEqual({ good: 250 });
+	});
+
+	test("survives a columnWidths value that is not an object at all", () => {
+		expect(normalizeSettings({ columnWidths: "nope" }).columnWidths).toEqual({});
+		expect(normalizeSettings({ columnWidths: [1, 2] }).columnWidths).toEqual({});
+		expect(normalizeSettings({ columnWidths: null }).columnWidths).toEqual({});
+	});
+});
+
+/* ----------------------------- errorMessage ---------------------------- */
+
+describe("errorMessage", () => {
+	test("uses the message of an Error", () => {
+		expect(errorMessage(new Error("file is locked"))).toBe("file is locked");
+	});
+
+	test("passes a plain string through", () => {
+		expect(errorMessage("ENOENT")).toBe("ENOENT");
+	});
+
+	test("stringifies anything else", () => {
+		expect(errorMessage(404)).toBe("404");
+		expect(errorMessage(null)).toBe("null");
+		expect(errorMessage(undefined)).toBe("undefined");
 	});
 });

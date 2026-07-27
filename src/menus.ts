@@ -1,17 +1,10 @@
 import { FileSystemAdapter, Menu, MenuItem, Notice, Platform, TFile, TFolder, TAbstractFile } from "obsidian";
 import { t } from "./i18n";
-import { shellEscapePath } from "./pure";
+import { SORT_MODE_VALUES, shellEscapePath } from "./pure";
 import { duplicateFile, moveFiles } from "./fileops";
 import { FolderSuggestModal, IconSuggestModal, QuickLookModal } from "./modals";
 import { FOLDER_COLOR_KEYS, FolderColorKey, SortMode } from "./settings";
 import type { ColumnExplorerView } from "./view";
-
-const SORT_MODES = [
-	"name-asc", "name-desc",
-	"mtime-desc", "mtime-asc",
-	"ctime-desc", "ctime-asc",
-	"size-desc", "size-asc",
-] as const;
 
 function sortLabel(mode: SortMode): string {
 	const keys: Record<SortMode, string> = {
@@ -228,7 +221,7 @@ export function showColumnHeaderMenu(view: ColumnExplorerView, e: MouseEvent, fo
 	};
 	menu.addItem(i => i.setTitle(t("sortDefault")).setChecked(current === undefined)
 		.onClick(() => setMode(null)));
-	for (const mode of SORT_MODES) {
+	for (const mode of SORT_MODE_VALUES) {
 		menu.addItem(i => i.setTitle(sortLabel(mode)).setChecked(current === mode)
 			.onClick(() => setMode(mode)));
 	}
@@ -247,7 +240,7 @@ export function showFolderBackgroundMenu(view: ColumnExplorerView, e: MouseEvent
 }
 
 function fillSortItems(view: ColumnExplorerView, target: Menu) {
-	for (const m of SORT_MODES) {
+	for (const m of SORT_MODE_VALUES) {
 		target.addItem(i => i.setTitle(sortLabel(m)).setChecked(view.plugin.settings.sortMode === m)
 			.onClick(async () => {
 				view.plugin.settings.sortMode = m;
