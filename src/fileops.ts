@@ -1,6 +1,6 @@
 import { App, Notice, TFile, TFolder, normalizePath } from "obsidian";
 import { t } from "./i18n";
-import { availablePath } from "./pure";
+import { availablePath, errorMessage } from "./pure";
 
 const UNDO_NOTICE_MS = 8000;
 
@@ -25,8 +25,13 @@ export async function moveFiles(app: App, paths: string[], target: TFolder): Pro
 			new Notice(t("alreadyExists", { name: src.name }));
 			continue;
 		}
-		await app.fileManager.renameFile(src, dest);
-		moves.push({ from: path, to: dest });
+		// Сбой одного файла не должен рвать всю пачку — сообщаем и идём дальше
+		try {
+			await app.fileManager.renameFile(src, dest);
+			moves.push({ from: path, to: dest });
+		} catch (err) {
+			new Notice(t("moveFailed", { name: src.name, error: errorMessage(err) }));
+		}
 	}
 	if (moves.length > 0) showUndoMoveNotice(app, moves);
 	return moves.length;
@@ -48,8 +53,11 @@ async function undoMoves(app: App, moves: MoveRecord[]) {
 	for (const move of moves) {
 		const f = app.vault.getAbstractFileByPath(move.to);
 		// Файл мог быть удалён/переименован, а исходное имя — занято заново
-		if (f && !app.vault.getAbstractFileByPath(move.from)) {
+		if (!f || app.vault.getAbstractFileByPath(move.from)) continue;
+		try {
 			await app.fileManager.renameFile(f, move.from);
+		} catch (err) {
+			new Notice(t("moveFailed", { name: f.name, error: errorMessage(err) }));
 		}
 	}
 }
@@ -83,12 +91,21 @@ export async function duplicateFile(app: App, f: TFile): Promise<void> {
 	while (app.vault.getAbstractFileByPath(path)) {
 		path = normalizePath(dir + f.basename + " copy " + n++ + "." + f.extension);
 	}
-	await app.vault.copy(f, path);
+	try {
+		await app.vault.copy(f, path);
+	} catch (err) {
+		new Notice(t("duplicateFailed", { name: f.name, error: errorMessage(err) }));
+	}
 }
 
 export async function trashFiles(app: App, paths: string[]): Promise<void> {
 	for (const p of paths) {
 		const f = app.vault.getAbstractFileByPath(p);
-		if (f) await app.fileManager.trashFile(f);
+		if (!f) continue;
+		try {
+			await app.fileManager.trashFile(f);
+		} catch (err) {
+			new Notice(t("deleteFailed", { name: f.name, error: errorMessage(err) }));
+		}
 	}
 }

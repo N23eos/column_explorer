@@ -1,13 +1,21 @@
-import { Plugin, debounce } from "obsidian";
+import { Plugin, WorkspaceLeaf, debounce } from "obsidian";
 import { t } from "./i18n";
-import { DAY_PATH_PREFIX, pushRecent, remapPathList } from "./pure";
+import { DAY_PATH_PREFIX, normalizeMobileSettings, normalizeSettings, pushRecent, remapPathList } from "./pure";
 import { ColumnExplorerSettings, ColumnExplorerSettingTab, DEFAULT_SETTINGS, MAX_RECENT_FILES } from "./settings";
 import { ColumnExplorerView, VIEW_TYPE_COLUMNS } from "./view";
+
+/** Окно склейки отложенных записей настроек. */
+const SAVE_DEBOUNCE_MS = 1000;
 
 export default class ColumnExplorerPlugin extends Plugin {
 	settings: ColumnExplorerSettings = DEFAULT_SETTINGS;
 	private shouldSeedRecents = false;
-	private saveRecentsDebounced = debounce(() => void this.saveSettings(), 2000);
+	/**
+	 * Отложенная запись настроек для событий, приходящих пачками: открытие
+	 * файлов и, главное, rename/delete — при удалении папки на N файлов
+	 * немедленная запись означала бы N перезаписей data.json подряд.
+	 */
+	private saveQueued = debounce(() => void this.saveSettings(), SAVE_DEBOUNCE_MS);
 
 	async onload() {
 		await this.loadSettings();
@@ -17,26 +25,24 @@ export default class ColumnExplorerPlugin extends Plugin {
 		if (this.shouldSeedRecents) {
 			this.settings.recentFiles = this.app.workspace.getLastOpenFiles();
 		}
-		// Отложенная запись «недавних» не должна теряться при выгрузке плагина
-		this.register(() => this.saveRecentsDebounced.run());
+		// Отложенная запись не должна теряться при выгрузке плагина
+		this.register(() => this.saveQueued.run());
 		this.registerEvent(this.app.workspace.on("file-open", (f) => {
 			if (!f) return;
 			this.settings.recentFiles = pushRecent(this.settings.recentFiles, f.path, MAX_RECENT_FILES);
-			// Дебаунс: file-open стреляет на каждое переключение вкладки,
-			// писать data.json так часто незачем
-			this.saveRecentsDebounced();
+			this.saveQueued();
 			this.getView()?.refreshRecentsColumn(f.path);
 		}));
 		this.registerEvent(this.app.vault.on("rename", (f, oldPath) => {
 			this.settings.recentFiles = remapPathList(this.settings.recentFiles, oldPath, f.path);
 			this.settings.favorites = remapPathList(this.settings.favorites, oldPath, f.path);
-			void this.saveSettings();
+			this.saveQueued();
 		}));
 		this.registerEvent(this.app.vault.on("delete", (f) => {
 			const dropDeleted = (p: string) => p !== f.path && !p.startsWith(f.path + "/");
 			this.settings.recentFiles = this.settings.recentFiles.filter(dropDeleted);
 			this.settings.favorites = this.settings.favorites.filter(dropDeleted);
-			void this.saveSettings();
+			this.saveQueued();
 		}));
 
 		this.registerView(VIEW_TYPE_COLUMNS, (leaf) => new ColumnExplorerView(leaf, this));
@@ -54,18 +60,20 @@ export default class ColumnExplorerPlugin extends Plugin {
 			id: "reveal-active-file",
 			name: t("cmdReveal"),
 			callback: async () => {
-				await this.activateView();
-				this.getView()?.revealFile(this.app.workspace.getActiveFile());
+				const view = await this.activateView();
+				view?.revealFile(this.app.workspace.getActiveFile());
 			},
 		});
 
+		// Условие — существование ЛИСТА, а не загруженной вью: в сайдбаре она
+		// остаётся отложенной, пока по вкладке не кликнули, и проверка на
+		// загруженную вью прятала бы команды до первого клика
 		this.addCommand({
 			id: "new-note-here",
 			name: t("cmdNewNote"),
 			checkCallback: (checking) => {
-				const view = this.getView();
-				if (!view) return false;
-				if (!checking) void view.createNote(view.currentFolder());
+				if (!this.getViewLeaf()) return false;
+				if (!checking) void this.withView((view) => void view.createNote(view.currentFolder()));
 				return true;
 			},
 		});
@@ -74,9 +82,8 @@ export default class ColumnExplorerPlugin extends Plugin {
 			id: "new-folder-here",
 			name: t("cmdNewFolder"),
 			checkCallback: (checking) => {
-				const view = this.getView();
-				if (!view) return false;
-				if (!checking) void view.createFolder(view.currentFolder());
+				if (!this.getViewLeaf()) return false;
+				if (!checking) void this.withView((view) => void view.createFolder(view.currentFolder()));
 				return true;
 			},
 		});
@@ -94,7 +101,15 @@ export default class ColumnExplorerPlugin extends Plugin {
 
 	async loadSettings() {
 		const data = (await this.loadData()) as Partial<ColumnExplorerSettings> | null;
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, data ?? {});
+		const merged = Object.assign({}, DEFAULT_SETTINGS, data ?? {});
+		// data.json правится руками и переживает откаты версий — числа, enum'ы
+		// и ширины колонок приводим в допустимые границы, прежде чем на них
+		// начнут опираться CSS-переменные и запросы к vault
+		this.settings = {
+			...merged,
+			...normalizeSettings(merged as unknown as Record<string, unknown>),
+			...normalizeMobileSettings(merged),
+		};
 		// Сид недавних только при ПЕРВОМ запуске (ключа ещё нет в data.json) —
 		// иначе «Очистить недавние» отменялось бы каждым перезапуском
 		this.shouldSeedRecents = data?.recentFiles === undefined;
@@ -126,21 +141,40 @@ export default class ColumnExplorerPlugin extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-	getView(): ColumnExplorerView | null {
-		const leaf = this.app.workspace.getLeavesOfType(VIEW_TYPE_COLUMNS)[0];
-		return leaf && leaf.view instanceof ColumnExplorerView ? leaf.view : null;
+	/** Запись настроек со склейкой — для событий, приходящих пачками. */
+	queueSaveSettings() {
+		this.saveQueued();
 	}
 
-	async activateView() {
-		const existing = this.app.workspace.getLeavesOfType(VIEW_TYPE_COLUMNS);
-		if (existing.length > 0) {
-			await this.app.workspace.revealLeaf(existing[0]);
-			return;
-		}
-		const leaf = this.app.workspace.getLeftLeaf(false);
-		if (leaf) {
-			await leaf.setViewState({ type: VIEW_TYPE_COLUMNS, active: true });
-			await this.app.workspace.revealLeaf(leaf);
-		}
+	/** Лист вью, даже если она ещё отложена (Obsidian 1.7.2+). */
+	private getViewLeaf(): WorkspaceLeaf | null {
+		return this.app.workspace.getLeavesOfType(VIEW_TYPE_COLUMNS)[0] ?? null;
+	}
+
+	/**
+	 * Загруженная вью или null. Отложенную НЕ будит намеренно: подсветке
+	 * активного файла и настройкам нечего обновлять в незагруженной вью.
+	 */
+	getView(): ColumnExplorerView | null {
+		const leaf = this.getViewLeaf();
+		return leaf?.view instanceof ColumnExplorerView ? leaf.view : null;
+	}
+
+	/** Действие пользователя над вью: отложенную сначала догружаем. */
+	private async withView(fn: (view: ColumnExplorerView) => void) {
+		const leaf = this.getViewLeaf();
+		if (!leaf) return;
+		await leaf.loadIfDeferred();
+		if (leaf.view instanceof ColumnExplorerView) fn(leaf.view);
+	}
+
+	async activateView(): Promise<ColumnExplorerView | null> {
+		const existing = this.getViewLeaf();
+		const leaf = existing ?? this.app.workspace.getLeftLeaf(false);
+		if (!leaf) return null;
+		if (!existing) await leaf.setViewState({ type: VIEW_TYPE_COLUMNS, active: true });
+		await this.app.workspace.revealLeaf(leaf);
+		await leaf.loadIfDeferred();
+		return leaf.view instanceof ColumnExplorerView ? leaf.view : null;
 	}
 }

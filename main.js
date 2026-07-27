@@ -259,310 +259,835 @@ function matchesExcludePatterns(path, patterns) {
     return path.includes(pattern);
   });
 }
+function errorMessage(err) {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  return String(err);
+}
+var MIN_COLUMN_WIDTH = 140;
+var MAX_COLUMN_WIDTH = 500;
+var DEFAULT_COLUMN_WIDTH = 200;
+var ROOT_COLUMN_EXTRA_WIDTH = 60;
+var MIN_RECENT_FILES = 5;
+var MAX_RECENT_FILES = 50;
+var DEFAULT_RECENT_FILES = 10;
+var SORT_MODE_VALUES = [
+  "name-asc",
+  "name-desc",
+  "mtime-desc",
+  "mtime-asc",
+  "ctime-desc",
+  "ctime-asc",
+  "size-desc",
+  "size-asc"
+];
+var SPECIAL_POSITIONS = ["top", "bottom"];
+function clampInt(value, min, max, fallback) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
+  return Math.max(min, Math.min(max, Math.round(value)));
+}
+function oneOf(value, allowed, fallback) {
+  return typeof value === "string" && allowed.includes(value) ? value : fallback;
+}
+function cleanWidths(value) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return {};
+  const result = {};
+  for (const [key, raw] of Object.entries(value)) {
+    if (typeof raw !== "number" || !Number.isFinite(raw)) continue;
+    if (raw < MIN_COLUMN_WIDTH || raw > MAX_COLUMN_WIDTH) continue;
+    result[key] = Math.round(raw);
+  }
+  return result;
+}
+function normalizeSettings(raw) {
+  const locked = raw.lockedColumnCount;
+  return {
+    columnWidth: clampInt(raw.columnWidth, MIN_COLUMN_WIDTH, MAX_COLUMN_WIDTH, DEFAULT_COLUMN_WIDTH),
+    columnWidths: cleanWidths(raw.columnWidths),
+    recentFilesCount: clampInt(raw.recentFilesCount, MIN_RECENT_FILES, MAX_RECENT_FILES, DEFAULT_RECENT_FILES),
+    // null — режим «показывать все колонки», это валидное значение
+    lockedColumnCount: typeof locked === "number" && Number.isFinite(locked) ? Math.max(1, Math.round(locked)) : null,
+    sortMode: oneOf(raw.sortMode, SORT_MODE_VALUES, "name-asc"),
+    specialItemsPosition: oneOf(raw.specialItemsPosition, SPECIAL_POSITIONS, "top")
+  };
+}
+
+// src/locales/en.ts
+var en = {
+  newNote: "New note",
+  newFolder: "New folder",
+  reveal: "Reveal active file",
+  collapse: "Collapse to root",
+  search: "Filter files\u2026",
+  sort: "Sort order",
+  empty: "Empty",
+  noResults: "No matches",
+  open: "Open",
+  openNewTab: "Open in new tab",
+  openRight: "Open to the right",
+  duplicate: "Duplicate",
+  rename: "Rename",
+  delete: "Delete",
+  deleteN: "Delete {n} items",
+  duplicateN: "Duplicate {n} items",
+  moveTo: "Move to folder\u2026",
+  moveToPlaceholder: "Choose target folder\u2026",
+  copyPath: "Copy path",
+  copyFullPath: "Copy full path",
+  pathCopied: "Path copied",
+  untitled: "Untitled",
+  newFolderName: "New folder",
+  cantMoveIntoSelf: "Cannot move a folder into itself",
+  alreadyExists: "\u201C{name}\u201D already exists in the target folder",
+  renameFailed: "Rename failed: ",
+  createFailed: "Could not create \u201C{name}\u201D: {error}",
+  moveFailed: "Could not move \u201C{name}\u201D: {error}",
+  duplicateFailed: "Could not duplicate \u201C{name}\u201D: {error}",
+  deleteFailed: "Could not delete \u201C{name}\u201D: {error}",
+  modified: "Modified",
+  created: "Created",
+  sortNameAsc: "Name (A \u2192 Z)",
+  sortNameDesc: "Name (Z \u2192 A)",
+  sortMtimeDesc: "Modified (newest first)",
+  sortMtimeAsc: "Modified (oldest first)",
+  sortCtimeDesc: "Created (newest first)",
+  sortCtimeAsc: "Created (oldest first)",
+  sortSizeDesc: "Size (largest first)",
+  sortSizeAsc: "Size (smallest first)",
+  confirmDeleteTitle: "Delete",
+  confirmDeleteOne: "Delete \u201C{name}\u201D?",
+  confirmDeleteMany: "Delete {n} items?",
+  confirm: "Delete",
+  cancel: "Cancel",
+  itemsMoved: "{n} items moved",
+  undo: "Undo",
+  filesImported: "{n} files imported",
+  importFailed: "Failed to import \u201C{name}\u201D",
+  cmdOpen: "Open column explorer",
+  cmdReveal: "Reveal active file in columns",
+  cmdNewNote: "New note in current folder",
+  cmdNewFolder: "New folder in current folder",
+  setFoldersFirst: "Folders first",
+  setFoldersFirstDesc: "Always list folders above files.",
+  setShowExt: "Show extension badges",
+  setShowExtDesc: "Show a small badge with the file extension for non-Markdown files.",
+  setPreview: "Show file preview column",
+  setPreviewDesc: "Show a details column when a file is selected.",
+  setMdPreview: "Preview note content",
+  setMdPreviewDesc: "Render the beginning of Markdown notes in the preview column.",
+  setConfirmDelete: "Confirm before deleting",
+  setConfirmDeleteDesc: "Ask for confirmation before moving files to trash.",
+  setColWidth: "Default column width",
+  setColWidthDesc: "In pixels. Drag a column's right edge to resize that column; double-click the edge to reset it.",
+  setAutoPanel: "Auto-resize panel",
+  setAutoPanelDesc: "Grow and shrink the sidebar panel to fit all open columns, keeping the column width fixed.",
+  setSort: "Default sort order",
+  setAutoReveal: "Auto-reveal active file",
+  setAutoRevealDesc: "Follow the active editor tab and select its file in the columns.",
+  setExclude: "Excluded files",
+  setExcludeDesc: "Comma-separated patterns to hide, e.g. \u201C*.tmp, archive/, .trash\u201D.",
+  folderColor: "Folder color",
+  colorDefault: "Default",
+  colorRed: "Red",
+  colorOrange: "Orange",
+  colorYellow: "Yellow",
+  colorGreen: "Green",
+  colorCyan: "Cyan",
+  colorBlue: "Blue",
+  colorPurple: "Purple",
+  colorPink: "Pink",
+  viewAsList: "View as list",
+  viewAsGrid: "View as icons",
+  pin: "Pin to top",
+  unpin: "Unpin",
+  newCanvas: "New canvas",
+  copyWikiLink: "Copy wikilink",
+  copyMdLink: "Copy Markdown link",
+  copyObsidianUrl: "Copy Obsidian URL",
+  linkCopied: "Link copied",
+  sortDefault: "Default sort",
+  folderIcon: "Folder icon\u2026",
+  folderIconReset: "Reset folder icon",
+  iconPlaceholder: "Choose an icon\u2026",
+  setFolderNote: "Open folder notes",
+  setFolderNoteDesc: "Selecting a folder also opens the note with the same name inside it, when one exists.",
+  lockPanel: "Lock column count",
+  unlockPanel: "Unlock columns",
+  recents: "Recents",
+  setRecentCount: "Recent files count",
+  setRecentCountDesc: "How many files the \u201CRecents\u201D column shows.",
+  headAppearance: "Appearance",
+  headBehavior: "Behavior",
+  headColumns: "Columns",
+  setShowRecents: "Show recents",
+  setShowRecentsDesc: "Show the recents row at the top of the first column.",
+  resetWidths: "Reset all column widths",
+  resetWidthsDesc: "Forget individually dragged widths and use the default width everywhere.",
+  widthsReset: "Column widths reset",
+  reset: "Reset",
+  clearRecents: "Clear recent files",
+  clearRecentsDesc: "Remove all entries from the recents list.",
+  recentsCleared: "Recent files cleared",
+  clear: "Clear",
+  bookmarks: "Bookmarks",
+  calendar: "Calendar",
+  favorites: "Favorites",
+  addFavorite: "Add to favorites",
+  removeFavorite: "Remove from favorites",
+  favoriteAdded: "Path added to favorites",
+  favoriteRemoved: "Removed from favorites",
+  setShowFavorites: "Show favorites",
+  setShowFavoritesDesc: "Show your saved favorite files and folders at the top of the Bookmarks column.",
+  headSpecial: "Special items",
+  setShowBookmarks: "Show bookmarks",
+  setShowBookmarksDesc: "Show the bookmarks row (needs the core Bookmarks plugin).",
+  setShowCalendar: "Show calendar",
+  setShowCalendarDesc: "Show the calendar row: notes by creation day.",
+  setSpecialPos: "Special items position",
+  setSpecialPosDesc: "Where the recents, bookmarks and calendar rows sit in the first column.",
+  posTop: "Top",
+  posBottom: "Bottom",
+  today: "Today",
+  navBack: "Back",
+  navForward: "Forward",
+  navUp: "Go to parent folder",
+  create: "Create",
+  more: "More actions",
+  preview: "Preview",
+  close: "Close",
+  selectedN: "{n} selected",
+  cancelSelection: "Cancel selection",
+  headMobile: "Mobile interface",
+  setMobileScale: "Mobile interface scale",
+  setMobileScaleDesc: "Changes the size of rows, controls, text and spacing on phones and tablets.",
+  setMobileIcon: "Mobile button icon size",
+  setMobileIconDesc: "Changes toolbar, navigation and action-bar icons. File and folder icons are not affected.",
+  resetMobileSizes: "Reset mobile sizes",
+  mobileSizesReset: "Mobile sizes reset"
+};
+
+// src/locales/ru.ts
+var ru = {
+  newNote: "\u041D\u043E\u0432\u0430\u044F \u0437\u0430\u043C\u0435\u0442\u043A\u0430",
+  newFolder: "\u041D\u043E\u0432\u0430\u044F \u043F\u0430\u043F\u043A\u0430",
+  reveal: "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u0439 \u0444\u0430\u0439\u043B",
+  collapse: "\u0421\u0432\u0435\u0440\u043D\u0443\u0442\u044C \u043A \u043A\u043E\u0440\u043D\u044E",
+  search: "\u0424\u0438\u043B\u044C\u0442\u0440 \u0444\u0430\u0439\u043B\u043E\u0432\u2026",
+  sort: "\u0421\u043E\u0440\u0442\u0438\u0440\u043E\u0432\u043A\u0430",
+  empty: "\u041F\u0443\u0441\u0442\u043E",
+  noResults: "\u041D\u0438\u0447\u0435\u0433\u043E \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u043E",
+  open: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C",
+  openNewTab: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0432 \u043D\u043E\u0432\u043E\u0439 \u0432\u043A\u043B\u0430\u0434\u043A\u0435",
+  openRight: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0441\u043F\u0440\u0430\u0432\u0430",
+  duplicate: "\u0414\u0443\u0431\u043B\u0438\u0440\u043E\u0432\u0430\u0442\u044C",
+  rename: "\u041F\u0435\u0440\u0435\u0438\u043C\u0435\u043D\u043E\u0432\u0430\u0442\u044C",
+  delete: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+  deleteN: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C {n} \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432",
+  duplicateN: "\u0414\u0443\u0431\u043B\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432: {n}",
+  moveTo: "\u041F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u044C \u0432 \u043F\u0430\u043F\u043A\u0443\u2026",
+  moveToPlaceholder: "\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043F\u0430\u043F\u043A\u0443\u2026",
+  copyPath: "\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u043F\u0443\u0442\u044C",
+  copyFullPath: "\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u043F\u043E\u043B\u043D\u044B\u0439 \u043F\u0443\u0442\u044C",
+  pathCopied: "\u041F\u0443\u0442\u044C \u0441\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u043D",
+  untitled: "\u0411\u0435\u0437 \u043D\u0430\u0437\u0432\u0430\u043D\u0438\u044F",
+  newFolderName: "\u041D\u043E\u0432\u0430\u044F \u043F\u0430\u043F\u043A\u0430",
+  cantMoveIntoSelf: "\u041D\u0435\u043B\u044C\u0437\u044F \u043F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u044C \u043F\u0430\u043F\u043A\u0443 \u0432\u043D\u0443\u0442\u0440\u044C \u0441\u0430\u043C\u043E\u0439 \u0441\u0435\u0431\u044F",
+  alreadyExists: "\u0412 \u0446\u0435\u043B\u0435\u0432\u043E\u0439 \u043F\u0430\u043F\u043A\u0435 \u0443\u0436\u0435 \u0435\u0441\u0442\u044C \xAB{name}\xBB",
+  renameFailed: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u0435\u0440\u0435\u0438\u043C\u0435\u043D\u043E\u0432\u0430\u0442\u044C: ",
+  createFailed: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u043E\u0437\u0434\u0430\u0442\u044C \xAB{name}\xBB: {error}",
+  moveFailed: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u044C \xAB{name}\xBB: {error}",
+  duplicateFailed: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u043E\u0437\u0434\u0430\u0442\u044C \u043A\u043E\u043F\u0438\u044E \xAB{name}\xBB: {error}",
+  deleteFailed: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0443\u0434\u0430\u043B\u0438\u0442\u044C \xAB{name}\xBB: {error}",
+  modified: "\u0418\u0437\u043C\u0435\u043D\u0451\u043D",
+  created: "\u0421\u043E\u0437\u0434\u0430\u043D",
+  sortNameAsc: "\u0418\u043C\u044F (\u0410 \u2192 \u042F)",
+  sortNameDesc: "\u0418\u043C\u044F (\u042F \u2192 \u0410)",
+  sortMtimeDesc: "\u0414\u0430\u0442\u0430 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F (\u0441\u043D\u0430\u0447\u0430\u043B\u0430 \u043D\u043E\u0432\u044B\u0435)",
+  sortMtimeAsc: "\u0414\u0430\u0442\u0430 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F (\u0441\u043D\u0430\u0447\u0430\u043B\u0430 \u0441\u0442\u0430\u0440\u044B\u0435)",
+  sortCtimeDesc: "\u0414\u0430\u0442\u0430 \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u044F (\u0441\u043D\u0430\u0447\u0430\u043B\u0430 \u043D\u043E\u0432\u044B\u0435)",
+  sortCtimeAsc: "\u0414\u0430\u0442\u0430 \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u044F (\u0441\u043D\u0430\u0447\u0430\u043B\u0430 \u0441\u0442\u0430\u0440\u044B\u0435)",
+  sortSizeDesc: "\u0420\u0430\u0437\u043C\u0435\u0440 (\u0441\u043D\u0430\u0447\u0430\u043B\u0430 \u0431\u043E\u043B\u044C\u0448\u0438\u0435)",
+  sortSizeAsc: "\u0420\u0430\u0437\u043C\u0435\u0440 (\u0441\u043D\u0430\u0447\u0430\u043B\u0430 \u043C\u0430\u043B\u0435\u043D\u044C\u043A\u0438\u0435)",
+  confirmDeleteTitle: "\u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435",
+  confirmDeleteOne: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \xAB{name}\xBB?",
+  confirmDeleteMany: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432: {n}?",
+  confirm: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+  cancel: "\u041E\u0442\u043C\u0435\u043D\u0430",
+  itemsMoved: "\u041F\u0435\u0440\u0435\u043C\u0435\u0449\u0435\u043D\u043E \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432: {n}",
+  undo: "\u041E\u0442\u043C\u0435\u043D\u0438\u0442\u044C",
+  filesImported: "\u0418\u043C\u043F\u043E\u0440\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u043E \u0444\u0430\u0439\u043B\u043E\u0432: {n}",
+  importFailed: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0438\u043C\u043F\u043E\u0440\u0442\u0438\u0440\u043E\u0432\u0430\u0442\u044C \xAB{name}\xBB",
+  cmdOpen: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u043E\u0432\u043E\u0434\u043D\u0438\u043A-\u043A\u043E\u043B\u043E\u043D\u043A\u0438",
+  cmdReveal: "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u0439 \u0444\u0430\u0439\u043B \u0432 \u043A\u043E\u043B\u043E\u043D\u043A\u0430\u0445",
+  cmdNewNote: "\u041D\u043E\u0432\u0430\u044F \u0437\u0430\u043C\u0435\u0442\u043A\u0430 \u0432 \u0442\u0435\u043A\u0443\u0449\u0435\u0439 \u043F\u0430\u043F\u043A\u0435",
+  cmdNewFolder: "\u041D\u043E\u0432\u0430\u044F \u043F\u0430\u043F\u043A\u0430 \u0432 \u0442\u0435\u043A\u0443\u0449\u0435\u0439 \u043F\u0430\u043F\u043A\u0435",
+  setFoldersFirst: "\u041F\u0430\u043F\u043A\u0438 \u0441\u0432\u0435\u0440\u0445\u0443",
+  setFoldersFirstDesc: "\u0412\u0441\u0435\u0433\u0434\u0430 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u043F\u0430\u043F\u043A\u0438 \u0432\u044B\u0448\u0435 \u0444\u0430\u0439\u043B\u043E\u0432.",
+  setShowExt: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u0440\u0430\u0441\u0448\u0438\u0440\u0435\u043D\u0438\u044F",
+  setShowExtDesc: "\u041D\u0435\u0431\u043E\u043B\u044C\u0448\u043E\u0439 \u0431\u0435\u0439\u0434\u0436 \u0441 \u0440\u0430\u0441\u0448\u0438\u0440\u0435\u043D\u0438\u0435\u043C \u0443 \u043D\u0435-Markdown \u0444\u0430\u0439\u043B\u043E\u0432.",
+  setPreview: "\u041A\u043E\u043B\u043E\u043D\u043A\u0430 \u043F\u0440\u0435\u0432\u044C\u044E \u0444\u0430\u0439\u043B\u0430",
+  setPreviewDesc: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u043A\u043E\u043B\u043E\u043D\u043A\u0443 \u0441 \u0434\u0435\u0442\u0430\u043B\u044F\u043C\u0438 \u043F\u0440\u0438 \u0432\u044B\u0431\u043E\u0440\u0435 \u0444\u0430\u0439\u043B\u0430.",
+  setMdPreview: "\u041F\u0440\u0435\u0432\u044C\u044E \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u043C\u043E\u0433\u043E \u0437\u0430\u043C\u0435\u0442\u043A\u0438",
+  setMdPreviewDesc: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u043D\u0430\u0447\u0430\u043B\u043E Markdown-\u0437\u0430\u043C\u0435\u0442\u043A\u0438 \u0432 \u043A\u043E\u043B\u043E\u043D\u043A\u0435 \u043F\u0440\u0435\u0432\u044C\u044E.",
+  setConfirmDelete: "\u041F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0430\u0442\u044C \u0443\u0434\u0430\u043B\u0435\u043D\u0438\u0435",
+  setConfirmDeleteDesc: "\u0421\u043F\u0440\u0430\u0448\u0438\u0432\u0430\u0442\u044C \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u0438\u0435 \u043F\u0435\u0440\u0435\u0434 \u043F\u0435\u0440\u0435\u043C\u0435\u0449\u0435\u043D\u0438\u0435\u043C \u0432 \u043A\u043E\u0440\u0437\u0438\u043D\u0443.",
+  setColWidth: "\u0428\u0438\u0440\u0438\u043D\u0430 \u043A\u043E\u043B\u043E\u043D\u043A\u0438 \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E",
+  setColWidthDesc: "\u0412 \u043F\u0438\u043A\u0441\u0435\u043B\u044F\u0445. \u041F\u0440\u0430\u0432\u044B\u0439 \u043A\u0440\u0430\u0439 \u043A\u043E\u043B\u043E\u043D\u043A\u0438: \u043F\u0435\u0440\u0435\u0442\u0430\u0449\u0438\u0442\u044C \u2014 \u0438\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u0448\u0438\u0440\u0438\u043D\u0443 \u044D\u0442\u043E\u0439 \u043A\u043E\u043B\u043E\u043D\u043A\u0438, \u0434\u0432\u043E\u0439\u043D\u043E\u0439 \u043A\u043B\u0438\u043A \u2014 \u0441\u0431\u0440\u043E\u0441\u0438\u0442\u044C.",
+  setAutoPanel: "\u0410\u0432\u0442\u043E-\u0448\u0438\u0440\u0438\u043D\u0430 \u043F\u0430\u043D\u0435\u043B\u0438",
+  setAutoPanelDesc: "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0440\u0430\u0441\u0448\u0438\u0440\u044F\u0442\u044C \u0438 \u0441\u0443\u0436\u0430\u0442\u044C \u0431\u043E\u043A\u043E\u0432\u0443\u044E \u043F\u0430\u043D\u0435\u043B\u044C \u043F\u043E\u0434 \u043E\u0442\u043A\u0440\u044B\u0442\u044B\u0435 \u043A\u043E\u043B\u043E\u043D\u043A\u0438, \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u044F \u0448\u0438\u0440\u0438\u043D\u0443 \u043A\u043E\u043B\u043E\u043D\u043E\u043A.",
+  setSort: "\u0421\u043E\u0440\u0442\u0438\u0440\u043E\u0432\u043A\u0430 \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E",
+  setAutoReveal: "\u0421\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u044C \u0437\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u043C \u0444\u0430\u0439\u043B\u043E\u043C",
+  setAutoRevealDesc: "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0432\u044B\u0434\u0435\u043B\u044F\u0442\u044C \u0432 \u043A\u043E\u043B\u043E\u043D\u043A\u0430\u0445 \u0444\u0430\u0439\u043B \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0439 \u0432\u043A\u043B\u0430\u0434\u043A\u0438.",
+  setExclude: "\u0421\u043A\u0440\u044B\u0442\u044B\u0435 \u0444\u0430\u0439\u043B\u044B",
+  setExcludeDesc: "\u041F\u0430\u0442\u0442\u0435\u0440\u043D\u044B \u0447\u0435\u0440\u0435\u0437 \u0437\u0430\u043F\u044F\u0442\u0443\u044E, \u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440 \xAB*.tmp, archive/, .trash\xBB.",
+  folderColor: "\u0426\u0432\u0435\u0442 \u043F\u0430\u043F\u043A\u0438",
+  colorDefault: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442\u043D\u044B\u0439",
+  colorRed: "\u041A\u0440\u0430\u0441\u043D\u044B\u0439",
+  colorOrange: "\u041E\u0440\u0430\u043D\u0436\u0435\u0432\u044B\u0439",
+  colorYellow: "\u0416\u0451\u043B\u0442\u044B\u0439",
+  colorGreen: "\u0417\u0435\u043B\u0451\u043D\u044B\u0439",
+  colorCyan: "\u0413\u043E\u043B\u0443\u0431\u043E\u0439",
+  colorBlue: "\u0421\u0438\u043D\u0438\u0439",
+  colorPurple: "\u0424\u0438\u043E\u043B\u0435\u0442\u043E\u0432\u044B\u0439",
+  colorPink: "\u0420\u043E\u0437\u043E\u0432\u044B\u0439",
+  viewAsList: "\u0412\u0438\u0434: \u0441\u043F\u0438\u0441\u043E\u043A",
+  viewAsGrid: "\u0412\u0438\u0434: \u0437\u043D\u0430\u0447\u043A\u0438",
+  pin: "\u0417\u0430\u043A\u0440\u0435\u043F\u0438\u0442\u044C \u0441\u0432\u0435\u0440\u0445\u0443",
+  unpin: "\u041E\u0442\u043A\u0440\u0435\u043F\u0438\u0442\u044C",
+  newCanvas: "\u041D\u043E\u0432\u044B\u0439 \u0445\u043E\u043B\u0441\u0442",
+  copyWikiLink: "\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0432\u0438\u043A\u0438-\u0441\u0441\u044B\u043B\u043A\u0443",
+  copyMdLink: "\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C markdown-\u0441\u0441\u044B\u043B\u043A\u0443",
+  copyObsidianUrl: "\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C Obsidian URL",
+  linkCopied: "\u0421\u0441\u044B\u043B\u043A\u0430 \u0441\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u043D\u0430",
+  sortDefault: "\u0421\u043E\u0440\u0442\u0438\u0440\u043E\u0432\u043A\u0430 \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E",
+  folderIcon: "\u0418\u043A\u043E\u043D\u043A\u0430 \u043F\u0430\u043F\u043A\u0438\u2026",
+  folderIconReset: "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443 \u043F\u0430\u043F\u043A\u0438",
+  iconPlaceholder: "\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0438\u043A\u043E\u043D\u043A\u0443\u2026",
+  setFolderNote: "\u041E\u0442\u043A\u0440\u044B\u0432\u0430\u0442\u044C \u0437\u0430\u043C\u0435\u0442\u043A\u0438 \u043F\u0430\u043F\u043E\u043A",
+  setFolderNoteDesc: "\u0412\u044B\u0431\u043E\u0440 \u043F\u0430\u043F\u043A\u0438 \u0442\u0430\u043A\u0436\u0435 \u043E\u0442\u043A\u0440\u044B\u0432\u0430\u0435\u0442 \u0437\u0430\u043C\u0435\u0442\u043A\u0443 \u0441 \u0435\u0451 \u0438\u043C\u0435\u043D\u0435\u043C \u0432\u043D\u0443\u0442\u0440\u0438, \u0435\u0441\u043B\u0438 \u043E\u043D\u0430 \u0435\u0441\u0442\u044C.",
+  lockPanel: "\u0417\u0430\u0444\u0438\u043A\u0441\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0447\u0438\u0441\u043B\u043E \u043A\u043E\u043B\u043E\u043D\u043E\u043A",
+  unlockPanel: "\u0421\u043D\u044F\u0442\u044C \u0444\u0438\u043A\u0441\u0430\u0446\u0438\u044E \u043A\u043E\u043B\u043E\u043D\u043E\u043A",
+  recents: "\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435",
+  setRecentCount: "\u0427\u0438\u0441\u043B\u043E \u043D\u0435\u0434\u0430\u0432\u043D\u0438\u0445 \u0444\u0430\u0439\u043B\u043E\u0432",
+  setRecentCountDesc: "\u0421\u043A\u043E\u043B\u044C\u043A\u043E \u0444\u0430\u0439\u043B\u043E\u0432 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u0432 \u043A\u043E\u043B\u043E\u043D\u043A\u0435 \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435\xBB.",
+  headAppearance: "\u0412\u0438\u0434",
+  headBehavior: "\u041F\u043E\u0432\u0435\u0434\u0435\u043D\u0438\u0435",
+  headColumns: "\u041A\u043E\u043B\u043E\u043D\u043A\u0438",
+  setShowRecents: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435\xBB",
+  setShowRecentsDesc: "\u041F\u0443\u043D\u043A\u0442 \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435\xBB \u0432\u0432\u0435\u0440\u0445\u0443 \u043F\u0435\u0440\u0432\u043E\u0439 \u043A\u043E\u043B\u043E\u043D\u043A\u0438.",
+  resetWidths: "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u0448\u0438\u0440\u0438\u043D\u044B \u0432\u0441\u0435\u0445 \u043A\u043E\u043B\u043E\u043D\u043E\u043A",
+  resetWidthsDesc: "\u0417\u0430\u0431\u044B\u0442\u044C \u0438\u043D\u0434\u0438\u0432\u0438\u0434\u0443\u0430\u043B\u044C\u043D\u043E \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u043D\u044B\u0435 \u0448\u0438\u0440\u0438\u043D\u044B \u0438 \u0432\u0435\u0440\u043D\u0443\u0442\u044C \u0432\u0441\u0435\u043C \u043A\u043E\u043B\u043E\u043D\u043A\u0430\u043C \u0448\u0438\u0440\u0438\u043D\u0443 \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E.",
+  widthsReset: "\u0428\u0438\u0440\u0438\u043D\u044B \u043A\u043E\u043B\u043E\u043D\u043E\u043A \u0441\u0431\u0440\u043E\u0448\u0435\u043D\u044B",
+  reset: "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C",
+  clearRecents: "\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u044C \u043D\u0435\u0434\u0430\u0432\u043D\u0438\u0435",
+  clearRecentsDesc: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0432\u0441\u0435 \u0437\u0430\u043F\u0438\u0441\u0438 \u0438\u0437 \u0441\u043F\u0438\u0441\u043A\u0430 \u043D\u0435\u0434\u0430\u0432\u043D\u0438\u0445.",
+  recentsCleared: "\u0421\u043F\u0438\u0441\u043E\u043A \u043D\u0435\u0434\u0430\u0432\u043D\u0438\u0445 \u043E\u0447\u0438\u0449\u0435\u043D",
+  clear: "\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u044C",
+  bookmarks: "\u0417\u0430\u043A\u043B\u0430\u0434\u043A\u0438",
+  calendar: "\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C",
+  favorites: "\u0418\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0435",
+  addFavorite: "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0432 \u0438\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0435",
+  removeFavorite: "\u0423\u0431\u0440\u0430\u0442\u044C \u0438\u0437 \u0438\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0433\u043E",
+  favoriteAdded: "\u041F\u0443\u0442\u044C \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D \u0432 \u0438\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0435",
+  favoriteRemoved: "\u0423\u0431\u0440\u0430\u043D\u043E \u0438\u0437 \u0438\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0433\u043E",
+  setShowFavorites: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \xAB\u0418\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0435\xBB",
+  setShowFavoritesDesc: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D\u043D\u044B\u0435 \u0438\u0437\u0431\u0440\u0430\u043D\u043D\u044B\u0435 \u0444\u0430\u0439\u043B\u044B \u0438 \u043F\u0430\u043F\u043A\u0438 \u0432\u0432\u0435\u0440\u0445\u0443 \u043A\u043E\u043B\u043E\u043D\u043A\u0438 \xAB\u0417\u0430\u043A\u043B\u0430\u0434\u043A\u0438\xBB.",
+  headSpecial: "\u0421\u043F\u0435\u0446\u043F\u0443\u043D\u043A\u0442\u044B",
+  setShowBookmarks: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \xAB\u0417\u0430\u043A\u043B\u0430\u0434\u043A\u0438\xBB",
+  setShowBookmarksDesc: "\u041F\u0443\u043D\u043A\u0442 \xAB\u0417\u0430\u043A\u043B\u0430\u0434\u043A\u0438\xBB (\u043D\u0443\u0436\u0435\u043D \u0432\u0441\u0442\u0440\u043E\u0435\u043D\u043D\u044B\u0439 \u043F\u043B\u0430\u0433\u0438\u043D Bookmarks).",
+  setShowCalendar: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \xAB\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C\xBB",
+  setShowCalendarDesc: "\u041F\u0443\u043D\u043A\u0442 \xAB\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C\xBB: \u0437\u0430\u043C\u0435\u0442\u043A\u0438 \u043F\u043E \u0434\u043D\u044E \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u044F.",
+  setSpecialPos: "\u041F\u043E\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u0441\u043F\u0435\u0446\u043F\u0443\u043D\u043A\u0442\u043E\u0432",
+  setSpecialPosDesc: "\u0413\u0434\u0435 \u0432 \u043F\u0435\u0440\u0432\u043E\u0439 \u043A\u043E\u043B\u043E\u043D\u043A\u0435 \u0441\u0442\u043E\u044F\u0442 \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435\xBB, \xAB\u0417\u0430\u043A\u043B\u0430\u0434\u043A\u0438\xBB \u0438 \xAB\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C\xBB.",
+  posTop: "\u0421\u0432\u0435\u0440\u0445\u0443",
+  posBottom: "\u0421\u043D\u0438\u0437\u0443",
+  today: "\u0421\u0435\u0433\u043E\u0434\u043D\u044F",
+  navBack: "\u041D\u0430\u0437\u0430\u0434",
+  navForward: "\u0412\u043F\u0435\u0440\u0451\u0434",
+  navUp: "\u0412 \u0440\u043E\u0434\u0438\u0442\u0435\u043B\u044C\u0441\u043A\u0443\u044E \u043F\u0430\u043F\u043A\u0443",
+  create: "\u0421\u043E\u0437\u0434\u0430\u0442\u044C",
+  more: "\u0415\u0449\u0451 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044F",
+  preview: "\u041F\u0440\u0435\u0434\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440",
+  close: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C",
+  selectedN: "\u0412\u044B\u0431\u0440\u0430\u043D\u043E: {n}",
+  cancelSelection: "\u0421\u043D\u044F\u0442\u044C \u0432\u044B\u0434\u0435\u043B\u0435\u043D\u0438\u0435",
+  headMobile: "\u041C\u043E\u0431\u0438\u043B\u044C\u043D\u044B\u0439 \u0438\u043D\u0442\u0435\u0440\u0444\u0435\u0439\u0441",
+  setMobileScale: "\u041C\u0430\u0441\u0448\u0442\u0430\u0431 \u043C\u043E\u0431\u0438\u043B\u044C\u043D\u043E\u0433\u043E \u0438\u043D\u0442\u0435\u0440\u0444\u0435\u0439\u0441\u0430",
+  setMobileScaleDesc: "\u0418\u0437\u043C\u0435\u043D\u044F\u0435\u0442 \u0440\u0430\u0437\u043C\u0435\u0440 \u0441\u0442\u0440\u043E\u043A, \u043A\u043D\u043E\u043F\u043E\u043A, \u0442\u0435\u043A\u0441\u0442\u0430 \u0438 \u043E\u0442\u0441\u0442\u0443\u043F\u043E\u0432 \u043D\u0430 \u0442\u0435\u043B\u0435\u0444\u043E\u043D\u0430\u0445 \u0438 \u043F\u043B\u0430\u043D\u0448\u0435\u0442\u0430\u0445.",
+  setMobileIcon: "\u0420\u0430\u0437\u043C\u0435\u0440 \u0438\u043A\u043E\u043D\u043E\u043A \u043C\u043E\u0431\u0438\u043B\u044C\u043D\u044B\u0445 \u043A\u043D\u043E\u043F\u043E\u043A",
+  setMobileIconDesc: "\u0418\u0437\u043C\u0435\u043D\u044F\u0435\u0442 \u0438\u043A\u043E\u043D\u043A\u0438 \u043F\u0430\u043D\u0435\u043B\u0438 \u0438\u043D\u0441\u0442\u0440\u0443\u043C\u0435\u043D\u0442\u043E\u0432, \u043D\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u0438 \u0438 \u043F\u0430\u043D\u0435\u043B\u0438 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0439. \u0418\u043A\u043E\u043D\u043A\u0438 \u0444\u0430\u0439\u043B\u043E\u0432 \u0438 \u043F\u0430\u043F\u043E\u043A \u043D\u0435 \u043C\u0435\u043D\u044F\u044E\u0442\u0441\u044F.",
+  resetMobileSizes: "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u043C\u043E\u0431\u0438\u043B\u044C\u043D\u044B\u0435 \u0440\u0430\u0437\u043C\u0435\u0440\u044B",
+  mobileSizesReset: "\u041C\u043E\u0431\u0438\u043B\u044C\u043D\u044B\u0435 \u0440\u0430\u0437\u043C\u0435\u0440\u044B \u0441\u0431\u0440\u043E\u0448\u0435\u043D\u044B"
+};
+
+// src/locales/es.ts
+var es = {
+  newNote: "Nueva nota",
+  newFolder: "Nueva carpeta",
+  reveal: "Mostrar el archivo activo",
+  collapse: "Contraer a la ra\xEDz",
+  search: "Filtrar archivos\u2026",
+  sort: "Orden",
+  empty: "Vac\xEDo",
+  noResults: "Sin coincidencias",
+  open: "Abrir",
+  openNewTab: "Abrir en una pesta\xF1a nueva",
+  openRight: "Abrir a la derecha",
+  duplicate: "Duplicar",
+  rename: "Cambiar nombre",
+  delete: "Eliminar",
+  deleteN: "Eliminar {n} elementos",
+  duplicateN: "Duplicar {n} elementos",
+  moveTo: "Mover a la carpeta\u2026",
+  moveToPlaceholder: "Elige la carpeta de destino\u2026",
+  copyPath: "Copiar ruta",
+  copyFullPath: "Copiar ruta completa",
+  pathCopied: "Ruta copiada",
+  untitled: "Sin t\xEDtulo",
+  newFolderName: "Nueva carpeta",
+  cantMoveIntoSelf: "No se puede mover una carpeta dentro de s\xED misma",
+  alreadyExists: "\xAB{name}\xBB ya existe en la carpeta de destino",
+  renameFailed: "No se pudo cambiar el nombre: ",
+  createFailed: "No se pudo crear \xAB{name}\xBB: {error}",
+  moveFailed: "No se pudo mover \xAB{name}\xBB: {error}",
+  duplicateFailed: "No se pudo duplicar \xAB{name}\xBB: {error}",
+  deleteFailed: "No se pudo eliminar \xAB{name}\xBB: {error}",
+  modified: "Modificado",
+  created: "Creado",
+  sortNameAsc: "Nombre (A \u2192 Z)",
+  sortNameDesc: "Nombre (Z \u2192 A)",
+  sortMtimeDesc: "Modificaci\xF3n (m\xE1s recientes primero)",
+  sortMtimeAsc: "Modificaci\xF3n (m\xE1s antiguos primero)",
+  sortCtimeDesc: "Creaci\xF3n (m\xE1s recientes primero)",
+  sortCtimeAsc: "Creaci\xF3n (m\xE1s antiguos primero)",
+  sortSizeDesc: "Tama\xF1o (mayor primero)",
+  sortSizeAsc: "Tama\xF1o (menor primero)",
+  confirmDeleteTitle: "Eliminar",
+  confirmDeleteOne: "\xBFEliminar \xAB{name}\xBB?",
+  confirmDeleteMany: "\xBFEliminar {n} elementos?",
+  confirm: "Eliminar",
+  cancel: "Cancelar",
+  itemsMoved: "{n} elementos movidos",
+  undo: "Deshacer",
+  filesImported: "{n} archivos importados",
+  importFailed: "No se pudo importar \xAB{name}\xBB",
+  cmdOpen: "Abrir el explorador de columnas",
+  cmdReveal: "Mostrar el archivo activo en las columnas",
+  cmdNewNote: "Nueva nota en la carpeta actual",
+  cmdNewFolder: "Nueva carpeta en la carpeta actual",
+  setFoldersFirst: "Carpetas primero",
+  setFoldersFirstDesc: "Mostrar siempre las carpetas por encima de los archivos.",
+  setShowExt: "Mostrar la extensi\xF3n",
+  setShowExtDesc: "Muestra una peque\xF1a etiqueta con la extensi\xF3n en los archivos que no son Markdown.",
+  setPreview: "Mostrar la columna de vista previa",
+  setPreviewDesc: "Muestra una columna de detalles cuando se selecciona un archivo.",
+  setMdPreview: "Vista previa del contenido",
+  setMdPreviewDesc: "Muestra el principio de las notas Markdown en la columna de vista previa.",
+  setConfirmDelete: "Confirmar antes de eliminar",
+  setConfirmDeleteDesc: "Pide confirmaci\xF3n antes de mover archivos a la papelera.",
+  setColWidth: "Ancho de columna predeterminado",
+  setColWidthDesc: "En p\xEDxeles. Arrastra el borde derecho de una columna para ajustarla; haz doble clic en el borde para restablecerla.",
+  setAutoPanel: "Ajustar el panel autom\xE1ticamente",
+  setAutoPanelDesc: "Ensancha y estrecha el panel lateral para que quepan todas las columnas abiertas, sin cambiar su ancho.",
+  setSort: "Orden predeterminado",
+  setAutoReveal: "Seguir al archivo activo",
+  setAutoRevealDesc: "Sigue la pesta\xF1a activa del editor y selecciona su archivo en las columnas.",
+  setExclude: "Archivos excluidos",
+  setExcludeDesc: "Patrones separados por comas, por ejemplo \xAB*.tmp, archive/, .trash\xBB.",
+  folderColor: "Color de la carpeta",
+  colorDefault: "Predeterminado",
+  colorRed: "Rojo",
+  colorOrange: "Naranja",
+  colorYellow: "Amarillo",
+  colorGreen: "Verde",
+  colorCyan: "Cian",
+  colorBlue: "Azul",
+  colorPurple: "Morado",
+  colorPink: "Rosa",
+  viewAsList: "Ver como lista",
+  viewAsGrid: "Ver como iconos",
+  pin: "Fijar arriba",
+  unpin: "Dejar de fijar",
+  newCanvas: "Nuevo lienzo",
+  copyWikiLink: "Copiar el enlace wiki",
+  copyMdLink: "Copiar el enlace Markdown",
+  copyObsidianUrl: "Copiar la URL de Obsidian",
+  linkCopied: "Enlace copiado",
+  sortDefault: "Orden predeterminado",
+  folderIcon: "Icono de la carpeta\u2026",
+  folderIconReset: "Restablecer el icono",
+  iconPlaceholder: "Elige un icono\u2026",
+  setFolderNote: "Abrir las notas de carpeta",
+  setFolderNoteDesc: "Al seleccionar una carpeta se abre tambi\xE9n la nota con su mismo nombre, si existe.",
+  lockPanel: "Fijar el n\xFAmero de columnas",
+  unlockPanel: "Liberar las columnas",
+  recents: "Recientes",
+  setRecentCount: "N\xFAmero de archivos recientes",
+  setRecentCountDesc: "Cu\xE1ntos archivos muestra la columna \xABRecientes\xBB.",
+  headAppearance: "Apariencia",
+  headBehavior: "Comportamiento",
+  headColumns: "Columnas",
+  setShowRecents: "Mostrar los recientes",
+  setShowRecentsDesc: "Muestra la fila \xABRecientes\xBB en la primera columna.",
+  resetWidths: "Restablecer el ancho de las columnas",
+  resetWidthsDesc: "Olvida los anchos ajustados a mano y usa el ancho predeterminado en todas partes.",
+  widthsReset: "Anchos de columna restablecidos",
+  reset: "Restablecer",
+  clearRecents: "Vaciar los archivos recientes",
+  clearRecentsDesc: "Elimina todas las entradas de la lista de recientes.",
+  recentsCleared: "Lista de recientes vaciada",
+  clear: "Vaciar",
+  bookmarks: "Marcadores",
+  calendar: "Calendario",
+  favorites: "Favoritos",
+  addFavorite: "A\xF1adir a favoritos",
+  removeFavorite: "Quitar de favoritos",
+  favoriteAdded: "Ruta a\xF1adida a favoritos",
+  favoriteRemoved: "Quitado de favoritos",
+  setShowFavorites: "Mostrar los favoritos",
+  setShowFavoritesDesc: "Muestra tus archivos y carpetas favoritos en la parte superior de la columna \xABMarcadores\xBB.",
+  headSpecial: "Elementos especiales",
+  setShowBookmarks: "Mostrar los marcadores",
+  setShowBookmarksDesc: "Muestra la fila \xABMarcadores\xBB (necesita el plugin Bookmarks).",
+  setShowCalendar: "Mostrar el calendario",
+  setShowCalendarDesc: "Muestra la fila \xABCalendario\xBB: notas por d\xEDa de creaci\xF3n.",
+  setSpecialPos: "Posici\xF3n de los elementos especiales",
+  setSpecialPosDesc: "D\xF3nde se colocan las filas de recientes, marcadores y calendario en la primera columna.",
+  posTop: "Arriba",
+  posBottom: "Abajo",
+  today: "Hoy",
+  navBack: "Atr\xE1s",
+  navForward: "Adelante",
+  navUp: "Ir a la carpeta superior",
+  create: "Crear",
+  more: "M\xE1s acciones",
+  preview: "Vista previa",
+  close: "Cerrar",
+  selectedN: "{n} seleccionados",
+  cancelSelection: "Cancelar la selecci\xF3n",
+  headMobile: "Interfaz m\xF3vil",
+  setMobileScale: "Escala de la interfaz m\xF3vil",
+  setMobileScaleDesc: "Cambia el tama\xF1o de las filas, los controles, el texto y los espacios en tel\xE9fonos y tabletas.",
+  setMobileIcon: "Tama\xF1o de los iconos m\xF3viles",
+  setMobileIconDesc: "Cambia los iconos de la barra de herramientas, la navegaci\xF3n y la barra de acciones. Los iconos de archivos y carpetas no cambian.",
+  resetMobileSizes: "Restablecer los tama\xF1os m\xF3viles",
+  mobileSizesReset: "Tama\xF1os m\xF3viles restablecidos"
+};
+
+// src/locales/fr.ts
+var fr = {
+  newNote: "Nouvelle note",
+  newFolder: "Nouveau dossier",
+  reveal: "Afficher le fichier actif",
+  collapse: "Replier jusqu'\xE0 la racine",
+  search: "Filtrer les fichiers\u2026",
+  sort: "Tri",
+  empty: "Vide",
+  noResults: "Aucun r\xE9sultat",
+  open: "Ouvrir",
+  openNewTab: "Ouvrir dans un nouvel onglet",
+  openRight: "Ouvrir \xE0 droite",
+  duplicate: "Dupliquer",
+  rename: "Renommer",
+  delete: "Supprimer",
+  deleteN: "Supprimer {n} \xE9l\xE9ments",
+  duplicateN: "Dupliquer {n} \xE9l\xE9ments",
+  moveTo: "D\xE9placer vers le dossier\u2026",
+  moveToPlaceholder: "Choisissez le dossier de destination\u2026",
+  copyPath: "Copier le chemin",
+  copyFullPath: "Copier le chemin complet",
+  pathCopied: "Chemin copi\xE9",
+  untitled: "Sans titre",
+  newFolderName: "Nouveau dossier",
+  cantMoveIntoSelf: "Impossible de d\xE9placer un dossier dans lui-m\xEAme",
+  alreadyExists: "\xAB {name} \xBB existe d\xE9j\xE0 dans le dossier de destination",
+  renameFailed: "\xC9chec du renommage : ",
+  createFailed: "Impossible de cr\xE9er \xAB {name} \xBB : {error}",
+  moveFailed: "Impossible de d\xE9placer \xAB {name} \xBB : {error}",
+  duplicateFailed: "Impossible de dupliquer \xAB {name} \xBB : {error}",
+  deleteFailed: "Impossible de supprimer \xAB {name} \xBB : {error}",
+  modified: "Modifi\xE9",
+  created: "Cr\xE9\xE9",
+  sortNameAsc: "Nom (A \u2192 Z)",
+  sortNameDesc: "Nom (Z \u2192 A)",
+  sortMtimeDesc: "Modification (plus r\xE9cents d'abord)",
+  sortMtimeAsc: "Modification (plus anciens d'abord)",
+  sortCtimeDesc: "Cr\xE9ation (plus r\xE9cents d'abord)",
+  sortCtimeAsc: "Cr\xE9ation (plus anciens d'abord)",
+  sortSizeDesc: "Taille (plus grands d'abord)",
+  sortSizeAsc: "Taille (plus petits d'abord)",
+  confirmDeleteTitle: "Supprimer",
+  confirmDeleteOne: "Supprimer \xAB {name} \xBB ?",
+  confirmDeleteMany: "Supprimer {n} \xE9l\xE9ments ?",
+  confirm: "Supprimer",
+  cancel: "Annuler",
+  itemsMoved: "{n} \xE9l\xE9ments d\xE9plac\xE9s",
+  undo: "Annuler",
+  filesImported: "{n} fichiers import\xE9s",
+  importFailed: "\xC9chec de l'importation de \xAB {name} \xBB",
+  cmdOpen: "Ouvrir l'explorateur en colonnes",
+  cmdReveal: "Afficher le fichier actif dans les colonnes",
+  cmdNewNote: "Nouvelle note dans le dossier courant",
+  cmdNewFolder: "Nouveau dossier dans le dossier courant",
+  setFoldersFirst: "Dossiers en premier",
+  setFoldersFirstDesc: "Toujours afficher les dossiers au-dessus des fichiers.",
+  setShowExt: "Afficher l'extension",
+  setShowExtDesc: "Affiche une petite \xE9tiquette avec l'extension pour les fichiers non Markdown.",
+  setPreview: "Afficher la colonne d'aper\xE7u",
+  setPreviewDesc: "Affiche une colonne de d\xE9tails lorsqu'un fichier est s\xE9lectionn\xE9.",
+  setMdPreview: "Aper\xE7u du contenu des notes",
+  setMdPreviewDesc: "Affiche le d\xE9but des notes Markdown dans la colonne d'aper\xE7u.",
+  setConfirmDelete: "Confirmer avant de supprimer",
+  setConfirmDeleteDesc: "Demande confirmation avant de mettre des fichiers \xE0 la corbeille.",
+  setColWidth: "Largeur de colonne par d\xE9faut",
+  setColWidthDesc: "En pixels. Faites glisser le bord droit d'une colonne pour la redimensionner ; double-cliquez sur le bord pour la r\xE9initialiser.",
+  setAutoPanel: "Ajuster le panneau automatiquement",
+  setAutoPanelDesc: "\xC9largit et r\xE9tr\xE9cit le panneau lat\xE9ral pour contenir toutes les colonnes ouvertes, sans changer leur largeur.",
+  setSort: "Tri par d\xE9faut",
+  setAutoReveal: "Suivre le fichier actif",
+  setAutoRevealDesc: "Suit l'onglet actif de l'\xE9diteur et s\xE9lectionne son fichier dans les colonnes.",
+  setExclude: "Fichiers exclus",
+  setExcludeDesc: "Motifs s\xE9par\xE9s par des virgules, par exemple \xAB *.tmp, archive/, .trash \xBB.",
+  folderColor: "Couleur du dossier",
+  colorDefault: "Par d\xE9faut",
+  colorRed: "Rouge",
+  colorOrange: "Orange",
+  colorYellow: "Jaune",
+  colorGreen: "Vert",
+  colorCyan: "Cyan",
+  colorBlue: "Bleu",
+  colorPurple: "Violet",
+  colorPink: "Rose",
+  viewAsList: "Afficher en liste",
+  viewAsGrid: "Afficher en ic\xF4nes",
+  pin: "\xC9pingler en haut",
+  unpin: "D\xE9tacher",
+  newCanvas: "Nouveau canevas",
+  copyWikiLink: "Copier le lien wiki",
+  copyMdLink: "Copier le lien Markdown",
+  copyObsidianUrl: "Copier l'URL Obsidian",
+  linkCopied: "Lien copi\xE9",
+  sortDefault: "Tri par d\xE9faut",
+  folderIcon: "Ic\xF4ne du dossier\u2026",
+  folderIconReset: "R\xE9initialiser l'ic\xF4ne",
+  iconPlaceholder: "Choisissez une ic\xF4ne\u2026",
+  setFolderNote: "Ouvrir les notes de dossier",
+  setFolderNoteDesc: "S\xE9lectionner un dossier ouvre aussi la note portant le m\xEAme nom \xE0 l'int\xE9rieur, si elle existe.",
+  lockPanel: "Verrouiller le nombre de colonnes",
+  unlockPanel: "D\xE9verrouiller les colonnes",
+  recents: "R\xE9cents",
+  setRecentCount: "Nombre de fichiers r\xE9cents",
+  setRecentCountDesc: "Combien de fichiers la colonne \xAB R\xE9cents \xBB affiche.",
+  headAppearance: "Apparence",
+  headBehavior: "Comportement",
+  headColumns: "Colonnes",
+  setShowRecents: "Afficher les r\xE9cents",
+  setShowRecentsDesc: "Affiche la ligne \xAB R\xE9cents \xBB dans la premi\xE8re colonne.",
+  resetWidths: "R\xE9initialiser la largeur des colonnes",
+  resetWidthsDesc: "Oublie les largeurs ajust\xE9es \xE0 la main et applique partout la largeur par d\xE9faut.",
+  widthsReset: "Largeurs de colonnes r\xE9initialis\xE9es",
+  reset: "R\xE9initialiser",
+  clearRecents: "Vider les fichiers r\xE9cents",
+  clearRecentsDesc: "Supprime toutes les entr\xE9es de la liste des r\xE9cents.",
+  recentsCleared: "Liste des r\xE9cents vid\xE9e",
+  clear: "Vider",
+  bookmarks: "Signets",
+  calendar: "Calendrier",
+  favorites: "Favoris",
+  addFavorite: "Ajouter aux favoris",
+  removeFavorite: "Retirer des favoris",
+  favoriteAdded: "Chemin ajout\xE9 aux favoris",
+  favoriteRemoved: "Retir\xE9 des favoris",
+  setShowFavorites: "Afficher les favoris",
+  setShowFavoritesDesc: "Affiche vos fichiers et dossiers favoris en haut de la colonne \xAB Signets \xBB.",
+  headSpecial: "\xC9l\xE9ments sp\xE9ciaux",
+  setShowBookmarks: "Afficher les signets",
+  setShowBookmarksDesc: "Affiche la ligne \xAB Signets \xBB (n\xE9cessite le plugin Bookmarks).",
+  setShowCalendar: "Afficher le calendrier",
+  setShowCalendarDesc: "Affiche la ligne \xAB Calendrier \xBB : les notes par jour de cr\xE9ation.",
+  setSpecialPos: "Position des \xE9l\xE9ments sp\xE9ciaux",
+  setSpecialPosDesc: "O\xF9 se placent les lignes r\xE9cents, signets et calendrier dans la premi\xE8re colonne.",
+  posTop: "En haut",
+  posBottom: "En bas",
+  today: "Aujourd'hui",
+  navBack: "Pr\xE9c\xE9dent",
+  navForward: "Suivant",
+  navUp: "Aller au dossier parent",
+  create: "Cr\xE9er",
+  more: "Plus d'actions",
+  preview: "Aper\xE7u",
+  close: "Fermer",
+  selectedN: "{n} s\xE9lectionn\xE9s",
+  cancelSelection: "Annuler la s\xE9lection",
+  headMobile: "Interface mobile",
+  setMobileScale: "\xC9chelle de l'interface mobile",
+  setMobileScaleDesc: "Change la taille des lignes, des contr\xF4les, du texte et des espacements sur t\xE9l\xE9phones et tablettes.",
+  setMobileIcon: "Taille des ic\xF4nes mobiles",
+  setMobileIconDesc: "Change les ic\xF4nes de la barre d'outils, de la navigation et de la barre d'actions. Les ic\xF4nes de fichiers et de dossiers ne changent pas.",
+  resetMobileSizes: "R\xE9initialiser les tailles mobiles",
+  mobileSizesReset: "Tailles mobiles r\xE9initialis\xE9es"
+};
+
+// src/locales/it.ts
+var it = {
+  newNote: "Nuova nota",
+  newFolder: "Nuova cartella",
+  reveal: "Mostra il file attivo",
+  collapse: "Comprimi alla radice",
+  search: "Filtra i file\u2026",
+  sort: "Ordinamento",
+  empty: "Vuoto",
+  noResults: "Nessun risultato",
+  open: "Apri",
+  openNewTab: "Apri in una nuova scheda",
+  openRight: "Apri a destra",
+  duplicate: "Duplica",
+  rename: "Rinomina",
+  delete: "Elimina",
+  deleteN: "Elimina {n} elementi",
+  duplicateN: "Duplica {n} elementi",
+  moveTo: "Sposta nella cartella\u2026",
+  moveToPlaceholder: "Scegli la cartella di destinazione\u2026",
+  copyPath: "Copia il percorso",
+  copyFullPath: "Copia il percorso completo",
+  pathCopied: "Percorso copiato",
+  untitled: "Senza titolo",
+  newFolderName: "Nuova cartella",
+  cantMoveIntoSelf: "Impossibile spostare una cartella dentro se stessa",
+  alreadyExists: "\xAB{name}\xBB esiste gi\xE0 nella cartella di destinazione",
+  renameFailed: "Rinomina non riuscita: ",
+  createFailed: "Impossibile creare \xAB{name}\xBB: {error}",
+  moveFailed: "Impossibile spostare \xAB{name}\xBB: {error}",
+  duplicateFailed: "Impossibile duplicare \xAB{name}\xBB: {error}",
+  deleteFailed: "Impossibile eliminare \xAB{name}\xBB: {error}",
+  modified: "Modificato",
+  created: "Creato",
+  sortNameAsc: "Nome (A \u2192 Z)",
+  sortNameDesc: "Nome (Z \u2192 A)",
+  sortMtimeDesc: "Modifica (prima i pi\xF9 recenti)",
+  sortMtimeAsc: "Modifica (prima i pi\xF9 vecchi)",
+  sortCtimeDesc: "Creazione (prima i pi\xF9 recenti)",
+  sortCtimeAsc: "Creazione (prima i pi\xF9 vecchi)",
+  sortSizeDesc: "Dimensione (prima i pi\xF9 grandi)",
+  sortSizeAsc: "Dimensione (prima i pi\xF9 piccoli)",
+  confirmDeleteTitle: "Elimina",
+  confirmDeleteOne: "Eliminare \xAB{name}\xBB?",
+  confirmDeleteMany: "Eliminare {n} elementi?",
+  confirm: "Elimina",
+  cancel: "Annulla",
+  itemsMoved: "{n} elementi spostati",
+  undo: "Annulla",
+  filesImported: "{n} file importati",
+  importFailed: "Impossibile importare \xAB{name}\xBB",
+  cmdOpen: "Apri l'esploratore a colonne",
+  cmdReveal: "Mostra il file attivo nelle colonne",
+  cmdNewNote: "Nuova nota nella cartella corrente",
+  cmdNewFolder: "Nuova cartella nella cartella corrente",
+  setFoldersFirst: "Prima le cartelle",
+  setFoldersFirstDesc: "Mostra sempre le cartelle sopra i file.",
+  setShowExt: "Mostra l'estensione",
+  setShowExtDesc: "Mostra una piccola etichetta con l'estensione per i file non Markdown.",
+  setPreview: "Mostra la colonna di anteprima",
+  setPreviewDesc: "Mostra una colonna con i dettagli quando si seleziona un file.",
+  setMdPreview: "Anteprima del contenuto",
+  setMdPreviewDesc: "Mostra l'inizio delle note Markdown nella colonna di anteprima.",
+  setConfirmDelete: "Conferma prima di eliminare",
+  setConfirmDeleteDesc: "Chiede conferma prima di spostare i file nel cestino.",
+  setColWidth: "Larghezza predefinita delle colonne",
+  setColWidthDesc: "In pixel. Trascina il bordo destro di una colonna per ridimensionarla; fai doppio clic sul bordo per ripristinarla.",
+  setAutoPanel: "Adatta il pannello automaticamente",
+  setAutoPanelDesc: "Allarga e restringe il pannello laterale per contenere tutte le colonne aperte, senza cambiarne la larghezza.",
+  setSort: "Ordinamento predefinito",
+  setAutoReveal: "Segui il file attivo",
+  setAutoRevealDesc: "Segue la scheda attiva dell'editor e seleziona il suo file nelle colonne.",
+  setExclude: "File esclusi",
+  setExcludeDesc: "Modelli separati da virgole, ad esempio \xAB*.tmp, archive/, .trash\xBB.",
+  folderColor: "Colore della cartella",
+  colorDefault: "Predefinito",
+  colorRed: "Rosso",
+  colorOrange: "Arancione",
+  colorYellow: "Giallo",
+  colorGreen: "Verde",
+  colorCyan: "Ciano",
+  colorBlue: "Blu",
+  colorPurple: "Viola",
+  colorPink: "Rosa",
+  viewAsList: "Vista a elenco",
+  viewAsGrid: "Vista a icone",
+  pin: "Fissa in alto",
+  unpin: "Rimuovi dai fissati",
+  newCanvas: "Nuova tela",
+  copyWikiLink: "Copia il collegamento wiki",
+  copyMdLink: "Copia il collegamento Markdown",
+  copyObsidianUrl: "Copia l'URL di Obsidian",
+  linkCopied: "Collegamento copiato",
+  sortDefault: "Ordinamento predefinito",
+  folderIcon: "Icona della cartella\u2026",
+  folderIconReset: "Ripristina l'icona",
+  iconPlaceholder: "Scegli un'icona\u2026",
+  setFolderNote: "Apri le note di cartella",
+  setFolderNoteDesc: "Selezionando una cartella si apre anche la nota con lo stesso nome al suo interno, se esiste.",
+  lockPanel: "Blocca il numero di colonne",
+  unlockPanel: "Sblocca le colonne",
+  recents: "Recenti",
+  setRecentCount: "Numero di file recenti",
+  setRecentCountDesc: "Quanti file mostra la colonna \xABRecenti\xBB.",
+  headAppearance: "Aspetto",
+  headBehavior: "Comportamento",
+  headColumns: "Colonne",
+  setShowRecents: "Mostra i recenti",
+  setShowRecentsDesc: "Mostra la riga \xABRecenti\xBB nella prima colonna.",
+  resetWidths: "Ripristina la larghezza delle colonne",
+  resetWidthsDesc: "Dimentica le larghezze impostate a mano e usa ovunque quella predefinita.",
+  widthsReset: "Larghezze delle colonne ripristinate",
+  reset: "Ripristina",
+  clearRecents: "Svuota i file recenti",
+  clearRecentsDesc: "Rimuove tutte le voci dall'elenco dei recenti.",
+  recentsCleared: "Elenco dei recenti svuotato",
+  clear: "Svuota",
+  bookmarks: "Segnalibri",
+  calendar: "Calendario",
+  favorites: "Preferiti",
+  addFavorite: "Aggiungi ai preferiti",
+  removeFavorite: "Rimuovi dai preferiti",
+  favoriteAdded: "Percorso aggiunto ai preferiti",
+  favoriteRemoved: "Rimosso dai preferiti",
+  setShowFavorites: "Mostra i preferiti",
+  setShowFavoritesDesc: "Mostra i file e le cartelle preferiti in cima alla colonna \xABSegnalibri\xBB.",
+  headSpecial: "Elementi speciali",
+  setShowBookmarks: "Mostra i segnalibri",
+  setShowBookmarksDesc: "Mostra la riga \xABSegnalibri\xBB (richiede il plugin Bookmarks).",
+  setShowCalendar: "Mostra il calendario",
+  setShowCalendarDesc: "Mostra la riga \xABCalendario\xBB: le note per giorno di creazione.",
+  setSpecialPos: "Posizione degli elementi speciali",
+  setSpecialPosDesc: "Dove si collocano le righe recenti, segnalibri e calendario nella prima colonna.",
+  posTop: "In alto",
+  posBottom: "In basso",
+  today: "Oggi",
+  navBack: "Indietro",
+  navForward: "Avanti",
+  navUp: "Vai alla cartella superiore",
+  create: "Crea",
+  more: "Altre azioni",
+  preview: "Anteprima",
+  close: "Chiudi",
+  selectedN: "{n} selezionati",
+  cancelSelection: "Annulla la selezione",
+  headMobile: "Interfaccia mobile",
+  setMobileScale: "Scala dell'interfaccia mobile",
+  setMobileScaleDesc: "Cambia la dimensione di righe, controlli, testo e spaziature su telefoni e tablet.",
+  setMobileIcon: "Dimensione delle icone mobili",
+  setMobileIconDesc: "Cambia le icone della barra degli strumenti, della navigazione e della barra delle azioni. Le icone di file e cartelle non cambiano.",
+  resetMobileSizes: "Ripristina le dimensioni mobili",
+  mobileSizesReset: "Dimensioni mobili ripristinate"
+};
 
 // src/i18n.ts
-var STRINGS = {
-  en: {
-    newNote: "New note",
-    newFolder: "New folder",
-    reveal: "Reveal active file",
-    collapse: "Collapse to root",
-    search: "Filter files\u2026",
-    sort: "Sort order",
-    empty: "Empty",
-    noResults: "No matches",
-    open: "Open",
-    openNewTab: "Open in new tab",
-    openRight: "Open to the right",
-    duplicate: "Duplicate",
-    rename: "Rename",
-    delete: "Delete",
-    deleteN: "Delete {n} items",
-    duplicateN: "Duplicate {n} items",
-    moveTo: "Move to folder\u2026",
-    moveToPlaceholder: "Choose target folder\u2026",
-    copyPath: "Copy path",
-    copyFullPath: "Copy full path",
-    pathCopied: "Path copied",
-    untitled: "Untitled",
-    newFolderName: "New folder",
-    cantMoveIntoSelf: "Cannot move a folder into itself",
-    alreadyExists: "\u201C{name}\u201D already exists in the target folder",
-    renameFailed: "Rename failed: ",
-    modified: "Modified",
-    created: "Created",
-    sortNameAsc: "Name (A \u2192 Z)",
-    sortNameDesc: "Name (Z \u2192 A)",
-    sortMtimeDesc: "Modified (newest first)",
-    sortMtimeAsc: "Modified (oldest first)",
-    sortCtimeDesc: "Created (newest first)",
-    sortCtimeAsc: "Created (oldest first)",
-    sortSizeDesc: "Size (largest first)",
-    sortSizeAsc: "Size (smallest first)",
-    confirmDeleteTitle: "Delete",
-    confirmDeleteOne: "Delete \u201C{name}\u201D?",
-    confirmDeleteMany: "Delete {n} items?",
-    confirm: "Delete",
-    cancel: "Cancel",
-    itemsMoved: "{n} items moved",
-    undo: "Undo",
-    filesImported: "{n} files imported",
-    importFailed: "Failed to import \u201C{name}\u201D",
-    cmdOpen: "Open column explorer",
-    cmdReveal: "Reveal active file in columns",
-    cmdNewNote: "New note in current folder",
-    cmdNewFolder: "New folder in current folder",
-    setFoldersFirst: "Folders first",
-    setFoldersFirstDesc: "Always list folders above files.",
-    setShowExt: "Show extension badges",
-    setShowExtDesc: "Show a small badge with the file extension for non-Markdown files.",
-    setPreview: "Show file preview column",
-    setPreviewDesc: "Show a details column when a file is selected.",
-    setMdPreview: "Preview note content",
-    setMdPreviewDesc: "Render the beginning of Markdown notes in the preview column.",
-    setConfirmDelete: "Confirm before deleting",
-    setConfirmDeleteDesc: "Ask for confirmation before moving files to trash.",
-    setColWidth: "Default column width",
-    setColWidthDesc: "In pixels. Drag a column's right edge to resize that column; double-click the edge to reset it.",
-    setAutoPanel: "Auto-resize panel",
-    setAutoPanelDesc: "Grow and shrink the sidebar panel to fit all open columns, keeping the column width fixed.",
-    setSort: "Default sort order",
-    setAutoReveal: "Auto-reveal active file",
-    setAutoRevealDesc: "Follow the active editor tab and select its file in the columns.",
-    setExclude: "Excluded files",
-    setExcludeDesc: "Comma-separated patterns to hide, e.g. \u201C*.tmp, archive/, .trash\u201D.",
-    folderColor: "Folder color",
-    colorDefault: "Default",
-    colorRed: "Red",
-    colorOrange: "Orange",
-    colorYellow: "Yellow",
-    colorGreen: "Green",
-    colorCyan: "Cyan",
-    colorBlue: "Blue",
-    colorPurple: "Purple",
-    colorPink: "Pink",
-    viewAsList: "View as list",
-    viewAsGrid: "View as icons",
-    pin: "Pin to top",
-    unpin: "Unpin",
-    newCanvas: "New canvas",
-    copyWikiLink: "Copy wikilink",
-    copyMdLink: "Copy Markdown link",
-    copyObsidianUrl: "Copy Obsidian URL",
-    linkCopied: "Link copied",
-    sortDefault: "Default sort",
-    folderIcon: "Folder icon\u2026",
-    folderIconReset: "Reset folder icon",
-    iconPlaceholder: "Choose an icon\u2026",
-    setFolderNote: "Open folder notes",
-    setFolderNoteDesc: "Selecting a folder also opens the note with the same name inside it, when one exists.",
-    lockPanel: "Lock column count",
-    unlockPanel: "Unlock columns",
-    recents: "Recents",
-    setRecentCount: "Recent files count",
-    setRecentCountDesc: "How many files the \u201CRecents\u201D column shows.",
-    headAppearance: "Appearance",
-    headBehavior: "Behavior",
-    headColumns: "Columns",
-    setShowRecents: "Show recents",
-    setShowRecentsDesc: "Show the recents row at the top of the first column.",
-    resetWidths: "Reset all column widths",
-    resetWidthsDesc: "Forget individually dragged widths and use the default width everywhere.",
-    widthsReset: "Column widths reset",
-    reset: "Reset",
-    clearRecents: "Clear recent files",
-    clearRecentsDesc: "Remove all entries from the recents list.",
-    recentsCleared: "Recent files cleared",
-    clear: "Clear",
-    bookmarks: "Bookmarks",
-    calendar: "Calendar",
-    favorites: "Favorites",
-    addFavorite: "Add to favorites",
-    removeFavorite: "Remove from favorites",
-    favoriteAdded: "Path added to favorites",
-    favoriteRemoved: "Removed from favorites",
-    setShowFavorites: "Show favorites",
-    setShowFavoritesDesc: "Show your saved favorite files and folders at the top of the Bookmarks column.",
-    headSpecial: "Special items",
-    setShowBookmarks: "Show bookmarks",
-    setShowBookmarksDesc: "Show the bookmarks row (needs the core Bookmarks plugin).",
-    setShowCalendar: "Show calendar",
-    setShowCalendarDesc: "Show the calendar row: notes by creation day.",
-    setSpecialPos: "Special items position",
-    setSpecialPosDesc: "Where the recents, bookmarks and calendar rows sit in the first column.",
-    posTop: "Top",
-    posBottom: "Bottom",
-    today: "Today",
-    navBack: "Back",
-    navForward: "Forward",
-    navUp: "Go to parent folder",
-    create: "Create",
-    more: "More actions",
-    preview: "Preview",
-    close: "Close",
-    selectedN: "{n} selected",
-    cancelSelection: "Cancel selection",
-    headMobile: "Mobile interface",
-    setMobileScale: "Mobile interface scale",
-    setMobileScaleDesc: "Changes the size of rows, controls, text and spacing on phones and tablets.",
-    setMobileIcon: "Mobile button icon size",
-    setMobileIconDesc: "Changes toolbar, navigation and action-bar icons. File and folder icons are not affected.",
-    resetMobileSizes: "Reset mobile sizes",
-    mobileSizesReset: "Mobile sizes reset"
-  },
-  ru: {
-    newNote: "\u041D\u043E\u0432\u0430\u044F \u0437\u0430\u043C\u0435\u0442\u043A\u0430",
-    newFolder: "\u041D\u043E\u0432\u0430\u044F \u043F\u0430\u043F\u043A\u0430",
-    reveal: "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u0439 \u0444\u0430\u0439\u043B",
-    collapse: "\u0421\u0432\u0435\u0440\u043D\u0443\u0442\u044C \u043A \u043A\u043E\u0440\u043D\u044E",
-    search: "\u0424\u0438\u043B\u044C\u0442\u0440 \u0444\u0430\u0439\u043B\u043E\u0432\u2026",
-    sort: "\u0421\u043E\u0440\u0442\u0438\u0440\u043E\u0432\u043A\u0430",
-    empty: "\u041F\u0443\u0441\u0442\u043E",
-    noResults: "\u041D\u0438\u0447\u0435\u0433\u043E \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u043E",
-    open: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C",
-    openNewTab: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0432 \u043D\u043E\u0432\u043E\u0439 \u0432\u043A\u043B\u0430\u0434\u043A\u0435",
-    openRight: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0441\u043F\u0440\u0430\u0432\u0430",
-    duplicate: "\u0414\u0443\u0431\u043B\u0438\u0440\u043E\u0432\u0430\u0442\u044C",
-    rename: "\u041F\u0435\u0440\u0435\u0438\u043C\u0435\u043D\u043E\u0432\u0430\u0442\u044C",
-    delete: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
-    deleteN: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C {n} \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432",
-    duplicateN: "\u0414\u0443\u0431\u043B\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432: {n}",
-    moveTo: "\u041F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u044C \u0432 \u043F\u0430\u043F\u043A\u0443\u2026",
-    moveToPlaceholder: "\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043F\u0430\u043F\u043A\u0443\u2026",
-    copyPath: "\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u043F\u0443\u0442\u044C",
-    copyFullPath: "\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u043F\u043E\u043B\u043D\u044B\u0439 \u043F\u0443\u0442\u044C",
-    pathCopied: "\u041F\u0443\u0442\u044C \u0441\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u043D",
-    untitled: "\u0411\u0435\u0437 \u043D\u0430\u0437\u0432\u0430\u043D\u0438\u044F",
-    newFolderName: "\u041D\u043E\u0432\u0430\u044F \u043F\u0430\u043F\u043A\u0430",
-    cantMoveIntoSelf: "\u041D\u0435\u043B\u044C\u0437\u044F \u043F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u044C \u043F\u0430\u043F\u043A\u0443 \u0432\u043D\u0443\u0442\u0440\u044C \u0441\u0430\u043C\u043E\u0439 \u0441\u0435\u0431\u044F",
-    alreadyExists: "\u0412 \u0446\u0435\u043B\u0435\u0432\u043E\u0439 \u043F\u0430\u043F\u043A\u0435 \u0443\u0436\u0435 \u0435\u0441\u0442\u044C \xAB{name}\xBB",
-    renameFailed: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u0435\u0440\u0435\u0438\u043C\u0435\u043D\u043E\u0432\u0430\u0442\u044C: ",
-    modified: "\u0418\u0437\u043C\u0435\u043D\u0451\u043D",
-    created: "\u0421\u043E\u0437\u0434\u0430\u043D",
-    sortNameAsc: "\u0418\u043C\u044F (\u0410 \u2192 \u042F)",
-    sortNameDesc: "\u0418\u043C\u044F (\u042F \u2192 \u0410)",
-    sortMtimeDesc: "\u0414\u0430\u0442\u0430 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F (\u0441\u043D\u0430\u0447\u0430\u043B\u0430 \u043D\u043E\u0432\u044B\u0435)",
-    sortMtimeAsc: "\u0414\u0430\u0442\u0430 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F (\u0441\u043D\u0430\u0447\u0430\u043B\u0430 \u0441\u0442\u0430\u0440\u044B\u0435)",
-    sortCtimeDesc: "\u0414\u0430\u0442\u0430 \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u044F (\u0441\u043D\u0430\u0447\u0430\u043B\u0430 \u043D\u043E\u0432\u044B\u0435)",
-    sortCtimeAsc: "\u0414\u0430\u0442\u0430 \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u044F (\u0441\u043D\u0430\u0447\u0430\u043B\u0430 \u0441\u0442\u0430\u0440\u044B\u0435)",
-    sortSizeDesc: "\u0420\u0430\u0437\u043C\u0435\u0440 (\u0441\u043D\u0430\u0447\u0430\u043B\u0430 \u0431\u043E\u043B\u044C\u0448\u0438\u0435)",
-    sortSizeAsc: "\u0420\u0430\u0437\u043C\u0435\u0440 (\u0441\u043D\u0430\u0447\u0430\u043B\u0430 \u043C\u0430\u043B\u0435\u043D\u044C\u043A\u0438\u0435)",
-    confirmDeleteTitle: "\u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435",
-    confirmDeleteOne: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \xAB{name}\xBB?",
-    confirmDeleteMany: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432: {n}?",
-    confirm: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
-    cancel: "\u041E\u0442\u043C\u0435\u043D\u0430",
-    itemsMoved: "\u041F\u0435\u0440\u0435\u043C\u0435\u0449\u0435\u043D\u043E \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432: {n}",
-    undo: "\u041E\u0442\u043C\u0435\u043D\u0438\u0442\u044C",
-    filesImported: "\u0418\u043C\u043F\u043E\u0440\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u043E \u0444\u0430\u0439\u043B\u043E\u0432: {n}",
-    importFailed: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0438\u043C\u043F\u043E\u0440\u0442\u0438\u0440\u043E\u0432\u0430\u0442\u044C \xAB{name}\xBB",
-    cmdOpen: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u043E\u0432\u043E\u0434\u043D\u0438\u043A-\u043A\u043E\u043B\u043E\u043D\u043A\u0438",
-    cmdReveal: "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u0439 \u0444\u0430\u0439\u043B \u0432 \u043A\u043E\u043B\u043E\u043D\u043A\u0430\u0445",
-    cmdNewNote: "\u041D\u043E\u0432\u0430\u044F \u0437\u0430\u043C\u0435\u0442\u043A\u0430 \u0432 \u0442\u0435\u043A\u0443\u0449\u0435\u0439 \u043F\u0430\u043F\u043A\u0435",
-    cmdNewFolder: "\u041D\u043E\u0432\u0430\u044F \u043F\u0430\u043F\u043A\u0430 \u0432 \u0442\u0435\u043A\u0443\u0449\u0435\u0439 \u043F\u0430\u043F\u043A\u0435",
-    setFoldersFirst: "\u041F\u0430\u043F\u043A\u0438 \u0441\u0432\u0435\u0440\u0445\u0443",
-    setFoldersFirstDesc: "\u0412\u0441\u0435\u0433\u0434\u0430 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u043F\u0430\u043F\u043A\u0438 \u0432\u044B\u0448\u0435 \u0444\u0430\u0439\u043B\u043E\u0432.",
-    setShowExt: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u0440\u0430\u0441\u0448\u0438\u0440\u0435\u043D\u0438\u044F",
-    setShowExtDesc: "\u041D\u0435\u0431\u043E\u043B\u044C\u0448\u043E\u0439 \u0431\u0435\u0439\u0434\u0436 \u0441 \u0440\u0430\u0441\u0448\u0438\u0440\u0435\u043D\u0438\u0435\u043C \u0443 \u043D\u0435-Markdown \u0444\u0430\u0439\u043B\u043E\u0432.",
-    setPreview: "\u041A\u043E\u043B\u043E\u043D\u043A\u0430 \u043F\u0440\u0435\u0432\u044C\u044E \u0444\u0430\u0439\u043B\u0430",
-    setPreviewDesc: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u043A\u043E\u043B\u043E\u043D\u043A\u0443 \u0441 \u0434\u0435\u0442\u0430\u043B\u044F\u043C\u0438 \u043F\u0440\u0438 \u0432\u044B\u0431\u043E\u0440\u0435 \u0444\u0430\u0439\u043B\u0430.",
-    setMdPreview: "\u041F\u0440\u0435\u0432\u044C\u044E \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u043C\u043E\u0433\u043E \u0437\u0430\u043C\u0435\u0442\u043A\u0438",
-    setMdPreviewDesc: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u043D\u0430\u0447\u0430\u043B\u043E Markdown-\u0437\u0430\u043C\u0435\u0442\u043A\u0438 \u0432 \u043A\u043E\u043B\u043E\u043D\u043A\u0435 \u043F\u0440\u0435\u0432\u044C\u044E.",
-    setConfirmDelete: "\u041F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0430\u0442\u044C \u0443\u0434\u0430\u043B\u0435\u043D\u0438\u0435",
-    setConfirmDeleteDesc: "\u0421\u043F\u0440\u0430\u0448\u0438\u0432\u0430\u0442\u044C \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u0438\u0435 \u043F\u0435\u0440\u0435\u0434 \u043F\u0435\u0440\u0435\u043C\u0435\u0449\u0435\u043D\u0438\u0435\u043C \u0432 \u043A\u043E\u0440\u0437\u0438\u043D\u0443.",
-    setColWidth: "\u0428\u0438\u0440\u0438\u043D\u0430 \u043A\u043E\u043B\u043E\u043D\u043A\u0438 \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E",
-    setColWidthDesc: "\u0412 \u043F\u0438\u043A\u0441\u0435\u043B\u044F\u0445. \u041F\u0440\u0430\u0432\u044B\u0439 \u043A\u0440\u0430\u0439 \u043A\u043E\u043B\u043E\u043D\u043A\u0438: \u043F\u0435\u0440\u0435\u0442\u0430\u0449\u0438\u0442\u044C \u2014 \u0438\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u0448\u0438\u0440\u0438\u043D\u0443 \u044D\u0442\u043E\u0439 \u043A\u043E\u043B\u043E\u043D\u043A\u0438, \u0434\u0432\u043E\u0439\u043D\u043E\u0439 \u043A\u043B\u0438\u043A \u2014 \u0441\u0431\u0440\u043E\u0441\u0438\u0442\u044C.",
-    setAutoPanel: "\u0410\u0432\u0442\u043E-\u0448\u0438\u0440\u0438\u043D\u0430 \u043F\u0430\u043D\u0435\u043B\u0438",
-    setAutoPanelDesc: "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0440\u0430\u0441\u0448\u0438\u0440\u044F\u0442\u044C \u0438 \u0441\u0443\u0436\u0430\u0442\u044C \u0431\u043E\u043A\u043E\u0432\u0443\u044E \u043F\u0430\u043D\u0435\u043B\u044C \u043F\u043E\u0434 \u043E\u0442\u043A\u0440\u044B\u0442\u044B\u0435 \u043A\u043E\u043B\u043E\u043D\u043A\u0438, \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u044F \u0448\u0438\u0440\u0438\u043D\u0443 \u043A\u043E\u043B\u043E\u043D\u043E\u043A.",
-    setSort: "\u0421\u043E\u0440\u0442\u0438\u0440\u043E\u0432\u043A\u0430 \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E",
-    setAutoReveal: "\u0421\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u044C \u0437\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u043C \u0444\u0430\u0439\u043B\u043E\u043C",
-    setAutoRevealDesc: "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0432\u044B\u0434\u0435\u043B\u044F\u0442\u044C \u0432 \u043A\u043E\u043B\u043E\u043D\u043A\u0430\u0445 \u0444\u0430\u0439\u043B \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0439 \u0432\u043A\u043B\u0430\u0434\u043A\u0438.",
-    setExclude: "\u0421\u043A\u0440\u044B\u0442\u044B\u0435 \u0444\u0430\u0439\u043B\u044B",
-    setExcludeDesc: "\u041F\u0430\u0442\u0442\u0435\u0440\u043D\u044B \u0447\u0435\u0440\u0435\u0437 \u0437\u0430\u043F\u044F\u0442\u0443\u044E, \u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440 \xAB*.tmp, archive/, .trash\xBB.",
-    folderColor: "\u0426\u0432\u0435\u0442 \u043F\u0430\u043F\u043A\u0438",
-    colorDefault: "\u0421\u0442\u0430\u043D\u0434\u0430\u0440\u0442\u043D\u044B\u0439",
-    colorRed: "\u041A\u0440\u0430\u0441\u043D\u044B\u0439",
-    colorOrange: "\u041E\u0440\u0430\u043D\u0436\u0435\u0432\u044B\u0439",
-    colorYellow: "\u0416\u0451\u043B\u0442\u044B\u0439",
-    colorGreen: "\u0417\u0435\u043B\u0451\u043D\u044B\u0439",
-    colorCyan: "\u0413\u043E\u043B\u0443\u0431\u043E\u0439",
-    colorBlue: "\u0421\u0438\u043D\u0438\u0439",
-    colorPurple: "\u0424\u0438\u043E\u043B\u0435\u0442\u043E\u0432\u044B\u0439",
-    colorPink: "\u0420\u043E\u0437\u043E\u0432\u044B\u0439",
-    viewAsList: "\u0412\u0438\u0434: \u0441\u043F\u0438\u0441\u043E\u043A",
-    viewAsGrid: "\u0412\u0438\u0434: \u0437\u043D\u0430\u0447\u043A\u0438",
-    pin: "\u0417\u0430\u043A\u0440\u0435\u043F\u0438\u0442\u044C \u0441\u0432\u0435\u0440\u0445\u0443",
-    unpin: "\u041E\u0442\u043A\u0440\u0435\u043F\u0438\u0442\u044C",
-    newCanvas: "\u041D\u043E\u0432\u044B\u0439 \u0445\u043E\u043B\u0441\u0442",
-    copyWikiLink: "\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0432\u0438\u043A\u0438-\u0441\u0441\u044B\u043B\u043A\u0443",
-    copyMdLink: "\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C markdown-\u0441\u0441\u044B\u043B\u043A\u0443",
-    copyObsidianUrl: "\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C Obsidian URL",
-    linkCopied: "\u0421\u0441\u044B\u043B\u043A\u0430 \u0441\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u043D\u0430",
-    sortDefault: "\u0421\u043E\u0440\u0442\u0438\u0440\u043E\u0432\u043A\u0430 \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E",
-    folderIcon: "\u0418\u043A\u043E\u043D\u043A\u0430 \u043F\u0430\u043F\u043A\u0438\u2026",
-    folderIconReset: "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u0438\u043A\u043E\u043D\u043A\u0443 \u043F\u0430\u043F\u043A\u0438",
-    iconPlaceholder: "\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0438\u043A\u043E\u043D\u043A\u0443\u2026",
-    setFolderNote: "\u041E\u0442\u043A\u0440\u044B\u0432\u0430\u0442\u044C \u0437\u0430\u043C\u0435\u0442\u043A\u0438 \u043F\u0430\u043F\u043E\u043A",
-    setFolderNoteDesc: "\u0412\u044B\u0431\u043E\u0440 \u043F\u0430\u043F\u043A\u0438 \u0442\u0430\u043A\u0436\u0435 \u043E\u0442\u043A\u0440\u044B\u0432\u0430\u0435\u0442 \u0437\u0430\u043C\u0435\u0442\u043A\u0443 \u0441 \u0435\u0451 \u0438\u043C\u0435\u043D\u0435\u043C \u0432\u043D\u0443\u0442\u0440\u0438, \u0435\u0441\u043B\u0438 \u043E\u043D\u0430 \u0435\u0441\u0442\u044C.",
-    lockPanel: "\u0417\u0430\u0444\u0438\u043A\u0441\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0447\u0438\u0441\u043B\u043E \u043A\u043E\u043B\u043E\u043D\u043E\u043A",
-    unlockPanel: "\u0421\u043D\u044F\u0442\u044C \u0444\u0438\u043A\u0441\u0430\u0446\u0438\u044E \u043A\u043E\u043B\u043E\u043D\u043E\u043A",
-    recents: "\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435",
-    setRecentCount: "\u0427\u0438\u0441\u043B\u043E \u043D\u0435\u0434\u0430\u0432\u043D\u0438\u0445 \u0444\u0430\u0439\u043B\u043E\u0432",
-    setRecentCountDesc: "\u0421\u043A\u043E\u043B\u044C\u043A\u043E \u0444\u0430\u0439\u043B\u043E\u0432 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u0432 \u043A\u043E\u043B\u043E\u043D\u043A\u0435 \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435\xBB.",
-    headAppearance: "\u0412\u0438\u0434",
-    headBehavior: "\u041F\u043E\u0432\u0435\u0434\u0435\u043D\u0438\u0435",
-    headColumns: "\u041A\u043E\u043B\u043E\u043D\u043A\u0438",
-    setShowRecents: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435\xBB",
-    setShowRecentsDesc: "\u041F\u0443\u043D\u043A\u0442 \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435\xBB \u0432\u0432\u0435\u0440\u0445\u0443 \u043F\u0435\u0440\u0432\u043E\u0439 \u043A\u043E\u043B\u043E\u043D\u043A\u0438.",
-    resetWidths: "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u0448\u0438\u0440\u0438\u043D\u044B \u0432\u0441\u0435\u0445 \u043A\u043E\u043B\u043E\u043D\u043E\u043A",
-    resetWidthsDesc: "\u0417\u0430\u0431\u044B\u0442\u044C \u0438\u043D\u0434\u0438\u0432\u0438\u0434\u0443\u0430\u043B\u044C\u043D\u043E \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u043D\u044B\u0435 \u0448\u0438\u0440\u0438\u043D\u044B \u0438 \u0432\u0435\u0440\u043D\u0443\u0442\u044C \u0432\u0441\u0435\u043C \u043A\u043E\u043B\u043E\u043D\u043A\u0430\u043C \u0448\u0438\u0440\u0438\u043D\u0443 \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E.",
-    widthsReset: "\u0428\u0438\u0440\u0438\u043D\u044B \u043A\u043E\u043B\u043E\u043D\u043E\u043A \u0441\u0431\u0440\u043E\u0448\u0435\u043D\u044B",
-    reset: "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C",
-    clearRecents: "\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u044C \u043D\u0435\u0434\u0430\u0432\u043D\u0438\u0435",
-    clearRecentsDesc: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0432\u0441\u0435 \u0437\u0430\u043F\u0438\u0441\u0438 \u0438\u0437 \u0441\u043F\u0438\u0441\u043A\u0430 \u043D\u0435\u0434\u0430\u0432\u043D\u0438\u0445.",
-    recentsCleared: "\u0421\u043F\u0438\u0441\u043E\u043A \u043D\u0435\u0434\u0430\u0432\u043D\u0438\u0445 \u043E\u0447\u0438\u0449\u0435\u043D",
-    clear: "\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u044C",
-    bookmarks: "\u0417\u0430\u043A\u043B\u0430\u0434\u043A\u0438",
-    calendar: "\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C",
-    favorites: "\u0418\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0435",
-    addFavorite: "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0432 \u0438\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0435",
-    removeFavorite: "\u0423\u0431\u0440\u0430\u0442\u044C \u0438\u0437 \u0438\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0433\u043E",
-    favoriteAdded: "\u041F\u0443\u0442\u044C \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D \u0432 \u0438\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0435",
-    favoriteRemoved: "\u0423\u0431\u0440\u0430\u043D\u043E \u0438\u0437 \u0438\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0433\u043E",
-    setShowFavorites: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \xAB\u0418\u0437\u0431\u0440\u0430\u043D\u043D\u043E\u0435\xBB",
-    setShowFavoritesDesc: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D\u043D\u044B\u0435 \u0438\u0437\u0431\u0440\u0430\u043D\u043D\u044B\u0435 \u0444\u0430\u0439\u043B\u044B \u0438 \u043F\u0430\u043F\u043A\u0438 \u0432\u0432\u0435\u0440\u0445\u0443 \u043A\u043E\u043B\u043E\u043D\u043A\u0438 \xAB\u0417\u0430\u043A\u043B\u0430\u0434\u043A\u0438\xBB.",
-    headSpecial: "\u0421\u043F\u0435\u0446\u043F\u0443\u043D\u043A\u0442\u044B",
-    setShowBookmarks: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \xAB\u0417\u0430\u043A\u043B\u0430\u0434\u043A\u0438\xBB",
-    setShowBookmarksDesc: "\u041F\u0443\u043D\u043A\u0442 \xAB\u0417\u0430\u043A\u043B\u0430\u0434\u043A\u0438\xBB (\u043D\u0443\u0436\u0435\u043D \u0432\u0441\u0442\u0440\u043E\u0435\u043D\u043D\u044B\u0439 \u043F\u043B\u0430\u0433\u0438\u043D Bookmarks).",
-    setShowCalendar: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \xAB\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C\xBB",
-    setShowCalendarDesc: "\u041F\u0443\u043D\u043A\u0442 \xAB\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C\xBB: \u0437\u0430\u043C\u0435\u0442\u043A\u0438 \u043F\u043E \u0434\u043D\u044E \u0441\u043E\u0437\u0434\u0430\u043D\u0438\u044F.",
-    setSpecialPos: "\u041F\u043E\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u0441\u043F\u0435\u0446\u043F\u0443\u043D\u043A\u0442\u043E\u0432",
-    setSpecialPosDesc: "\u0413\u0434\u0435 \u0432 \u043F\u0435\u0440\u0432\u043E\u0439 \u043A\u043E\u043B\u043E\u043D\u043A\u0435 \u0441\u0442\u043E\u044F\u0442 \xAB\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435\xBB, \xAB\u0417\u0430\u043A\u043B\u0430\u0434\u043A\u0438\xBB \u0438 \xAB\u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C\xBB.",
-    posTop: "\u0421\u0432\u0435\u0440\u0445\u0443",
-    posBottom: "\u0421\u043D\u0438\u0437\u0443",
-    today: "\u0421\u0435\u0433\u043E\u0434\u043D\u044F",
-    navBack: "\u041D\u0430\u0437\u0430\u0434",
-    navForward: "\u0412\u043F\u0435\u0440\u0451\u0434",
-    navUp: "\u0412 \u0440\u043E\u0434\u0438\u0442\u0435\u043B\u044C\u0441\u043A\u0443\u044E \u043F\u0430\u043F\u043A\u0443",
-    create: "\u0421\u043E\u0437\u0434\u0430\u0442\u044C",
-    more: "\u0415\u0449\u0451 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044F",
-    preview: "\u041F\u0440\u0435\u0434\u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440",
-    close: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C",
-    selectedN: "\u0412\u044B\u0431\u0440\u0430\u043D\u043E: {n}",
-    cancelSelection: "\u0421\u043D\u044F\u0442\u044C \u0432\u044B\u0434\u0435\u043B\u0435\u043D\u0438\u0435",
-    headMobile: "\u041C\u043E\u0431\u0438\u043B\u044C\u043D\u044B\u0439 \u0438\u043D\u0442\u0435\u0440\u0444\u0435\u0439\u0441",
-    setMobileScale: "\u041C\u0430\u0441\u0448\u0442\u0430\u0431 \u043C\u043E\u0431\u0438\u043B\u044C\u043D\u043E\u0433\u043E \u0438\u043D\u0442\u0435\u0440\u0444\u0435\u0439\u0441\u0430",
-    setMobileScaleDesc: "\u0418\u0437\u043C\u0435\u043D\u044F\u0435\u0442 \u0440\u0430\u0437\u043C\u0435\u0440 \u0441\u0442\u0440\u043E\u043A, \u043A\u043D\u043E\u043F\u043E\u043A, \u0442\u0435\u043A\u0441\u0442\u0430 \u0438 \u043E\u0442\u0441\u0442\u0443\u043F\u043E\u0432 \u043D\u0430 \u0442\u0435\u043B\u0435\u0444\u043E\u043D\u0430\u0445 \u0438 \u043F\u043B\u0430\u043D\u0448\u0435\u0442\u0430\u0445.",
-    setMobileIcon: "\u0420\u0430\u0437\u043C\u0435\u0440 \u0438\u043A\u043E\u043D\u043E\u043A \u043C\u043E\u0431\u0438\u043B\u044C\u043D\u044B\u0445 \u043A\u043D\u043E\u043F\u043E\u043A",
-    setMobileIconDesc: "\u0418\u0437\u043C\u0435\u043D\u044F\u0435\u0442 \u0438\u043A\u043E\u043D\u043A\u0438 toolbar, \u043D\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u0438 \u0438 \u043F\u0430\u043D\u0435\u043B\u0438 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0439. \u0418\u043A\u043E\u043D\u043A\u0438 \u0444\u0430\u0439\u043B\u043E\u0432 \u0438 \u043F\u0430\u043F\u043E\u043A \u043D\u0435 \u043C\u0435\u043D\u044F\u044E\u0442\u0441\u044F.",
-    resetMobileSizes: "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u043C\u043E\u0431\u0438\u043B\u044C\u043D\u044B\u0435 \u0440\u0430\u0437\u043C\u0435\u0440\u044B",
-    mobileSizesReset: "\u041C\u043E\u0431\u0438\u043B\u044C\u043D\u044B\u0435 \u0440\u0430\u0437\u043C\u0435\u0440\u044B \u0441\u0431\u0440\u043E\u0448\u0435\u043D\u044B"
-  }
-};
+var LOCALES = { en, ru, es, fr, it };
 function t(key, vars) {
   var _a, _b, _c;
-  const lang = (0, import_obsidian.getLanguage)();
-  const s = (_c = (_b = ((_a = STRINGS[lang]) != null ? _a : STRINGS.en)[key]) != null ? _b : STRINGS.en[key]) != null ? _c : key;
+  const strings = (_a = LOCALES[(0, import_obsidian.getLanguage)()]) != null ? _a : en;
+  const s = (_c = (_b = strings[key]) != null ? _b : en[key]) != null ? _c : key;
   return vars ? formatTemplate(s, vars) : s;
 }
 
@@ -576,7 +1101,7 @@ var DEFAULT_SETTINGS = {
   showMarkdownPreview: true,
   confirmDelete: true,
   autoReveal: false,
-  columnWidth: 200,
+  columnWidth: DEFAULT_COLUMN_WIDTH,
   columnWidths: {},
   autoPanelResize: true,
   sortMode: "name-asc",
@@ -588,7 +1113,7 @@ var DEFAULT_SETTINGS = {
   folderIcons: {},
   openFolderNote: false,
   lockedColumnCount: null,
-  recentFilesCount: 10,
+  recentFilesCount: DEFAULT_RECENT_FILES,
   recentFiles: [],
   showRecents: true,
   showBookmarks: true,
@@ -599,11 +1124,6 @@ var DEFAULT_SETTINGS = {
   mobileUiScale: DEFAULT_MOBILE_SCALE,
   mobileIconSize: DEFAULT_MOBILE_ICON
 };
-var MIN_RECENT_FILES = 5;
-var MAX_RECENT_FILES = 50;
-var MIN_COLUMN_WIDTH = 140;
-var MAX_COLUMN_WIDTH = 500;
-var ROOT_COLUMN_EXTRA_WIDTH = 60;
 var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
   constructor(app, plugin) {
     super(app, plugin);
@@ -892,8 +1412,12 @@ async function moveFiles(app, paths, target) {
       new import_obsidian3.Notice(t("alreadyExists", { name: src.name }));
       continue;
     }
-    await app.fileManager.renameFile(src, dest);
-    moves.push({ from: path, to: dest });
+    try {
+      await app.fileManager.renameFile(src, dest);
+      moves.push({ from: path, to: dest });
+    } catch (err) {
+      new import_obsidian3.Notice(t("moveFailed", { name: src.name, error: errorMessage(err) }));
+    }
   }
   if (moves.length > 0) showUndoMoveNotice(app, moves);
   return moves.length;
@@ -911,8 +1435,11 @@ function showUndoMoveNotice(app, moves) {
 async function undoMoves(app, moves) {
   for (const move of moves) {
     const f = app.vault.getAbstractFileByPath(move.to);
-    if (f && !app.vault.getAbstractFileByPath(move.from)) {
+    if (!f || app.vault.getAbstractFileByPath(move.from)) continue;
+    try {
       await app.fileManager.renameFile(f, move.from);
+    } catch (err) {
+      new import_obsidian3.Notice(t("moveFailed", { name: f.name, error: errorMessage(err) }));
     }
   }
 }
@@ -939,12 +1466,21 @@ async function duplicateFile(app, f) {
   while (app.vault.getAbstractFileByPath(path)) {
     path = (0, import_obsidian3.normalizePath)(dir + f.basename + " copy " + n++ + "." + f.extension);
   }
-  await app.vault.copy(f, path);
+  try {
+    await app.vault.copy(f, path);
+  } catch (err) {
+    new import_obsidian3.Notice(t("duplicateFailed", { name: f.name, error: errorMessage(err) }));
+  }
 }
 async function trashFiles(app, paths) {
   for (const p of paths) {
     const f = app.vault.getAbstractFileByPath(p);
-    if (f) await app.fileManager.trashFile(f);
+    if (!f) continue;
+    try {
+      await app.fileManager.trashFile(f);
+    } catch (err) {
+      new import_obsidian3.Notice(t("deleteFailed", { name: f.name, error: errorMessage(err) }));
+    }
   }
 }
 
@@ -1205,16 +1741,6 @@ var IconSuggestModal = class extends import_obsidian6.FuzzySuggestModal {
 
 // src/menus.ts
 var import_obsidian7 = require("obsidian");
-var SORT_MODES = [
-  "name-asc",
-  "name-desc",
-  "mtime-desc",
-  "mtime-asc",
-  "ctime-desc",
-  "ctime-asc",
-  "size-desc",
-  "size-asc"
-];
 function sortLabel(mode) {
   const keys = {
     "name-asc": "sortNameAsc",
@@ -1378,7 +1904,7 @@ function showColumnHeaderMenu(view, e, folder) {
     view.render();
   };
   menu.addItem((i) => i.setTitle(t("sortDefault")).setChecked(current === void 0).onClick(() => setMode(null)));
-  for (const mode of SORT_MODES) {
+  for (const mode of SORT_MODE_VALUES) {
     menu.addItem((i) => i.setTitle(sortLabel(mode)).setChecked(current === mode).onClick(() => setMode(mode)));
   }
   menu.showAtMouseEvent(e);
@@ -1391,7 +1917,7 @@ function showFolderBackgroundMenu(view, e, folder) {
   menu.showAtMouseEvent(e);
 }
 function fillSortItems(view, target) {
-  for (const m of SORT_MODES) {
+  for (const m of SORT_MODE_VALUES) {
     target.addItem((i) => i.setTitle(sortLabel(m)).setChecked(view.plugin.settings.sortMode === m).onClick(async () => {
       view.plugin.settings.sortMode = m;
       await view.plugin.saveSettings();
@@ -2422,7 +2948,7 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     s.columnSortModes = remapPathKeys(s.columnSortModes, oldPath, newPath);
     s.folderIcons = remapPathKeys(s.folderIcons, oldPath, newPath);
     s.columnWidths = remapPathKeys(s.columnWidths, oldPath, newPath);
-    void this.plugin.saveSettings();
+    this.plugin.queueSaveSettings();
   }
   prunePathRecords(deletedPath) {
     const s = this.plugin.settings;
@@ -2432,7 +2958,7 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     s.columnSortModes = prunePathKeys(s.columnSortModes, deletedPath);
     s.folderIcons = prunePathKeys(s.folderIcons, deletedPath);
     s.columnWidths = prunePathKeys(s.columnWidths, deletedPath);
-    void this.plugin.saveSettings();
+    this.plugin.queueSaveSettings();
   }
   /* ------------------------------ render --------------------------- */
   applyColumnWidth() {
@@ -2806,9 +3332,9 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
   bookmarkedItems() {
     var _a;
     const flatten = (items) => items.flatMap(
-      (it) => {
+      (it2) => {
         var _a2;
-        return it.type === "group" ? flatten((_a2 = it.items) != null ? _a2 : []) : (it.type === "file" || it.type === "folder") && it.path ? [it.path] : [];
+        return it2.type === "group" ? flatten((_a2 = it2.items) != null ? _a2 : []) : (it2.type === "file" || it2.type === "folder") && it2.path ? [it2.path] : [];
       }
     );
     const patterns = this.excludePatternsList();
@@ -2940,10 +3466,14 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     while (this.app.vault.getAbstractFileByPath(path)) {
       path = (0, import_obsidian11.normalizePath)(base + " " + n++ + "." + extension);
     }
-    const file = await this.app.vault.create(path, initialContent);
-    this.revealFile(file);
-    await this.app.workspace.getLeaf(false).openFile(file);
-    window.setTimeout(() => this.startRenameByPath(file.path), 100);
+    try {
+      const file = await this.app.vault.create(path, initialContent);
+      this.revealFile(file);
+      await this.app.workspace.getLeaf(false).openFile(file);
+      window.setTimeout(() => this.startRenameByPath(file.path), 100);
+    } catch (err) {
+      new import_obsidian11.Notice(t("createFailed", { name: path, error: errorMessage(err) }));
+    }
   }
   async createFolder(folder) {
     const base = (folder.isRoot() ? "" : folder.path + "/") + t("newFolderName");
@@ -2952,8 +3482,12 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     while (this.app.vault.getAbstractFileByPath(path)) {
       path = (0, import_obsidian11.normalizePath)(base + " " + n++);
     }
-    await this.app.vault.createFolder(path);
-    window.setTimeout(() => this.startRenameByPath(path), 100);
+    try {
+      await this.app.vault.createFolder(path);
+      window.setTimeout(() => this.startRenameByPath(path), 100);
+    } catch (err) {
+      new import_obsidian11.Notice(t("createFailed", { name: path, error: errorMessage(err) }));
+    }
   }
   startRenameByPath(path) {
     const f = this.app.vault.getAbstractFileByPath(path);
@@ -2984,7 +3518,7 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
         try {
           await this.app.fileManager.renameFile(f, (0, import_obsidian11.normalizePath)(dir + finalName));
         } catch (err) {
-          new import_obsidian11.Notice(t("renameFailed") + String(err));
+          new import_obsidian11.Notice(t("renameFailed") + errorMessage(err));
         }
       }
       this.render();
@@ -3148,36 +3682,42 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
 };
 
 // src/main.ts
+var SAVE_DEBOUNCE_MS = 1e3;
 var ColumnExplorerPlugin = class extends import_obsidian12.Plugin {
   constructor() {
     super(...arguments);
     this.settings = DEFAULT_SETTINGS;
     this.shouldSeedRecents = false;
-    this.saveRecentsDebounced = (0, import_obsidian12.debounce)(() => void this.saveSettings(), 2e3);
+    /**
+     * Отложенная запись настроек для событий, приходящих пачками: открытие
+     * файлов и, главное, rename/delete — при удалении папки на N файлов
+     * немедленная запись означала бы N перезаписей data.json подряд.
+     */
+    this.saveQueued = (0, import_obsidian12.debounce)(() => void this.saveSettings(), SAVE_DEBOUNCE_MS);
   }
   async onload() {
     await this.loadSettings();
     if (this.shouldSeedRecents) {
       this.settings.recentFiles = this.app.workspace.getLastOpenFiles();
     }
-    this.register(() => this.saveRecentsDebounced.run());
+    this.register(() => this.saveQueued.run());
     this.registerEvent(this.app.workspace.on("file-open", (f) => {
       var _a;
       if (!f) return;
       this.settings.recentFiles = pushRecent(this.settings.recentFiles, f.path, MAX_RECENT_FILES);
-      this.saveRecentsDebounced();
+      this.saveQueued();
       (_a = this.getView()) == null ? void 0 : _a.refreshRecentsColumn(f.path);
     }));
     this.registerEvent(this.app.vault.on("rename", (f, oldPath) => {
       this.settings.recentFiles = remapPathList(this.settings.recentFiles, oldPath, f.path);
       this.settings.favorites = remapPathList(this.settings.favorites, oldPath, f.path);
-      void this.saveSettings();
+      this.saveQueued();
     }));
     this.registerEvent(this.app.vault.on("delete", (f) => {
       const dropDeleted = (p) => p !== f.path && !p.startsWith(f.path + "/");
       this.settings.recentFiles = this.settings.recentFiles.filter(dropDeleted);
       this.settings.favorites = this.settings.favorites.filter(dropDeleted);
-      void this.saveSettings();
+      this.saveQueued();
     }));
     this.registerView(VIEW_TYPE_COLUMNS, (leaf) => new ColumnExplorerView(leaf, this));
     this.addSettingTab(new ColumnExplorerSettingTab(this.app, this));
@@ -3191,18 +3731,16 @@ var ColumnExplorerPlugin = class extends import_obsidian12.Plugin {
       id: "reveal-active-file",
       name: t("cmdReveal"),
       callback: async () => {
-        var _a;
-        await this.activateView();
-        (_a = this.getView()) == null ? void 0 : _a.revealFile(this.app.workspace.getActiveFile());
+        const view = await this.activateView();
+        view == null ? void 0 : view.revealFile(this.app.workspace.getActiveFile());
       }
     });
     this.addCommand({
       id: "new-note-here",
       name: t("cmdNewNote"),
       checkCallback: (checking) => {
-        const view = this.getView();
-        if (!view) return false;
-        if (!checking) void view.createNote(view.currentFolder());
+        if (!this.getViewLeaf()) return false;
+        if (!checking) void this.withView((view) => void view.createNote(view.currentFolder()));
         return true;
       }
     });
@@ -3210,9 +3748,8 @@ var ColumnExplorerPlugin = class extends import_obsidian12.Plugin {
       id: "new-folder-here",
       name: t("cmdNewFolder"),
       checkCallback: (checking) => {
-        const view = this.getView();
-        if (!view) return false;
-        if (!checking) void view.createFolder(view.currentFolder());
+        if (!this.getViewLeaf()) return false;
+        if (!checking) void this.withView((view) => void view.createFolder(view.currentFolder()));
         return true;
       }
     });
@@ -3228,7 +3765,12 @@ var ColumnExplorerPlugin = class extends import_obsidian12.Plugin {
   }
   async loadSettings() {
     const data = await this.loadData();
-    this.settings = Object.assign({}, DEFAULT_SETTINGS, data != null ? data : {});
+    const merged = Object.assign({}, DEFAULT_SETTINGS, data != null ? data : {});
+    this.settings = {
+      ...merged,
+      ...normalizeSettings(merged),
+      ...normalizeMobileSettings(merged)
+    };
     this.shouldSeedRecents = (data == null ? void 0 : data.recentFiles) === void 0;
     const widths = this.settings.columnWidths;
     const staleDayKeys = Object.keys(widths).filter((k) => k.startsWith(DAY_PATH_PREFIX) && k !== DAY_PATH_PREFIX);
@@ -3254,20 +3796,37 @@ var ColumnExplorerPlugin = class extends import_obsidian12.Plugin {
   async saveSettings() {
     await this.saveData(this.settings);
   }
+  /** Запись настроек со склейкой — для событий, приходящих пачками. */
+  queueSaveSettings() {
+    this.saveQueued();
+  }
+  /** Лист вью, даже если она ещё отложена (Obsidian 1.7.2+). */
+  getViewLeaf() {
+    var _a;
+    return (_a = this.app.workspace.getLeavesOfType(VIEW_TYPE_COLUMNS)[0]) != null ? _a : null;
+  }
+  /**
+   * Загруженная вью или null. Отложенную НЕ будит намеренно: подсветке
+   * активного файла и настройкам нечего обновлять в незагруженной вью.
+   */
   getView() {
-    const leaf = this.app.workspace.getLeavesOfType(VIEW_TYPE_COLUMNS)[0];
-    return leaf && leaf.view instanceof ColumnExplorerView ? leaf.view : null;
+    const leaf = this.getViewLeaf();
+    return (leaf == null ? void 0 : leaf.view) instanceof ColumnExplorerView ? leaf.view : null;
+  }
+  /** Действие пользователя над вью: отложенную сначала догружаем. */
+  async withView(fn) {
+    const leaf = this.getViewLeaf();
+    if (!leaf) return;
+    await leaf.loadIfDeferred();
+    if (leaf.view instanceof ColumnExplorerView) fn(leaf.view);
   }
   async activateView() {
-    const existing = this.app.workspace.getLeavesOfType(VIEW_TYPE_COLUMNS);
-    if (existing.length > 0) {
-      await this.app.workspace.revealLeaf(existing[0]);
-      return;
-    }
-    const leaf = this.app.workspace.getLeftLeaf(false);
-    if (leaf) {
-      await leaf.setViewState({ type: VIEW_TYPE_COLUMNS, active: true });
-      await this.app.workspace.revealLeaf(leaf);
-    }
+    const existing = this.getViewLeaf();
+    const leaf = existing != null ? existing : this.app.workspace.getLeftLeaf(false);
+    if (!leaf) return null;
+    if (!existing) await leaf.setViewState({ type: VIEW_TYPE_COLUMNS, active: true });
+    await this.app.workspace.revealLeaf(leaf);
+    await leaf.loadIfDeferred();
+    return leaf.view instanceof ColumnExplorerView ? leaf.view : null;
   }
 };
