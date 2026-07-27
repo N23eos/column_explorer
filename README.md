@@ -45,7 +45,7 @@ See the [changelog](CHANGELOG.md) for what changed in each release.
 - **File preview column** — image, audio, video and PDF previews, note content, size, dates
 - **Item counts** — each column header shows how many items it lists
 - **Resizable columns** — drag the right edge of any column
-- **Localized** — English and Russian UI
+- **Localized** — English, Russian, Spanish, French and Italian, following Obsidian's own language setting
 
 ### File management
 - **All standard operations** — create notes, canvases and folders (with inline rename), rename, trash, duplicate, move to folder, copy path
@@ -118,10 +118,20 @@ The code lives in `src/`:
 | `fileops.ts` | move/duplicate/trash operations |
 | `modals.ts` | confirm, Quick Look, folder- and icon-picker modals |
 | `settings.ts` | settings tab |
-| `i18n.ts` | translations |
+| `i18n.ts` | locale lookup; the strings live in `src/locales/` |
 | `pure.ts` | pure helpers (unit-tested) |
 
 Feature work happens on `dev`; `main` only moves on a release.
+
+### Translations
+
+Each locale is one file in `src/locales/`. English is the source of truth: the others are typed
+against it, so a missing key fails the build, and `tests/i18n.test.ts` additionally checks for
+empty strings and placeholders (`{n}`, `{name}`) lost in translation.
+
+The Spanish, French and Italian translations were not reviewed by native speakers — corrections
+are very welcome. To fix a wording, edit the one file and open a pull request; to add a language,
+copy `src/locales/en.ts`, translate the values, and register it in `src/i18n.ts`.
 
 Tests cover `pure.ts` and `utils.ts`. The npm `obsidian` package ships types only, so
 `tests/__mocks__/obsidian.ts` provides the handful of runtime classes those modules need,

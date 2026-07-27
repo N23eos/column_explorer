@@ -5,6 +5,25 @@ All notable changes to Column Explorer are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] — 2026-07-27
+
+### Added
+- **Spanish, French and Italian** translations, picked up from Obsidian's own language setting.
+  Locales now live one per file in `src/locales/`, typed against English so a missing key breaks
+  the build. Corrections from native speakers are welcome.
+
+### Fixed
+- The commands *New note in current folder* and *New folder in current folder* were missing from
+  the command palette until the Column Explorer tab had been clicked at least once. Views in
+  unfocused sidebar tabs are deferred on startup, and the availability check required a fully
+  loaded view.
+- Failed file operations said nothing at all. Creating, moving, duplicating and deleting now
+  report the reason, and one failed item no longer aborts the rest of a batch.
+- Deleting or moving many files rewrote `data.json` once per file — twice, in fact, since two
+  handlers saved independently. Those writes are now coalesced.
+- Values loaded from `data.json` are validated: out-of-range column widths, unknown sort modes and
+  non-numeric settings fall back to their defaults instead of reaching the UI.
+
 ## [1.9.0] — 2026-07-25
 
 ### Added
@@ -92,6 +111,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Accepted into the Obsidian community plugin directory.
 
+[1.10.0]: https://github.com/n23eos/column_explorer/releases/tag/1.10.0
 [1.9.0]: https://github.com/n23eos/column_explorer/releases/tag/1.9.0
 [1.8.0]: https://github.com/n23eos/column_explorer/releases/tag/1.8.0
 [1.7.0]: https://github.com/n23eos/column_explorer/releases/tag/1.7.0
