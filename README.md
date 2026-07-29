@@ -1,16 +1,42 @@
 # Column Explorer
 
-Browse your Obsidian vault in **Finder-style Miller columns** — click a folder and its contents open in a new column to the right. A full file manager: create, rename, move, drag & drop, multi-select, context menus, folder colors and more.
+[![Downloads](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json&query=%24%5B%22column-explorer%22%5D.downloads&label=downloads&color=7c3aed&style=flat-square&logo=obsidian)](https://obsidian.md/plugins?id=column-explorer)
+[![Release](https://img.shields.io/github/v/release/N23eos/column_explorer?style=flat-square&color=7c3aed)](https://github.com/N23eos/column_explorer/releases/latest)
+[![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
+
+**Browse your vault in Finder-style Miller columns.** Click a folder and its contents open in a new column to the right — a full file manager with create, rename, move, drag & drop, multi-select, context menus and folder colors.
 
 ![Column Explorer — Miller columns with Recents and Calendar rows, folder colors and breadcrumbs](docs/screenshot-1.jpg)
 
-![Column Explorer — calendar column with per-day created-note counts](docs/screenshot-2.jpg)
+## Why you might want this
 
-![Column Explorer — icon grid view with special items](docs/screenshot-3.jpg)
+Obsidian's built-in file explorer is a single vertical tree. That works for twenty notes. At two hundred folders it stops working: expanding one branch pushes everything else off-screen, collapsing it loses your place, and you scroll a column one item wide looking for a file you already know the name of.
 
-![Column Explorer — special items settings](docs/screenshot-4.jpg)
+Miller columns fix this by spending horizontal space instead of vertical. Each level of the hierarchy gets its own column, side by side — you see where you are, where you came from, and what's next, all at once. It's how Finder's column view and NeXTSTEP's file browser have worked for thirty years, because for deep trees it's simply easier to read.
 
-See the [changelog](CHANGELOG.md) for what changed in each release.
+On top of that, Column Explorer lets you **star the folders you actually live in**, so the paths you open twenty times a day are one click away instead of five.
+
+If your vault is flat and small, the default explorer is fine. If you keep a deep folder structure and lose files in it, this is for you.
+
+## Installation
+
+### Community plugins (recommended)
+
+**Settings → Community plugins → Browse**, search for *Column Explorer*, install and enable.
+
+### Manual
+
+1. Download `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/N23eos/column_explorer/releases/latest)
+2. Copy them into `<vault>/.obsidian/plugins/column-explorer/`
+3. Enable the plugin in **Settings → Community plugins**
+
+## Getting started
+
+1. **Open it** — click the columns icon in the left ribbon, or run the command *Open column explorer*. The view opens in the left sidebar.
+2. **Click a folder** — its contents appear in a new column to the right. Keep clicking to drill down; the breadcrumb bar above shows the full path and jumps back to any level.
+3. **Make it yours** — right-click a folder for colors, icons and *Pin to top*; click the star in the breadcrumb bar to add the current folder to Favorites; drag the right edge of a column to resize it.
+
+Worth knowing early: `Space` previews the selected file, right-clicking empty space creates a note or folder there, and **Settings → Column Explorer** has a *Special items* section that turns on the Recents, Bookmarks and Calendar rows.
 
 ## Highlights
 
@@ -27,6 +53,7 @@ See the [changelog](CHANGELOG.md) for what changed in each release.
 ## Features
 
 ### Navigation
+
 - **Miller columns** — drill down through folders, each level in its own column
 - **Breadcrumbs** — clickable path bar for quick jumps to any ancestor folder
 - **Folder notes** — optionally open the note named like its folder when selecting the folder
@@ -37,7 +64,20 @@ See the [changelog](CHANGELOG.md) for what changed in each release.
 - **Auto-reveal** — optionally follow the active editor tab
 - **Persistent state** — selected path survives app restarts
 
+### Special items
+
+The first column can host three virtual rows, each toggleable and positionable in settings.
+
+![Column Explorer — calendar column with per-day created-note counts](docs/screenshot-2.jpg)
+
+- **Recents** — the last files you opened, up to 50
+- **Bookmarks** — your core Bookmarks plugin items, with Favorites pinned above them
+- **Calendar** — a month grid with a badge per day showing how many notes were created then; click a day to list them
+
 ### Appearance
+
+![Column Explorer — icon grid view with special items](docs/screenshot-3.jpg)
+
 - **List or icon view per column** — toggle in the column header, remembered per folder
 - **Image thumbnails** — the icon view shows real thumbnails for image files
 - **Folder colors & icons** — right-click a folder: eight theme-aware color presets and any lucide icon
@@ -48,6 +88,7 @@ See the [changelog](CHANGELOG.md) for what changed in each release.
 - **Localized** — English, Chinese (Simplified), German, Japanese, Korean, Brazilian Portuguese, Spanish, French, Italian and Russian, following Obsidian's own language setting
 
 ### File management
+
 - **All standard operations** — create notes, canvases and folders (with inline rename), rename, trash, duplicate, move to folder, copy path
 - **Multi-select** — `Ctrl`/`Cmd`-click to toggle, `Shift`-click for range; move, duplicate, delete or drag many at once
 - **Drag & drop** — move files/folders between columns or straight onto a folder row; drag a file into an editor to insert a link
@@ -55,6 +96,8 @@ See the [changelog](CHANGELOG.md) for what changed in each release.
 - **Copy links & paths** — vault path, absolute system path, wikilink, Markdown link or `obsidian://` URL, from the context menu
 - **Excluded files** — hide files and folders by comma-separated patterns. `*.tmp` matches by file name at any depth; `.trash` matches any path containing it; a trailing slash (`archive/`) is a path prefix **from the vault root**, so nested folders need their full path (`Notes/archive/`)
 - **Sort options** — global default plus per-folder overrides (right-click a column header): name, modified, created or size, both directions
+
+![Column Explorer — special items settings](docs/screenshot-4.jpg)
 
 ### Mobile
 
@@ -68,24 +111,9 @@ The plugin works on Android and iOS, with a layout of its own — desktop behavi
 - **Adjustable scale** — *Settings → Mobile interface*: interface scale (90–150%) and icon size (22–36px), applied live. Touch targets never drop below 44px
 - **No drag & drop** — on touch screens it fights with scrolling; move files through selection mode instead
 
-## Installation
+## Commands
 
-### Manual
-
-1. Download `main.js`, `manifest.json`, `styles.css` from the [latest release](https://github.com/n23eos/column_explorer/releases/latest)
-2. Copy them into `<vault>/.obsidian/plugins/column-explorer/`
-3. Enable the plugin in **Settings → Community plugins**
-
-### Community plugins
-
-Browse **Settings → Community plugins → Browse** and search for *Column Explorer*.
-
-## Usage
-
-- Open via the **columns icon** in the ribbon, or the command *Open column explorer*
-- Right-click items for the context menu, right-click empty space to create a note, folder or canvas
-
-Commands (all bindable to hotkeys):
+All are bindable to hotkeys in **Settings → Hotkeys**.
 
 | Command | What it does |
 |---------|--------------|
@@ -94,78 +122,43 @@ Commands (all bindable to hotkeys):
 | *New note in current folder* | creates a note in the deepest selected folder |
 | *New folder in current folder* | same, for a folder |
 
-## Development
+## FAQ
 
-```bash
-npm install
-npm run dev     # watch mode
-npm run build   # typecheck + production build
-npm test        # unit tests (vitest)
-npm run lint    # eslint
-```
+**Does it replace the built-in file explorer?**
+No — it's a separate view, and both can be open at once. Most people disable the core File Explorer afterwards, but that's your call.
 
-The code lives in `src/`:
+**Can I open it as a full-width tab instead of in the sidebar?**
+Not yet; the view currently opens in the left sidebar. It's the most requested change and is planned.
 
-| Module | Responsibility |
-|--------|----------------|
-| `main.ts` | plugin entry, commands, view registration |
-| `view.ts` | columns view: state, rendering orchestration, keyboard |
-| `column.ts` | single column rendering with delegated events |
-| `mobile.ts` | mobile-only layer: toolbar, long-press selection, edge swipe, scale |
-| `preview.ts` | file preview column |
-| `dnd.ts` | drag & drop |
-| `menus.ts` | context menus |
-| `fileops.ts` | move/duplicate/trash operations |
-| `modals.ts` | confirm, Quick Look, folder- and icon-picker modals |
-| `settings.ts` | settings tab |
-| `i18n.ts` | locale lookup; the strings live in `src/locales/` |
-| `pure.ts` | pure helpers (unit-tested) |
+**Why doesn't drag & drop work on my phone?**
+Deliberately disabled: on touch screens a drag gesture competes with scrolling. Long-press an item to enter selection mode, then use the bottom bar to move files.
 
-Feature work happens on `dev`; `main` only moves on a release.
+**How do the exclude patterns work?**
+Comma-separated. `*.tmp` matches by file name at any depth, `.trash` matches any path containing that string, and a trailing slash (`archive/`) is a path prefix **from the vault root** — so a nested folder needs its full path, e.g. `Notes/archive/`.
 
-### Translations
+**Does it work with Folder Notes / Iconize / other explorer plugins?**
+Column Explorer has its own folder-note and folder-icon support built in, so you don't need those for this view. Plugins that decorate the *core* file explorer won't affect this one — but any plugin that adds items to Obsidian's file context menu shows up here too, because the menu is built from the same `file-menu` event.
 
-Each locale is one file in `src/locales/`, named with Obsidian's own language code. English is
-the source of truth: the others are typed against it, so a missing key fails the build, and
-`tests/i18n.test.ts` additionally checks for extra keys, empty strings and placeholders (`{n}`,
-`{name}`) lost in translation — for every locale registered in `src/i18n.ts`, automatically.
+**Will renaming or moving files here break my links?**
+No. All operations go through Obsidian's own `fileManager`, the same API the core explorer uses, so links and backlinks are updated for you.
 
-**None of the translations except Russian were reviewed by a native speaker.** Corrections are
-very welcome and are a one-file change: edit `src/locales/<code>.ts` and open a pull request.
-To add a language, copy `src/locales/en.ts`, translate the values, and register it in
-`src/i18n.ts` under its [Obsidian language code](https://github.com/obsidianmd/obsidian-translations#existing-languages).
+**Is my vault too big for it?**
+Large folders render in chunks as you scroll, so tens of thousands of files are fine. If a specific vault feels slow, please open an issue with the size and shape of it.
 
-Right-to-left languages (Arabic, Hebrew, Persian) are not offered yet: the layout is
-left-to-right throughout — columns grow rightwards, breadcrumbs are separated by `›`, and the
-mobile edge swipe maps the left edge to "back". That needs CSS work, not just strings.
+## Support & feedback
 
-Tests cover `pure.ts` and `utils.ts`. The npm `obsidian` package ships types only, so
-`tests/__mocks__/obsidian.ts` provides the handful of runtime classes those modules need,
-wired up through `resolve.alias` in `vitest.config.ts`.
+- **Found a bug or have an idea?** [Open an issue](https://github.com/N23eos/column_explorer/issues) — bug reports with a screenshot and your Obsidian version are the most useful thing you can send.
+- **Translation correction?** One file, one pull request — see [CONTRIBUTING.md](CONTRIBUTING.md#translations).
+- **Want to say thanks?** Support further development:
 
-### Releasing
+  [![ETH](https://img.shields.io/badge/ETH-0x7777...88C4-blue?logo=ethereum&style=flat-square)](https://etherscan.io/address/0x77777da54702AC8789D53fc7cC6201C29a1A88C4)
 
-Tags carry no `v` prefix, so the version is set explicitly rather than through `npm version`:
+## Contributing
 
-```bash
-npm pkg set version=X.Y.Z
-npm_package_version=X.Y.Z node version-bump.mjs   # manifest.json + versions.json
-npm run build
-git commit -am "chore: bump version to X.Y.Z"
-git checkout main && git merge --no-ff dev
-git tag X.Y.Z && git push origin main --tags
-```
+Build instructions, the module map, the translation workflow and the release process live in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-The GitHub Action lints, tests, builds, and attaches `main.js`, `manifest.json`, `styles.css`
-to the release with a build attestation.
+See the [changelog](CHANGELOG.md) for what changed in each release.
 
 ## License
 
 [MIT](LICENSE)
-
-## Support
-
-If this project was useful to you, feel free to support further development:
-
-[![ETH](https://img.shields.io/badge/ETH-0x7777...88C4-blue?logo=ethereum&style=flat-square)](https://etherscan.io/address/0x77777da54702AC8789D53fc7cC6201C29a1A88C4)
-[![Donate](https://img.shields.io/badge/donate-crypto-orange?style=flat-square)](https://etherscan.io/address/0x77777da54702AC8789D53fc7cC6201C29a1A88C4)

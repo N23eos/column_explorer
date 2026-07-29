@@ -1,0 +1,75 @@
+# Contributing
+
+Bug reports, translation fixes and pull requests are all welcome. Issues live at
+[github.com/N23eos/column_explorer/issues](https://github.com/N23eos/column_explorer/issues).
+
+## Development
+
+```bash
+npm install
+npm run dev     # watch mode
+npm run build   # typecheck + production build
+npm test        # unit tests (vitest)
+npm run lint    # eslint
+```
+
+Feature work happens on `dev`; `main` only moves on a release.
+
+## Module map
+
+The code lives in `src/`:
+
+| Module | Responsibility |
+|--------|----------------|
+| `main.ts` | plugin entry, commands, view registration |
+| `view.ts` | columns view: state, rendering orchestration, keyboard |
+| `column.ts` | single column rendering with delegated events |
+| `mobile.ts` | mobile-only layer: toolbar, long-press selection, edge swipe, scale |
+| `preview.ts` | file preview column |
+| `dnd.ts` | drag & drop |
+| `menus.ts` | context menus |
+| `fileops.ts` | move/duplicate/trash operations |
+| `modals.ts` | confirm, Quick Look, folder- and icon-picker modals |
+| `settings.ts` | settings tab |
+| `i18n.ts` | locale lookup; the strings live in `src/locales/` |
+| `pure.ts` | pure helpers (unit-tested) |
+
+## Tests
+
+Tests cover `pure.ts` and `utils.ts`. The npm `obsidian` package ships types only, so
+`tests/__mocks__/obsidian.ts` provides the handful of runtime classes those modules need,
+wired up through `resolve.alias` in `vitest.config.ts`.
+
+## Translations
+
+Each locale is one file in `src/locales/`, named with Obsidian's own language code. English is
+the source of truth: the others are typed against it, so a missing key fails the build, and
+`tests/i18n.test.ts` additionally checks for extra keys, empty strings and placeholders (`{n}`,
+`{name}`) lost in translation — for every locale registered in `src/i18n.ts`, automatically.
+
+**None of the translations except Russian were reviewed by a native speaker.** Corrections are
+very welcome and are a one-file change: edit `src/locales/<code>.ts` and open a pull request.
+
+To add a language, copy `src/locales/en.ts`, translate the values, and register it in
+`src/i18n.ts` under its
+[Obsidian language code](https://github.com/obsidianmd/obsidian-translations#existing-languages).
+
+Right-to-left languages (Arabic, Hebrew, Persian) are not offered yet: the layout is
+left-to-right throughout — columns grow rightwards, breadcrumbs are separated by `›`, and the
+mobile edge swipe maps the left edge to "back". That needs CSS work, not just strings.
+
+## Releasing
+
+Tags carry no `v` prefix, so the version is set explicitly rather than through `npm version`:
+
+```bash
+npm pkg set version=X.Y.Z
+npm_package_version=X.Y.Z node version-bump.mjs   # manifest.json + versions.json
+npm run build
+git commit -am "chore: bump version to X.Y.Z"
+git checkout main && git merge --no-ff dev
+git tag X.Y.Z && git push origin main --tags
+```
+
+The GitHub Action lints, tests, builds, and attaches `main.js`, `manifest.json`, `styles.css`
+to the release with a build attestation.
