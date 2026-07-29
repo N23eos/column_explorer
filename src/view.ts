@@ -20,7 +20,7 @@ import {
 	BOOKMARKS_PATH, CALENDAR_PATH, DAY_PATH_PREFIX, RECENTS_PATH,
 	dayKey, desiredPanelWidth, errorMessage, lockedColumnVisible, matchesExcludePatterns,
 	mobileSelectionMode, parentSelection,
-	parseExcludePatterns, prunePathKeys, remapPathKeys, takeFirstExisting,
+	parseExcludePatterns, prunePathKeys, prunePathSet, remapPathKeys, takeFirstExisting,
 } from "./pure";
 import {
 	applyMobileScale as applyMobileScaleVars,
@@ -28,11 +28,12 @@ import {
 } from "./mobile";
 import { displayName, folderNoteOf, visibleChildren } from "./utils";
 import { MIN_COLUMN_WIDTH } from "./settings";
-import { disconnectListObservers, renderCalendarColumn, renderColumn, renderColumnList, renderFileListColumn } from "./column";
+import { commitActiveResize, disconnectListObservers, renderCalendarColumn, renderColumn, renderColumnList, renderFileListColumn } from "./column";
 import { renderPreviewColumn } from "./preview";
 import { showSortMenu } from "./menus";
 import { ConfirmModal, QuickLookModal } from "./modals";
 import { duplicateFile, trashFiles } from "./fileops";
+import { clearActiveDrag, setupGlobalDnd } from "./dnd";
 import type ColumnExplorerPlugin from "./main";
 
 /** Форма пункта core-плагина Bookmarks (приватный API — только чтение). */
@@ -42,6 +43,8 @@ export const VIEW_TYPE_COLUMNS = "column-explorer-view";
 
 const TYPEAHEAD_RESET_MS = 700;
 const PAGE_JUMP = 10;
+/** Пауза перед инлайн-переименованием: рендер должен успеть создать строку. */
+const RENAME_START_DELAY_MS = 100;
 
 interface ColumnViewState {
 	selection?: string[];
@@ -70,8 +73,13 @@ export class ColumnExplorerView extends ItemView {
 	private updateActionBar?: () => void;
 	private typeaheadBuffer = "";
 	private typeaheadTimer = 0;
+	/** Отложенный старт инлайн-переименования после создания файла/папки. */
+	private renameTimer = 0;
 	/** Показанный месяц календаря; null — от выбранного дня или сегодня. */
 	private calendarMonth: { year: number; month: number } | null = null;
+	/** Кеш «файлы по дню создания» и отпечаток exclude-паттернов при его сборке. */
+	private filesByDayCache: Map<string, TFile[]> | null = null;
+	private filesByDayKey = "";
 	/** Владелец markdown-превью колонки: живёт до следующего рендера. */
 	private previewOwner: Component | null = null;
 
@@ -172,6 +180,7 @@ export class ColumnExplorerView extends ItemView {
 		this.columnsEl = container.createDiv({ cls: "column-explorer-columns" });
 		this.columnsEl.tabIndex = 0;
 		this.registerDomEvent(this.columnsEl, "keydown", (e) => this.onKeyDown(e));
+		setupGlobalDnd(this);
 
 		if (Platform.isMobile) {
 			this.updateActionBar = buildActionBar(this, container);
@@ -184,15 +193,19 @@ export class ColumnExplorerView extends ItemView {
 
 		// При открытой виртуальной колонке точечный refresh её не найдёт
 		// (сентинел — не путь папки), поэтому create/delete → полный рендер
-		this.registerEvent(this.app.vault.on("create", (f) =>
-			this.markDirty(this.specialKind(this.selection[0]) ? null : f.parent?.path ?? null)));
+		this.registerEvent(this.app.vault.on("create", (f) => {
+			this.invalidateCalendarCache();
+			this.markDirty(this.specialKind(this.selection[0]) ? null : f.parent?.path ?? null);
+		}));
 		this.registerEvent(this.app.vault.on("delete", (f) => {
+			this.invalidateCalendarCache();
 			const changed = this.pruneSelection(f.path);
 			this.prunePathRecords(f.path);
 			const fullRender = changed || this.specialKind(this.selection[0]) !== null;
 			this.markDirty(fullRender ? null : f.parent?.path ?? null);
 		}));
 		this.registerEvent(this.app.vault.on("rename", (f, oldPath) => {
+			this.invalidateCalendarCache();
 			this.remapSelection(oldPath, f.path);
 			this.remapPathRecords(oldPath, f.path);
 			// Переименование может менять заголовки колонок и две папки сразу — полный рендер
@@ -213,6 +226,21 @@ export class ColumnExplorerView extends ItemView {
 		} catch { /* ignore */ }
 
 		this.render();
+	}
+
+	/**
+	 * Обсерверы и таймеры переживают закрытие вью: отложенный рендер попал бы
+	 * в оторванный DOM, а активный IntersectionObserver держит свой список
+	 * от сборки мусора. registerDomEvent/registerEvent Obsidian снимает сам.
+	 */
+	async onClose() {
+		this.flushRefresh.cancel();
+		this.applyFilter.cancel();
+		window.clearTimeout(this.typeaheadTimer);
+		window.clearTimeout(this.renameTimer);
+		commitActiveResize();
+		clearActiveDrag();
+		if (this.columnsEl) disconnectListObservers(this.columnsEl);
 	}
 
 	private addToolbarButton(parent: HTMLElement, icon: string, tooltip: string, onClick: (e: MouseEvent) => void): HTMLElement {
@@ -379,7 +407,15 @@ export class ColumnExplorerView extends ItemView {
 	private pruneSelection(deletedPath: string): boolean {
 		const i = this.selection.findIndex(p => p === deletedPath || p.startsWith(deletedPath + "/"));
 		if (i >= 0) this.selection = this.selection.slice(0, i);
-		this.multiSel.delete(deletedPath);
+		const before = this.multiSel.size;
+		this.multiSel = prunePathSet(this.multiSel, deletedPath);
+		if (this.multiSel.size !== before) {
+			// Удаление часто заканчивается точечным refresh, а не полным
+			// рендером — панель действий надо обновить руками, иначе на мобиле
+			// она висит со старым «Выбрано N»
+			if (this.multiSel.size === 0) this.clearMulti();
+			this.updateActionBar?.();
+		}
 		return i >= 0;
 	}
 
@@ -488,6 +524,10 @@ export class ColumnExplorerView extends ItemView {
 	}
 
 	render() {
+		// Перерисовка убивает список с dragend и колонку с resize-ручкой —
+		// снимаем оба «висящих» состояния сами
+		clearActiveDrag();
+		commitActiveResize();
 		const scrollTops = this.captureScrollTops();
 		const prevKey = this.columnsKey();
 		const prevScrollLeft = this.columnsEl.scrollLeft;
@@ -589,6 +629,9 @@ export class ColumnExplorerView extends ItemView {
 		// при клике внутри тех же колонок скролл остаётся на месте
 		const sameColumns = this.columnsKey() === prevKey;
 		window.requestAnimationFrame(() => {
+			// Лист могли отсоединить в этом же кадре: autoResizePanel полезет
+			// в getRoot() уже мёртвого листа
+			if (!this.columnsEl.isConnected) return;
 			this.autoResizePanel();
 			this.columnsEl.scrollLeft = sameColumns ? prevScrollLeft : this.columnsEl.scrollWidth;
 		});
@@ -706,6 +749,7 @@ export class ColumnExplorerView extends ItemView {
 		// Длинный путь на узком экране: держим в виду текущий, последний сегмент
 		if (Platform.isMobile) {
 			window.requestAnimationFrame(() => {
+				if (!this.breadcrumbsEl.isConnected) return;
 				this.breadcrumbsEl.scrollLeft = this.breadcrumbsEl.scrollWidth;
 			});
 		}
@@ -803,24 +847,42 @@ export class ColumnExplorerView extends ItemView {
 		this.render();
 	}
 
-	/** Число созданных файлов по дням (ключ — dayKey) для бейджей календаря. */
-	calendarCounts(): Map<string, number> {
+	/**
+	 * Файлы vault, разложенные по дню создания. Полный скан на vault в десятки
+	 * тысяч файлов заметен, а рендер календаря случается на каждый клик —
+	 * поэтому считаем один раз и сбрасываем по событиям vault и смене настроек.
+	 */
+	private filesByDay(): Map<string, TFile[]> {
 		const patterns = this.excludePatternsList();
-		const counts = new Map<string, number>();
+		const key = patterns.join("\n");
+		if (this.filesByDayCache && this.filesByDayKey === key) return this.filesByDayCache;
+		const byDay = new Map<string, TFile[]>();
 		for (const f of this.app.vault.getFiles()) {
 			if (matchesExcludePatterns(f.path, patterns)) continue;
-			const key = dayKey(f.stat.ctime);
-			counts.set(key, (counts.get(key) ?? 0) + 1);
+			const day = dayKey(f.stat.ctime);
+			const bucket = byDay.get(day);
+			if (bucket) bucket.push(f); else byDay.set(day, [f]);
 		}
+		this.filesByDayCache = byDay;
+		this.filesByDayKey = key;
+		return byDay;
+	}
+
+	/** Сбросить кеш дней: файл создан, удалён или переименован. */
+	invalidateCalendarCache() {
+		this.filesByDayCache = null;
+	}
+
+	/** Число созданных файлов по дням (ключ — dayKey) для бейджей календаря. */
+	calendarCounts(): Map<string, number> {
+		const counts = new Map<string, number>();
+		for (const [day, files] of this.filesByDay()) counts.set(day, files.length);
 		return counts;
 	}
 
 	/** Файлы, созданные в день `day` ("YYYY-MM-DD"), новые сверху. */
 	filesCreatedOn(day: string): TFile[] {
-		const patterns = this.excludePatternsList();
-		return this.app.vault.getFiles()
-			.filter((f) => !matchesExcludePatterns(f.path, patterns) && dayKey(f.stat.ctime) === day)
-			.sort((a, b) => b.stat.ctime - a.stat.ctime);
+		return [...(this.filesByDay().get(day) ?? [])].sort((a, b) => b.stat.ctime - a.stat.ctime);
 	}
 
 	bookmarksAvailable(): boolean {
@@ -991,7 +1053,7 @@ export class ColumnExplorerView extends ItemView {
 			const file = await this.app.vault.create(path, initialContent);
 			this.revealFile(file);
 			await this.app.workspace.getLeaf(false).openFile(file);
-			window.setTimeout(() => this.startRenameByPath(file.path), 100);
+			this.queueRename(file.path);
 		} catch (err) {
 			new Notice(t("createFailed", { name: path, error: errorMessage(err) }));
 		}
@@ -1006,10 +1068,16 @@ export class ColumnExplorerView extends ItemView {
 		}
 		try {
 			await this.app.vault.createFolder(path);
-			window.setTimeout(() => this.startRenameByPath(path), 100);
+			this.queueRename(path);
 		} catch (err) {
 			new Notice(t("createFailed", { name: path, error: errorMessage(err) }));
 		}
+	}
+
+	/** Инлайн-переименование после того, как рендер догонит создание файла. */
+	private queueRename(path: string) {
+		window.clearTimeout(this.renameTimer);
+		this.renameTimer = window.setTimeout(() => this.startRenameByPath(path), RENAME_START_DELAY_MS);
 	}
 
 	private startRenameByPath(path: string) {
@@ -1036,7 +1104,12 @@ export class ColumnExplorerView extends ItemView {
 		const dot = input.value.lastIndexOf(".");
 		input.setSelectionRange(0, isMdFile || dot <= 0 ? input.value.length : dot);
 
+		// Enter запускает async finish; blur во время await вызвал бы его
+		// второй раз — переименование уже несуществующего пути и ложная ошибка
+		let finished = false;
 		const finish = async (commit: boolean) => {
+			if (finished) return;
+			finished = true;
 			this.renamingPath = null;
 			const newName = input.value.trim();
 			if (commit && newName && newName !== original) {

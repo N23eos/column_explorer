@@ -5,6 +5,38 @@ All notable changes to Column Explorer are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.0] — 2026-07-29
+
+### Added
+- The view now opens by itself once, right after the plugin is installed. Previously a fresh
+  install was represented only by a ribbon icon that had to be found first.
+
+### Fixed
+- Inline rename could commit twice. Pressing `Enter` starts an asynchronous rename, and clicking
+  away during it ran the same commit again — renaming an already-renamed file and reporting a
+  rename failure that never happened.
+- Dragging a file while something re-rendered the columns left the drag state stuck. The next
+  time files were dropped in from Finder or Explorer, the plugin tried to move stale paths
+  instead of importing them.
+- Resizing a column no longer loses the new width when a vault event redraws the columns
+  mid-drag.
+- Deleting a folder left the paths of its contents in the multi-selection, so the selection
+  count was wrong and later operations silently skipped those items.
+- Closing the view left behind pending refreshes, the type-ahead and rename timers, the lazy-load
+  observers and, after a column resize, listeners on the document. All are released now.
+
+### Improved
+- The calendar column no longer scans the whole vault twice on every render. Files are grouped by
+  creation day once and the grouping is reused until the vault changes — a visible difference on
+  large vaults, where every click used to pay for the scan.
+- The *Excluded files* setting saved `data.json` and re-rendered every column on each keystroke.
+  It now waits for a pause in typing, and flushes immediately when the settings tab is closed.
+
+### Documentation
+- The README leads with the problem the plugin solves rather than a feature list, and gains
+  badges, a getting-started walkthrough and a FAQ. Build instructions, the module map, the
+  translation workflow and the release process moved to a new `CONTRIBUTING.md`.
+
 ## [1.11.0] — 2026-07-27
 
 ### Added

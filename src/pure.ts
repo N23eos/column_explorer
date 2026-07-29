@@ -84,6 +84,21 @@ export function prunePathKeys<V>(record: Record<string, V>, deletedPath: string)
 }
 
 /**
+ * Пути из множества за вычетом удалённого и всего, что внутри него.
+ * Мультивыделение хранит пути детей: удаление папки должно уносить и их,
+ * иначе мёртвые пути врут в счётчике и молча пропускаются операциями.
+ * Returns a new Set — never mutates.
+ */
+export function prunePathSet(paths: Set<string>, deletedPath: string): Set<string> {
+	const result = new Set<string>();
+	for (const p of paths) {
+		if (p === deletedPath || p.startsWith(deletedPath + "/")) continue;
+		result.add(p);
+	}
+	return result;
+}
+
+/**
  * Pinned items (with a defined order) first, sorted by that order;
  * the rest keep their given order. Returns a new array.
  */

@@ -1,4 +1,4 @@
-import { App, Notice, PluginSettingTab, Setting, SettingDefinitionItem, SliderComponent } from "obsidian";
+import { App, Notice, PluginSettingTab, Setting, SettingDefinitionItem, SliderComponent, debounce } from "obsidian";
 import { t } from "./i18n";
 import {
 	DEFAULT_COLUMN_WIDTH, DEFAULT_MOBILE_ICON, DEFAULT_MOBILE_SCALE, DEFAULT_RECENT_FILES,
@@ -17,6 +17,9 @@ export {
 
 export type SortMode = (typeof SORT_MODE_VALUES)[number];
 export type ColumnViewMode = "list" | "grid";
+
+/** Пауза перед сохранением текстового поля настроек — гасит запись на букву. */
+const TEXT_INPUT_SAVE_DELAY_MS = 500;
 
 /** Theme color keys — resolve to Obsidian's native `--color-*` CSS variables. */
 export const FOLDER_COLOR_KEYS = ["red", "orange", "yellow", "green", "cyan", "blue", "purple", "pink"] as const;
@@ -104,6 +107,8 @@ export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
 export class ColumnExplorerSettingTab extends PluginSettingTab {
 	/** Синхронизация мобильных слайдеров и подписей после сброса. */
 	private refreshMobileSliders?: () => void;
+	/** Отложенное сохранение текстовых полей — флашится при закрытии вкладки. */
+	private saveTextInput?: { (): void; cancel(): void; run(): unknown };
 
 	constructor(app: App, private plugin: ColumnExplorerPlugin) {
 		super(app, plugin);
@@ -231,6 +236,11 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 		this.plugin.getView()?.render();
 	}
 
+	/** Закрытие вкладки не должно ждать дебаунса — дописываем сразу. */
+	hide() {
+		this.saveTextInput?.run();
+	}
+
 	display() {
 		const { containerEl } = this;
 		containerEl.empty();
@@ -239,6 +249,10 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 			await this.plugin.saveSettings();
 			this.plugin.getView()?.render();
 		};
+		// Текстовые поля шлют onChange на каждую букву: запись data.json плюс
+		// полный рендер всех колонок на нажатие клавиши заметно лагают
+		const saveTextInput = debounce(() => void save(), TEXT_INPUT_SAVE_DELAY_MS, true);
+		this.saveTextInput = saveTextInput;
 
 		new Setting(containerEl).setName(t("headAppearance")).setHeading();
 
@@ -280,7 +294,7 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl).setName(t("setExclude")).setDesc(t("setExcludeDesc"))
 			.addText(txt => txt.setValue(s.excludePatterns)
-				.onChange(async (v) => { s.excludePatterns = v; await save(); }));
+				.onChange((v) => { s.excludePatterns = v; saveTextInput(); }));
 
 		new Setting(containerEl).setName(t("headColumns")).setHeading();
 
