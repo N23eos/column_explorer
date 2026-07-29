@@ -5,6 +5,13 @@ All notable changes to Column Explorer are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.12.1] — 2026-07-29
+
+Re-release of 1.12.0 with no code changes. The 1.12.0 tag and its GitHub release were published
+seconds apart, and the plugin scanner read the repository in between — it saw a manifest pointing
+at a release that did not exist yet and recorded the version as invalid. This release republishes
+the same build under a version the scanner can pick up cleanly.
+
 ## [1.12.0] — 2026-07-29
 
 ### Added
