@@ -4561,6 +4561,8 @@ var ColumnExplorerPlugin = class extends import_obsidian12.Plugin {
     super(...arguments);
     this.settings = DEFAULT_SETTINGS;
     this.shouldSeedRecents = false;
+    /** Плагин ещё ни разу ничего не сохранял — значит, его только что поставили. */
+    this.isFirstRun = false;
     /**
      * Отложенная запись настроек для событий, приходящих пачками: открытие
      * файлов и, главное, rename/delete — при удалении папки на N файлов
@@ -4626,6 +4628,9 @@ var ColumnExplorerPlugin = class extends import_obsidian12.Plugin {
         return true;
       }
     });
+    if (this.isFirstRun) {
+      this.app.workspace.onLayoutReady(() => void this.activateView());
+    }
     this.registerEvent(this.app.workspace.on("active-leaf-change", () => {
       const view = this.getView();
       if (!view) return;
@@ -4645,6 +4650,7 @@ var ColumnExplorerPlugin = class extends import_obsidian12.Plugin {
       ...normalizeMobileSettings(merged)
     };
     this.shouldSeedRecents = (data == null ? void 0 : data.recentFiles) === void 0;
+    this.isFirstRun = data === null;
     const widths = this.settings.columnWidths;
     const staleDayKeys = Object.keys(widths).filter((k) => k.startsWith(DAY_PATH_PREFIX) && k !== DAY_PATH_PREFIX);
     if (staleDayKeys.length > 0) {

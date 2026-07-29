@@ -10,6 +10,8 @@ const SAVE_DEBOUNCE_MS = 1000;
 export default class ColumnExplorerPlugin extends Plugin {
 	settings: ColumnExplorerSettings = DEFAULT_SETTINGS;
 	private shouldSeedRecents = false;
+	/** Плагин ещё ни разу ничего не сохранял — значит, его только что поставили. */
+	private isFirstRun = false;
 	/**
 	 * Отложенная запись настроек для событий, приходящих пачками: открытие
 	 * файлов и, главное, rename/delete — при удалении папки на N файлов
@@ -88,6 +90,13 @@ export default class ColumnExplorerPlugin extends Plugin {
 			},
 		});
 
+		// Сразу после установки плагин виден только иконкой в ribbon, которую
+		// ещё надо заметить среди прочих. Открываем вью один раз сами —
+		// дальше её положение хранит workspace, и мы в него не вмешиваемся
+		if (this.isFirstRun) {
+			this.app.workspace.onLayoutReady(() => void this.activateView());
+		}
+
 		this.registerEvent(this.app.workspace.on("active-leaf-change", () => {
 			const view = this.getView();
 			if (!view) return;
@@ -113,6 +122,7 @@ export default class ColumnExplorerPlugin extends Plugin {
 		// Сид недавних только при ПЕРВОМ запуске (ключа ещё нет в data.json) —
 		// иначе «Очистить недавние» отменялось бы каждым перезапуском
 		this.shouldSeedRecents = data?.recentFiles === undefined;
+		this.isFirstRun = data === null;
 		// Ширины колонок дня раньше писались под ключ с датой — чистим мусор
 		const widths = this.settings.columnWidths;
 		const staleDayKeys = Object.keys(widths).filter((k) => k.startsWith(DAY_PATH_PREFIX) && k !== DAY_PATH_PREFIX);
