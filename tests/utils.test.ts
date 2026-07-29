@@ -108,7 +108,7 @@ describe("formatTemplate", () => {
 	});
 });
 
-import { remapPathKeys, prunePathKeys, pinnedFirst, movePinnedBefore } from "../src/pure";
+import { remapPathKeys, prunePathKeys, prunePathSet, pinnedFirst, movePinnedBefore } from "../src/pure";
 
 describe("pinnedFirst", () => {
 	test("moves pinned items to the front sorted by their pin order", () => {
@@ -207,6 +207,27 @@ describe("prunePathKeys", () => {
 	test("keeps keys that only share a prefix string", () => {
 		const record = { "ab": "red", "a": "blue" };
 		expect(prunePathKeys(record, "a")).toEqual({ "ab": "red" });
+	});
+});
+
+describe("prunePathSet", () => {
+	test("removes the deleted path itself", () => {
+		expect(prunePathSet(new Set(["a/b.md", "a/c.md"]), "a/b.md")).toEqual(new Set(["a/c.md"]));
+	});
+
+	test("removes children of a deleted folder", () => {
+		const selected = new Set(["a/b/one.md", "a/b/deep/two.md", "a/other.md"]);
+		expect(prunePathSet(selected, "a/b")).toEqual(new Set(["a/other.md"]));
+	});
+
+	test("keeps paths that only share a prefix string", () => {
+		expect(prunePathSet(new Set(["ab.md", "a.md"]), "a")).toEqual(new Set(["ab.md", "a.md"]));
+	});
+
+	test("does not mutate the original set", () => {
+		const original = new Set(["a/b.md"]);
+		prunePathSet(original, "a");
+		expect(original).toEqual(new Set(["a/b.md"]));
 	});
 });
 

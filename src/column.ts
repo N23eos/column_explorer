@@ -398,11 +398,28 @@ export function renderCalendarColumn(view: ColumnExplorerView, container: HTMLEl
 	return col;
 }
 
+/**
+ * Завершение текущего resize-драга: слушатели висят на документе, а не на
+ * колонке, поэтому перерисовка или закрытие вью прямо во время перетаскивания
+ * оставила бы их навсегда. Завершение именно ДОВОДИТ драг до конца (сохраняет
+ * ширину), а не отменяет — иначе рендер посреди перетаскивания молча съедал бы
+ * действие пользователя.
+ */
+let finishActiveResize: (() => void) | null = null;
+
+export function commitActiveResize() {
+	finishActiveResize?.();
+}
+
 /** Ручка на правом крае: тянет ширину ИМЕННО этой колонки, dblclick — сброс. */
 function addResizeHandle(view: ColumnExplorerView, col: HTMLElement, folderPath: string) {
 	const handle = col.createDiv({ cls: "column-explorer-resize-handle" });
 	handle.addEventListener("mousedown", (e: MouseEvent) => {
 		e.preventDefault();
+		commitActiveResize();
+		// Документ фиксируем здесь: к моменту снятия активным окном может быть
+		// уже другое, и removeEventListener на нём ничего бы не снял
+		const doc = col.ownerDocument;
 		const startX = e.clientX;
 		const startWidth = col.offsetWidth;
 		let width = startWidth;
@@ -413,15 +430,17 @@ function addResizeHandle(view: ColumnExplorerView, col: HTMLElement, folderPath:
 			view.autoResizePanel();
 		};
 		const onUp = () => {
-			activeDocument.removeEventListener("mousemove", onMove);
-			activeDocument.removeEventListener("mouseup", onUp);
+			doc.removeEventListener("mousemove", onMove);
+			doc.removeEventListener("mouseup", onUp);
+			finishActiveResize = null;
 			if (width === startWidth) return;
 			const s = view.plugin.settings;
 			s.columnWidths = { ...s.columnWidths, [folderPath]: width };
 			void view.plugin.saveSettings();
 		};
-		activeDocument.addEventListener("mousemove", onMove);
-		activeDocument.addEventListener("mouseup", onUp);
+		doc.addEventListener("mousemove", onMove);
+		doc.addEventListener("mouseup", onUp);
+		finishActiveResize = onUp;
 	});
 	handle.addEventListener("dblclick", () => {
 		const s = view.plugin.settings;

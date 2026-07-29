@@ -11,6 +11,27 @@ import type { ColumnExplorerView } from "./view";
  */
 let activeDragPaths: string[] | null = null;
 
+/**
+ * Сбросить состояние перетаскивания. Нужен, потому что `dragend` живёт на
+ * списке колонки: если vault-событие перерисовало колонки прямо во время
+ * драга, старый список умирает не досмотрев событие (браузер шлёт `dragend`
+ * на уже отсоединённый узел, и до документа оно не всплывает). Залипший
+ * `activeDragPaths` заставил бы следующий drop файлов из ОС перемещать
+ * несуществующие пути вместо импорта — поэтому вью зовёт это из `render()`.
+ */
+export function clearActiveDrag() {
+	activeDragPaths = null;
+}
+
+/**
+ * Страховка для драгов, брошенных мимо колонок (в редактор, за пределы окна):
+ * их `dragend` до списка колонки не доходит.
+ */
+export function setupGlobalDnd(view: ColumnExplorerView) {
+	if (Platform.isMobile) return;
+	view.registerDomEvent(view.containerEl.ownerDocument, "dragend", clearActiveDrag);
+}
+
 interface DragManagerLike {
 	dragFile: (e: DragEvent, f: TFile) => unknown;
 	dragFolder: (e: DragEvent, f: TFolder) => unknown;

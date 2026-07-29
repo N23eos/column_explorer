@@ -84,6 +84,14 @@ function prunePathKeys(record, deletedPath) {
   }
   return result;
 }
+function prunePathSet(paths, deletedPath) {
+  const result = /* @__PURE__ */ new Set();
+  for (const p of paths) {
+    if (p === deletedPath || p.startsWith(deletedPath + "/")) continue;
+    result.add(p);
+  }
+  return result;
+}
 function pinnedFirst(items, orderOf) {
   const pinned = [];
   const rest = [];
@@ -1874,6 +1882,7 @@ function t(key, vars) {
 
 // src/settings.ts
 var import_obsidian2 = require("obsidian");
+var TEXT_INPUT_SAVE_DELAY_MS = 500;
 var FOLDER_COLOR_KEYS = ["red", "orange", "yellow", "green", "cyan", "blue", "purple", "pink"];
 var DEFAULT_SETTINGS = {
   foldersFirst: true,
@@ -2050,6 +2059,11 @@ var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
     await this.plugin.saveSettings();
     (_b = this.plugin.getView()) == null ? void 0 : _b.render();
   }
+  /** Закрытие вкладки не должно ждать дебаунса — дописываем сразу. */
+  hide() {
+    var _a;
+    (_a = this.saveTextInput) == null ? void 0 : _a.run();
+  }
   display() {
     const { containerEl } = this;
     containerEl.empty();
@@ -2059,6 +2073,8 @@ var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
       await this.plugin.saveSettings();
       (_a = this.plugin.getView()) == null ? void 0 : _a.render();
     };
+    const saveTextInput = (0, import_obsidian2.debounce)(() => void save(), TEXT_INPUT_SAVE_DELAY_MS, true);
+    this.saveTextInput = saveTextInput;
     new import_obsidian2.Setting(containerEl).setName(t("headAppearance")).setHeading();
     new import_obsidian2.Setting(containerEl).setName(t("setFoldersFirst")).setDesc(t("setFoldersFirstDesc")).addToggle((tg) => tg.setValue(s.foldersFirst).onChange(async (v) => {
       s.foldersFirst = v;
@@ -2093,9 +2109,9 @@ var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
       s.confirmDelete = v;
       await save();
     }));
-    new import_obsidian2.Setting(containerEl).setName(t("setExclude")).setDesc(t("setExcludeDesc")).addText((txt) => txt.setValue(s.excludePatterns).onChange(async (v) => {
+    new import_obsidian2.Setting(containerEl).setName(t("setExclude")).setDesc(t("setExcludeDesc")).addText((txt) => txt.setValue(s.excludePatterns).onChange((v) => {
       s.excludePatterns = v;
-      await save();
+      saveTextInput();
     }));
     new import_obsidian2.Setting(containerEl).setName(t("headColumns")).setHeading();
     new import_obsidian2.Setting(containerEl).setName(t("setAutoPanel")).setDesc(t("setAutoPanelDesc")).addToggle((tg) => tg.setValue(s.autoPanelResize).onChange(async (v) => {
@@ -2939,6 +2955,13 @@ var import_obsidian10 = require("obsidian");
 // src/dnd.ts
 var import_obsidian9 = require("obsidian");
 var activeDragPaths = null;
+function clearActiveDrag() {
+  activeDragPaths = null;
+}
+function setupGlobalDnd(view) {
+  if (import_obsidian9.Platform.isMobile) return;
+  view.registerDomEvent(view.containerEl.ownerDocument, "dragend", clearActiveDrag);
+}
 function notifyDragManager(app, e, f) {
   try {
     const dragManager = app.dragManager;
@@ -3366,10 +3389,16 @@ function renderCalendarColumn(view, container) {
   addResizeHandle(view, col, CALENDAR_PATH);
   return col;
 }
+var finishActiveResize = null;
+function commitActiveResize() {
+  finishActiveResize == null ? void 0 : finishActiveResize();
+}
 function addResizeHandle(view, col, folderPath) {
   const handle = col.createDiv({ cls: "column-explorer-resize-handle" });
   handle.addEventListener("mousedown", (e) => {
     e.preventDefault();
+    commitActiveResize();
+    const doc = col.ownerDocument;
     const startX = e.clientX;
     const startWidth = col.offsetWidth;
     let width = startWidth;
@@ -3379,15 +3408,17 @@ function addResizeHandle(view, col, folderPath) {
       view.autoResizePanel();
     };
     const onUp = () => {
-      activeDocument.removeEventListener("mousemove", onMove);
-      activeDocument.removeEventListener("mouseup", onUp);
+      doc.removeEventListener("mousemove", onMove);
+      doc.removeEventListener("mouseup", onUp);
+      finishActiveResize = null;
       if (width === startWidth) return;
       const s = view.plugin.settings;
       s.columnWidths = { ...s.columnWidths, [folderPath]: width };
       void view.plugin.saveSettings();
     };
-    activeDocument.addEventListener("mousemove", onMove);
-    activeDocument.addEventListener("mouseup", onUp);
+    doc.addEventListener("mousemove", onMove);
+    doc.addEventListener("mouseup", onUp);
+    finishActiveResize = onUp;
   });
   handle.addEventListener("dblclick", () => {
     const s = view.plugin.settings;
@@ -3408,6 +3439,7 @@ function addResizeHandle(view, col, folderPath) {
 var VIEW_TYPE_COLUMNS = "column-explorer-view";
 var TYPEAHEAD_RESET_MS = 700;
 var PAGE_JUMP = 10;
+var RENAME_START_DELAY_MS = 100;
 var ColumnExplorerView = class extends import_obsidian11.ItemView {
   constructor(leaf, plugin) {
     super(leaf);
@@ -3426,8 +3458,13 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     this.mobileSelActive = false;
     this.typeaheadBuffer = "";
     this.typeaheadTimer = 0;
+    /** Отложенный старт инлайн-переименования после создания файла/папки. */
+    this.renameTimer = 0;
     /** Показанный месяц календаря; null — от выбранного дня или сегодня. */
     this.calendarMonth = null;
+    /** Кеш «файлы по дню создания» и отпечаток exclude-паттернов при его сборке. */
+    this.filesByDayCache = null;
+    this.filesByDayKey = "";
     /** Владелец markdown-превью колонки: живёт до следующего рендера. */
     this.previewOwner = null;
     /** Стек истории навигации (снимки selection) для кнопок назад/вперёд. */
@@ -3519,6 +3556,7 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     this.columnsEl = container.createDiv({ cls: "column-explorer-columns" });
     this.columnsEl.tabIndex = 0;
     this.registerDomEvent(this.columnsEl, "keydown", (e) => this.onKeyDown(e));
+    setupGlobalDnd(this);
     if (import_obsidian11.Platform.isMobile) {
       this.updateActionBar = buildActionBar(this, container);
       setupEdgeSwipe(this, this.columnsEl);
@@ -3528,16 +3566,19 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     }
     this.registerEvent(this.app.vault.on("create", (f) => {
       var _a2, _b2;
-      return this.markDirty(this.specialKind(this.selection[0]) ? null : (_b2 = (_a2 = f.parent) == null ? void 0 : _a2.path) != null ? _b2 : null);
+      this.invalidateCalendarCache();
+      this.markDirty(this.specialKind(this.selection[0]) ? null : (_b2 = (_a2 = f.parent) == null ? void 0 : _a2.path) != null ? _b2 : null);
     }));
     this.registerEvent(this.app.vault.on("delete", (f) => {
       var _a2, _b2;
+      this.invalidateCalendarCache();
       const changed = this.pruneSelection(f.path);
       this.prunePathRecords(f.path);
       const fullRender = changed || this.specialKind(this.selection[0]) !== null;
       this.markDirty(fullRender ? null : (_b2 = (_a2 = f.parent) == null ? void 0 : _a2.path) != null ? _b2 : null);
     }));
     this.registerEvent(this.app.vault.on("rename", (f, oldPath) => {
+      this.invalidateCalendarCache();
       this.remapSelection(oldPath, f.path);
       this.remapPathRecords(oldPath, f.path);
       this.markDirty(null);
@@ -3551,6 +3592,20 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     } catch (e) {
     }
     this.render();
+  }
+  /**
+   * Обсерверы и таймеры переживают закрытие вью: отложенный рендер попал бы
+   * в оторванный DOM, а активный IntersectionObserver держит свой список
+   * от сборки мусора. registerDomEvent/registerEvent Obsidian снимает сам.
+   */
+  async onClose() {
+    this.flushRefresh.cancel();
+    this.applyFilter.cancel();
+    window.clearTimeout(this.typeaheadTimer);
+    window.clearTimeout(this.renameTimer);
+    commitActiveResize();
+    clearActiveDrag();
+    if (this.columnsEl) disconnectListObservers(this.columnsEl);
   }
   addToolbarButton(parent, icon, tooltip, onClick) {
     const btn = parent.createDiv({ cls: "clickable-icon column-explorer-toolbar-btn", attr: { "aria-label": tooltip } });
@@ -3710,9 +3765,15 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     return this.app.vault.getRoot();
   }
   pruneSelection(deletedPath) {
+    var _a;
     const i = this.selection.findIndex((p) => p === deletedPath || p.startsWith(deletedPath + "/"));
     if (i >= 0) this.selection = this.selection.slice(0, i);
-    this.multiSel.delete(deletedPath);
+    const before = this.multiSel.size;
+    this.multiSel = prunePathSet(this.multiSel, deletedPath);
+    if (this.multiSel.size !== before) {
+      if (this.multiSel.size === 0) this.clearMulti();
+      (_a = this.updateActionBar) == null ? void 0 : _a.call(this);
+    }
     return i >= 0;
   }
   remapSelection(oldPath, newPath) {
@@ -3810,6 +3871,8 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
   }
   render() {
     var _a, _b;
+    clearActiveDrag();
+    commitActiveResize();
     const scrollTops = this.captureScrollTops();
     const prevKey = this.columnsKey();
     const prevScrollLeft = this.columnsEl.scrollLeft;
@@ -3892,6 +3955,7 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     this.restoreScrollTops(scrollTops);
     const sameColumns = this.columnsKey() === prevKey;
     window.requestAnimationFrame(() => {
+      if (!this.columnsEl.isConnected) return;
       this.autoResizePanel();
       this.columnsEl.scrollLeft = sameColumns ? prevScrollLeft : this.columnsEl.scrollWidth;
     });
@@ -3989,6 +4053,7 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     });
     if (import_obsidian11.Platform.isMobile) {
       window.requestAnimationFrame(() => {
+        if (!this.breadcrumbsEl.isConnected) return;
         this.breadcrumbsEl.scrollLeft = this.breadcrumbsEl.scrollWidth;
       });
     }
@@ -4072,22 +4137,41 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     }
     this.render();
   }
-  /** Число созданных файлов по дням (ключ — dayKey) для бейджей календаря. */
-  calendarCounts() {
-    var _a;
+  /**
+   * Файлы vault, разложенные по дню создания. Полный скан на vault в десятки
+   * тысяч файлов заметен, а рендер календаря случается на каждый клик —
+   * поэтому считаем один раз и сбрасываем по событиям vault и смене настроек.
+   */
+  filesByDay() {
     const patterns = this.excludePatternsList();
-    const counts = /* @__PURE__ */ new Map();
+    const key = patterns.join("\n");
+    if (this.filesByDayCache && this.filesByDayKey === key) return this.filesByDayCache;
+    const byDay = /* @__PURE__ */ new Map();
     for (const f of this.app.vault.getFiles()) {
       if (matchesExcludePatterns(f.path, patterns)) continue;
-      const key = dayKey(f.stat.ctime);
-      counts.set(key, ((_a = counts.get(key)) != null ? _a : 0) + 1);
+      const day = dayKey(f.stat.ctime);
+      const bucket = byDay.get(day);
+      if (bucket) bucket.push(f);
+      else byDay.set(day, [f]);
     }
+    this.filesByDayCache = byDay;
+    this.filesByDayKey = key;
+    return byDay;
+  }
+  /** Сбросить кеш дней: файл создан, удалён или переименован. */
+  invalidateCalendarCache() {
+    this.filesByDayCache = null;
+  }
+  /** Число созданных файлов по дням (ключ — dayKey) для бейджей календаря. */
+  calendarCounts() {
+    const counts = /* @__PURE__ */ new Map();
+    for (const [day, files] of this.filesByDay()) counts.set(day, files.length);
     return counts;
   }
   /** Файлы, созданные в день `day` ("YYYY-MM-DD"), новые сверху. */
   filesCreatedOn(day) {
-    const patterns = this.excludePatternsList();
-    return this.app.vault.getFiles().filter((f) => !matchesExcludePatterns(f.path, patterns) && dayKey(f.stat.ctime) === day).sort((a, b) => b.stat.ctime - a.stat.ctime);
+    var _a;
+    return [...(_a = this.filesByDay().get(day)) != null ? _a : []].sort((a, b) => b.stat.ctime - a.stat.ctime);
   }
   bookmarksAvailable() {
     return this.bookmarkItems() !== null;
@@ -4251,7 +4335,7 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
       const file = await this.app.vault.create(path, initialContent);
       this.revealFile(file);
       await this.app.workspace.getLeaf(false).openFile(file);
-      window.setTimeout(() => this.startRenameByPath(file.path), 100);
+      this.queueRename(file.path);
     } catch (err) {
       new import_obsidian11.Notice(t("createFailed", { name: path, error: errorMessage(err) }));
     }
@@ -4265,10 +4349,15 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     }
     try {
       await this.app.vault.createFolder(path);
-      window.setTimeout(() => this.startRenameByPath(path), 100);
+      this.queueRename(path);
     } catch (err) {
       new import_obsidian11.Notice(t("createFailed", { name: path, error: errorMessage(err) }));
     }
+  }
+  /** Инлайн-переименование после того, как рендер догонит создание файла. */
+  queueRename(path) {
+    window.clearTimeout(this.renameTimer);
+    this.renameTimer = window.setTimeout(() => this.startRenameByPath(path), RENAME_START_DELAY_MS);
   }
   startRenameByPath(path) {
     const f = this.app.vault.getAbstractFileByPath(path);
@@ -4290,7 +4379,10 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     input.focus();
     const dot = input.value.lastIndexOf(".");
     input.setSelectionRange(0, isMdFile || dot <= 0 ? input.value.length : dot);
+    let finished = false;
     const finish = async (commit) => {
+      if (finished) return;
+      finished = true;
       this.renamingPath = null;
       const newName = input.value.trim();
       if (commit && newName && newName !== original) {
