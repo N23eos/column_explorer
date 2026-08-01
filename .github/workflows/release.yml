@@ -19,7 +19,8 @@ jobs:
           node-version: "20"
       - run: npm ci
       - run: npm run lint
-      - run: npm test
+      - run: npx tsc --noEmit
+      - run: npm run test:coverage
       - run: npm run build
       - name: Attest build provenance
         uses: actions/attest-build-provenance@v2
