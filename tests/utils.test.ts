@@ -7,7 +7,9 @@ import {
 	formatTemplate,
 	lockedColumnVisible,
 	desiredPanelWidth,
-	splitMatch,
+	filterByMatcher,
+	matchRanges,
+	NameMatcher,
 	parseDragPaths,
 	availablePath,
 	takeFirstExisting,
@@ -304,26 +306,97 @@ describe("desiredPanelWidth", () => {
 	});
 });
 
-describe("splitMatch", () => {
-	test("splits the name around a case-insensitive match", () => {
-		// Arrange + Act
-		const parts = splitMatch("My Project Notes", "project");
+describe("filterByMatcher", () => {
+	/** Матчер-заглушка: подстрока, диапазон — место совпадения. */
+	const substring = (query: string): NameMatcher => (text) => {
+		const idx = text.toLowerCase().indexOf(query.toLowerCase());
+		return idx === -1 ? null : { score: -idx, matches: [[idx, idx + query.length]] };
+	};
+
+	const file = (name: string) => ({ name, isFolder: false });
+	const folder = (name: string) => ({ name, isFolder: true });
+
+	test("keeps only the files whose name matches", () => {
+		// Arrange
+		const items = [file("alpha"), file("beta"), file("gamma")];
+
+		// Act
+		const kept = filterByMatcher(items, (i) => i.name, substring("a"), () => false);
 
 		// Assert
-		expect(parts).toEqual(["My ", "Project", " Notes"]);
+		expect(kept.map((i) => i.name)).toEqual(["alpha", "beta", "gamma"]);
 	});
 
-	test("returns null when the query is absent", () => {
-		expect(splitMatch("Notes", "xyz")).toBeNull();
+	test("drops files that do not match", () => {
+		const items = [file("alpha"), file("beta")];
+
+		const kept = filterByMatcher(items, (i) => i.name, substring("alp"), () => false);
+
+		expect(kept.map((i) => i.name)).toEqual(["alpha"]);
 	});
 
-	test("returns null for an empty query", () => {
-		expect(splitMatch("Notes", "")).toBeNull();
+	test("always keeps folders, matching or not", () => {
+		const items = [folder("archive"), file("beta")];
+
+		const kept = filterByMatcher(items, (i) => i.name, substring("zzz"), (i) => i.isFolder);
+
+		expect(kept.map((i) => i.name)).toEqual(["archive"]);
 	});
 
-	test("matches at the very start and end", () => {
-		expect(splitMatch("note", "no")).toEqual(["", "no", "te"]);
-		expect(splitMatch("note", "te")).toEqual(["no", "te", ""]);
+	test("keeps the original order rather than sorting by score", () => {
+		const items = [file("xxa"), file("axx")];
+
+		const kept = filterByMatcher(items, (i) => i.name, substring("a"), () => false);
+
+		// «axx» совпадает лучше, но порядок колонки задан настройками сортировки
+		expect(kept.map((i) => i.name)).toEqual(["xxa", "axx"]);
+	});
+
+	test("a null matcher means no filtering at all", () => {
+		const items = [file("alpha"), file("beta")];
+
+		const kept = filterByMatcher(items, (i) => i.name, null, () => false);
+
+		expect(kept).toEqual(items);
+	});
+});
+
+describe("matchRanges", () => {
+	test("splits a name into plain and highlighted chunks", () => {
+		const chunks = matchRanges("My Project", [[3, 10]]);
+
+		expect(chunks).toEqual([
+			{ text: "My ", hit: false },
+			{ text: "Project", hit: true },
+		]);
+	});
+
+	test("handles several separate ranges", () => {
+		const chunks = matchRanges("abcd", [[0, 1], [2, 3]]);
+
+		expect(chunks).toEqual([
+			{ text: "a", hit: true },
+			{ text: "b", hit: false },
+			{ text: "c", hit: true },
+			{ text: "d", hit: false },
+		]);
+	});
+
+	test("merges adjacent ranges into one chunk", () => {
+		const chunks = matchRanges("abc", [[0, 1], [1, 2]]);
+
+		expect(chunks).toEqual([
+			{ text: "ab", hit: true },
+			{ text: "c", hit: false },
+		]);
+	});
+
+	test("no ranges means a single plain chunk", () => {
+		expect(matchRanges("abc", [])).toEqual([{ text: "abc", hit: false }]);
+	});
+
+	test("ignores ranges past the end of the string", () => {
+		expect(matchRanges("ab", [[5, 7]])).toEqual([{ text: "ab", hit: false }]);
 	});
 });
 

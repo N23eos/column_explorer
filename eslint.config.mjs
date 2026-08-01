@@ -34,6 +34,13 @@ export default tseslint.config(
 		rules: obsidianRulesOff,
 	},
 	{
+		// В тестах живут DOM-типы (EventListener, IntersectionObserverCallback,
+		// KeyboardEventInit). Без типовой информации no-undef их не знает,
+		// а сам по себе в TS-файлах он не нужен — типы проверяет tsc.
+		files: ["tests/**"],
+		rules: { "no-undef": "off" },
+	},
+	{
 		ignores: ["main.js", "esbuild.config.mjs", "version-bump.mjs"],
 	}
 );
