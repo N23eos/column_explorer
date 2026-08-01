@@ -10,11 +10,20 @@ export default defineConfig({
 		},
 	},
 	test: {
+		environment: "happy-dom",
+		// Хелперы Obsidian на прототипах DOM (createDiv/addClass/...) и стаб
+		// IntersectionObserver — без них модули, рисующие DOM, не грузятся.
+		setupFiles: ["./tests/setup/obsidian-dom.ts"],
 		coverage: {
 			provider: "v8",
-			// Track the pure-logic modules that unit tests can reach.
-			include: ["src/pure.ts", "src/utils.ts"],
+			include: ["src/**/*.ts"],
+			// Таблицы локалей — данные, а не логика: их полноту проверяет
+			// i18n.test.ts, покрытие построчно тут ничего не говорит.
+			exclude: ["src/locales/**"],
 			reporter: ["text", "html"],
+			// Пороги чуть ниже текущих значений: страхуют от отката покрытия,
+			// но не краснеют от одной удалённой ветки
+			thresholds: { lines: 88, statements: 84, functions: 78, branches: 75 },
 		},
 	},
 });

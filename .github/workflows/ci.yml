@@ -19,5 +19,15 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npm run lint
-      - run: npm test
+      - run: npx tsc --noEmit
+      - run: npm run test:coverage
       - run: npm run build
+      - name: Check bundle size
+        run: |
+          limit=266240 # 260 KB
+          size=$(wc -c < main.js)
+          echo "main.js: $size bytes (limit $limit)"
+          if [ "$size" -gt "$limit" ]; then
+            echo "::error::main.js exceeds $limit bytes"
+            exit 1
+          fi

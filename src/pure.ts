@@ -9,12 +9,60 @@ export function naturalCompare(a: string, b: string): number {
 	return collator.compare(a, b);
 }
 
-/** Split `name` around the first case-insensitive occurrence of `query`; null when absent. */
-export function splitMatch(name: string, query: string): [string, string, string] | null {
-	if (!query) return null;
-	const idx = name.toLowerCase().indexOf(query.toLowerCase());
-	if (idx === -1) return null;
-	return [name.slice(0, idx), name.slice(idx, idx + query.length), name.slice(idx + query.length)];
+/**
+ * Совпадение имени с поисковым запросом: диапазоны символов и оценка.
+ * Совместимо с результатом `prepareFuzzySearch` из Obsidian — сюда его и
+ * передают, а в тестах подставляют простой подстрочный матчер.
+ */
+export interface NameMatch {
+	score: number;
+	matches: [number, number][];
+}
+
+export type NameMatcher = (text: string) => NameMatch | null;
+
+/**
+ * Отфильтровать элементы по матчеру имени. Порядок НЕ меняется: он задан
+ * настройками сортировки колонки, а перестановка под курсором во время
+ * набора ломала бы навигацию стрелками. `keepAlways` пропускает элементы
+ * вне фильтра (папки — иначе не видно пути до вложенных совпадений).
+ */
+export function filterByMatcher<T>(
+	items: readonly T[],
+	nameOf: (item: T) => string,
+	matcher: NameMatcher | null,
+	keepAlways: (item: T) => boolean
+): T[] {
+	if (!matcher) return [...items];
+	return items.filter((item) => keepAlways(item) || matcher(nameOf(item)) !== null);
+}
+
+/** Кусок имени для подсветки: совпавший или обычный. */
+export interface NameChunk {
+	text: string;
+	hit: boolean;
+}
+
+/**
+ * Разложить имя на куски по диапазонам совпадения. Соседние диапазоны
+ * склеиваются, выходящие за длину строки игнорируются.
+ */
+export function matchRanges(name: string, ranges: readonly [number, number][]): NameChunk[] {
+	const chunks: NameChunk[] = [];
+	let pos = 0;
+	for (const [start, end] of [...ranges].sort((a, b) => a[0] - b[0])) {
+		const from = Math.max(pos, Math.min(start, name.length));
+		const to = Math.max(from, Math.min(end, name.length));
+		if (from >= to) continue;
+		if (from > pos) chunks.push({ text: name.slice(pos, from), hit: false });
+		const last = chunks[chunks.length - 1];
+		// Соседние диапазоны — один кусок, иначе подсветка распадётся на span'ы
+		if (last?.hit && from === pos) last.text += name.slice(from, to);
+		else chunks.push({ text: name.slice(from, to), hit: true });
+		pos = to;
+	}
+	if (pos < name.length) chunks.push({ text: name.slice(pos), hit: false });
+	return chunks;
 }
 
 export function humanSize(bytes: number): string {

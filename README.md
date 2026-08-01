@@ -1,7 +1,7 @@
 # Column Explorer
 
 [![Downloads](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json&query=%24%5B%22column-explorer%22%5D.downloads&label=downloads&color=7c3aed&style=flat-square&logo=obsidian)](https://obsidian.md/plugins?id=column-explorer)
-[![Release](https://img.shields.io/github/v/release/N23eos/column_explorer?style=flat-square&color=7c3aed)](https://github.com/N23eos/column_explorer/releases/latest)
+[![Release](https://img.shields.io/github/v/release/n23eos/column_explorer?style=flat-square&color=7c3aed)](https://github.com/n23eos/column_explorer/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
 **Browse your vault in Finder-style Miller columns.** Click a folder and its contents open in a new column to the right — a full file manager with create, rename, move, drag & drop, multi-select, context menus and folder colors.
@@ -26,7 +26,7 @@ If your vault is flat and small, the default explorer is fine. If you keep a dee
 
 ### Manual
 
-1. Download `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/N23eos/column_explorer/releases/latest)
+1. Download `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/n23eos/column_explorer/releases/latest)
 2. Copy them into `<vault>/.obsidian/plugins/column-explorer/`
 3. Enable the plugin in **Settings → Community plugins**
 
@@ -147,7 +147,7 @@ Large folders render in chunks as you scroll, so tens of thousands of files are 
 
 ## Support & feedback
 
-- **Found a bug or have an idea?** [Open an issue](https://github.com/N23eos/column_explorer/issues) — bug reports with a screenshot and your Obsidian version are the most useful thing you can send.
+- **Found a bug or have an idea?** [Open an issue](https://github.com/n23eos/column_explorer/issues) — bug reports with a screenshot and your Obsidian version are the most useful thing you can send.
 - **Translation correction?** One file, one pull request — see [CONTRIBUTING.md](CONTRIBUTING.md#translations).
 - **Want to say thanks?** Support further development:
 

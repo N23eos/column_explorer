@@ -13,12 +13,14 @@ import {
 	debounce,
 	getLanguage,
 	normalizePath,
+	prepareFuzzySearch,
 	setIcon,
 } from "obsidian";
 import { t } from "./i18n";
 import {
 	BOOKMARKS_PATH, CALENDAR_PATH, DAY_PATH_PREFIX, RECENTS_PATH,
-	dayKey, desiredPanelWidth, errorMessage, lockedColumnVisible, matchesExcludePatterns,
+	NameMatcher,
+	dayKey, desiredPanelWidth, errorMessage, filterByMatcher, lockedColumnVisible, matchesExcludePatterns,
 	mobileSelectionMode, parentSelection,
 	parseExcludePatterns, prunePathKeys, prunePathSet, remapPathKeys, takeFirstExisting,
 } from "./pure";
@@ -95,9 +97,15 @@ export class ColumnExplorerView extends ItemView {
 	private flushRefresh = debounce(() => this.doRefresh(), 60, true);
 	/** Дебаунс поиска: полный render на каждую букву лагает на больших vault */
 	private applyFilter = debounce(() => {
-		this.filter = this.searchInput.value.toLowerCase().trim();
+		this.filter = this.searchInput.value.trim();
+		// Нечёткий поиск Obsidian — тот же, что в Quick Switcher: "col ex"
+		// находит "Column Explorer". Регистр матчер учитывает сам
+		this.filterMatcher = this.filter ? prepareFuzzySearch(this.filter) : null;
 		this.render();
 	}, 150, true);
+
+	/** Матчер текущего запроса; null — фильтр выключен. */
+	private filterMatcher: NameMatcher | null = null;
 
 	constructor(leaf: WorkspaceLeaf, plugin: ColumnExplorerPlugin) {
 		super(leaf);
@@ -347,19 +355,21 @@ export class ColumnExplorerView extends ItemView {
 
 	/** Visible (exclude-filtered, sorted, search-filtered) children of a folder. */
 	childrenOf(folder: TFolder): TAbstractFile[] {
-		let children = visibleChildren(folder, this.plugin.settings);
-		if (this.filter) {
-			children = children.filter(c =>
-				c instanceof TFolder || displayName(c).toLowerCase().includes(this.filter)
-			);
-		}
-		return children;
+		const children = visibleChildren(folder, this.plugin.settings);
+		// Папки остаются видны при фильтре — иначе не пройти к совпадениям внутри
+		return filterByMatcher(children, displayName, this.filterMatcher, (c) => c instanceof TFolder);
+	}
+
+	/** Совпадение имени с текущим запросом — для подсветки в списке. */
+	matchOf(name: string) {
+		return this.filterMatcher?.(name) ?? null;
 	}
 
 	hasFilter(): boolean { return this.filter.length > 0; }
 	filterQuery(): string { return this.filter; }
 
 	private clearFilter() {
+		this.filterMatcher = null;
 		this.filter = "";
 		this.searchInput.value = "";
 		this.render();
@@ -1015,7 +1025,7 @@ export class ColumnExplorerView extends ItemView {
 
 	revealFile(file: TAbstractFile | null) {
 		if (!file) return;
-		if (this.hasFilter()) { this.filter = ""; this.searchInput.value = ""; }
+		if (this.hasFilter()) { this.filter = ""; this.filterMatcher = null; this.searchInput.value = ""; }
 		const chain: string[] = [];
 		let cur: TAbstractFile | null = file;
 		while (cur && cur.parent) {

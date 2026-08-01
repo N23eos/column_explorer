@@ -19,19 +19,49 @@ jobs:
           node-version: "20"
       - run: npm ci
       - run: npm run lint
-      - run: npm test
+      - run: npx tsc --noEmit
+      - run: npm run test:coverage
       - run: npm run build
+      # Тег с дефисом (1.13.0-beta.1) — бета: релиз помечается pre-release и
+      # не становится Latest, а в ассеты кладётся manifest-beta.json под
+      # именем manifest.json. Корневой manifest.json при этом не меняется,
+      # поэтому апдейтер Obsidian бету обычным пользователям не предложит —
+      # её ставят тестеры через BRAT.
+      - name: Prepare release assets
+        id: assets
+        run: |
+          tag="${GITHUB_REF#refs/tags/}"
+          mkdir -p dist
+          cp main.js styles.css dist/
+          if [[ "$tag" == *-* ]]; then
+            manifest_version=$(node -p "require('./manifest-beta.json').version")
+            if [ "$manifest_version" != "$tag" ]; then
+              echo "::error::manifest-beta.json says $manifest_version but the tag is $tag"
+              exit 1
+            fi
+            cp manifest-beta.json dist/manifest.json
+            echo "prerelease=--prerelease" >> "$GITHUB_OUTPUT"
+          else
+            manifest_version=$(node -p "require('./manifest.json').version")
+            if [ "$manifest_version" != "$tag" ]; then
+              echo "::error::manifest.json says $manifest_version but the tag is $tag"
+              exit 1
+            fi
+            cp manifest.json dist/manifest.json
+            echo "prerelease=" >> "$GITHUB_OUTPUT"
+          fi
       - name: Attest build provenance
         uses: actions/attest-build-provenance@v2
         with:
           subject-path: |
-            main.js
-            styles.css
-            manifest.json
+            dist/main.js
+            dist/styles.css
+            dist/manifest.json
       - name: Create release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           tag="${GITHUB_REF#refs/tags/}"
           gh release create "$tag" --title "$tag" --generate-notes \
-            main.js manifest.json styles.css
+            ${{ steps.assets.outputs.prerelease }} \
+            dist/main.js dist/manifest.json dist/styles.css

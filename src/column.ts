@@ -1,6 +1,6 @@
 import { Platform, TAbstractFile, TFile, TFolder, getLanguage, setIcon } from "obsidian";
 import { t } from "./i18n";
-import { BOOKMARKS_PATH, CALENDAR_PATH, DAY_PATH_PREFIX, RECENTS_PATH, dayKey, monthGrid, splitMatch } from "./pure";
+import { BOOKMARKS_PATH, CALENDAR_PATH, DAY_PATH_PREFIX, RECENTS_PATH, dayKey, matchRanges, monthGrid } from "./pure";
 import { displayName, folderNoteOf, iconFor, isImageFile } from "./utils";
 import { addUpButton, setupLongPress } from "./mobile";
 import { notifyDragManager, setupColumnDnd } from "./dnd";
@@ -213,12 +213,14 @@ function buildItem(view: ColumnExplorerView, f: TAbstractFile, depth: number, is
 
 	const title = item.createDiv({ cls: "column-explorer-item-title" });
 	const name = displayName(f);
-	// Фильтр применяется только к файлам — папки показываются всегда
-	const match = view.hasFilter() && f instanceof TFile ? splitMatch(name, view.filterQuery()) : null;
+	// Фильтр применяется только к файлам — папки показываются всегда.
+	// Совпадение нечёткое, поэтому подсвеченных кусков может быть несколько
+	const match = view.hasFilter() && f instanceof TFile ? view.matchOf(name) : null;
 	if (match) {
-		title.appendText(match[0]);
-		title.createSpan({ cls: "column-explorer-match", text: match[1] });
-		title.appendText(match[2]);
+		for (const chunk of matchRanges(name, match.matches)) {
+			if (chunk.hit) title.createSpan({ cls: "column-explorer-match", text: chunk.text });
+			else title.appendText(chunk.text);
+		}
 	} else {
 		title.setText(name);
 	}
