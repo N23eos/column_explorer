@@ -33,11 +33,25 @@ var collator = new Intl.Collator(void 0, { numeric: true, sensitivity: "base" })
 function naturalCompare(a, b) {
   return collator.compare(a, b);
 }
-function splitMatch(name, query) {
-  if (!query) return null;
-  const idx = name.toLowerCase().indexOf(query.toLowerCase());
-  if (idx === -1) return null;
-  return [name.slice(0, idx), name.slice(idx, idx + query.length), name.slice(idx + query.length)];
+function filterByMatcher(items, nameOf, matcher, keepAlways) {
+  if (!matcher) return [...items];
+  return items.filter((item) => keepAlways(item) || matcher(nameOf(item)) !== null);
+}
+function matchRanges(name, ranges) {
+  const chunks = [];
+  let pos = 0;
+  for (const [start, end] of [...ranges].sort((a, b) => a[0] - b[0])) {
+    const from = Math.max(pos, Math.min(start, name.length));
+    const to = Math.max(from, Math.min(end, name.length));
+    if (from >= to) continue;
+    if (from > pos) chunks.push({ text: name.slice(pos, from), hit: false });
+    const last = chunks[chunks.length - 1];
+    if ((last == null ? void 0 : last.hit) && from === pos) last.text += name.slice(from, to);
+    else chunks.push({ text: name.slice(from, to), hit: true });
+    pos = to;
+  }
+  if (pos < name.length) chunks.push({ text: name.slice(pos), hit: false });
+  return chunks;
 }
 function humanSize(bytes) {
   if (bytes < 1024) return bytes + " B";
@@ -3233,11 +3247,12 @@ function buildItem(view, f, depth, isGrid = false) {
   }
   const title = item.createDiv({ cls: "column-explorer-item-title" });
   const name = displayName(f);
-  const match = view.hasFilter() && f instanceof import_obsidian10.TFile ? splitMatch(name, view.filterQuery()) : null;
+  const match = view.hasFilter() && f instanceof import_obsidian10.TFile ? view.matchOf(name) : null;
   if (match) {
-    title.appendText(match[0]);
-    title.createSpan({ cls: "column-explorer-match", text: match[1] });
-    title.appendText(match[2]);
+    for (const chunk of matchRanges(name, match.matches)) {
+      if (chunk.hit) title.createSpan({ cls: "column-explorer-match", text: chunk.text });
+      else title.appendText(chunk.text);
+    }
   } else {
     title.setText(name);
   }
@@ -3478,9 +3493,12 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     this.flushRefresh = (0, import_obsidian11.debounce)(() => this.doRefresh(), 60, true);
     /** Дебаунс поиска: полный render на каждую букву лагает на больших vault */
     this.applyFilter = (0, import_obsidian11.debounce)(() => {
-      this.filter = this.searchInput.value.toLowerCase().trim();
+      this.filter = this.searchInput.value.trim();
+      this.filterMatcher = this.filter ? (0, import_obsidian11.prepareFuzzySearch)(this.filter) : null;
       this.render();
     }, 150, true);
+    /** Матчер текущего запроса; null — фильтр выключен. */
+    this.filterMatcher = null;
     this.plugin = plugin;
   }
   getViewType() {
@@ -3710,13 +3728,13 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
   /* -------------------------- shared accessors --------------------- */
   /** Visible (exclude-filtered, sorted, search-filtered) children of a folder. */
   childrenOf(folder) {
-    let children = visibleChildren(folder, this.plugin.settings);
-    if (this.filter) {
-      children = children.filter(
-        (c) => c instanceof import_obsidian11.TFolder || displayName(c).toLowerCase().includes(this.filter)
-      );
-    }
-    return children;
+    const children = visibleChildren(folder, this.plugin.settings);
+    return filterByMatcher(children, displayName, this.filterMatcher, (c) => c instanceof import_obsidian11.TFolder);
+  }
+  /** Совпадение имени с текущим запросом — для подсветки в списке. */
+  matchOf(name) {
+    var _a, _b;
+    return (_b = (_a = this.filterMatcher) == null ? void 0 : _a.call(this, name)) != null ? _b : null;
   }
   hasFilter() {
     return this.filter.length > 0;
@@ -3725,6 +3743,7 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     return this.filter;
   }
   clearFilter() {
+    this.filterMatcher = null;
     this.filter = "";
     this.searchInput.value = "";
     this.render();
@@ -4298,6 +4317,7 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     if (!file) return;
     if (this.hasFilter()) {
       this.filter = "";
+      this.filterMatcher = null;
       this.searchInput.value = "";
     }
     const chain = [];

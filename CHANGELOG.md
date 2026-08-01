@@ -5,6 +5,21 @@ All notable changes to Column Explorer are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+- Search in the toolbar is now fuzzy, matching the behaviour of Obsidian's Quick Switcher:
+  typing `col ex` finds `Column Explorer`. Every matched fragment of the name is highlighted.
+  The order of items in a column still follows the sort settings — matches are not re-ranked,
+  so keyboard navigation stays predictable.
+
+### Internal
+- Test suite extended from pure-logic units to the DOM layer (happy-dom): rendering, keyboard
+  navigation, drag & drop, menus, modals, settings and the mobile layer. Coverage is now measured
+  across all of `src` — previously only two files were counted — and is enforced by thresholds in CI.
+- CI runs a separate type-check step, the coverage thresholds and a bundle-size check, and the
+  release workflow runs the same checks as pull requests.
+
 ## [1.12.1] — 2026-07-29
 
 Re-release of 1.12.0 with no code changes. The 1.12.0 tag and its GitHub release were published
