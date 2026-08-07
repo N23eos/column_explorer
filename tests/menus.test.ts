@@ -295,6 +295,51 @@ describe("favorites in the file menu", () => {
 	});
 });
 
+describe("clipboard menu items", () => {
+	test("copy and cut hand the file to the view clipboard", () => {
+		const { view, vault } = setup(["a.md"]);
+		const copyItems = vi.fn();
+		Object.assign(view, { copyItems });
+
+		showFileMenu(view, mouse(), vault.getAbstractFileByPath("a.md") as TAbstractFile, 0);
+		clickItem(t("copy"));
+		clickItem(t("cut"));
+
+		expect(copyItems).toHaveBeenNthCalledWith(1, ["a.md"], false);
+		expect(copyItems).toHaveBeenNthCalledWith(2, ["a.md"], true);
+	});
+
+	test("paste on a folder pastes into that folder", () => {
+		const { view, vault } = setup(["sub/a.md"]);
+		const pasteClipboard = vi.fn();
+		Object.assign(view, { pasteClipboard, hasFileClipboard: () => true });
+
+		showFileMenu(view, mouse(), vault.getAbstractFileByPath("sub") as TFolder, 0);
+		clickItem(t("paste"));
+
+		expect(pasteClipboard).toHaveBeenCalledWith(vault.getAbstractFileByPath("sub"));
+	});
+
+	test("paste is absent while the clipboard is empty", () => {
+		const { view, vault } = setup(["sub/a.md"]);
+
+		showFileMenu(view, mouse(), vault.getAbstractFileByPath("sub") as TFolder, 0);
+
+		expect(menuTitles()).not.toContain(t("paste"));
+	});
+
+	test("the column background menu offers paste into the column folder", () => {
+		const { view, vault } = setup(["sub/a.md"]);
+		const pasteClipboard = vi.fn();
+		Object.assign(view, { pasteClipboard, hasFileClipboard: () => true });
+
+		showFolderBackgroundMenu(view, mouse(), vault.getAbstractFileByPath("sub") as TFolder);
+		clickItem(t("paste"));
+
+		expect(pasteClipboard).toHaveBeenCalledWith(vault.getAbstractFileByPath("sub"));
+	});
+});
+
 describe("recents menu", () => {
 	test("clear recents empties the tracked list", () => {
 		const { view } = setup(["a.md"]);

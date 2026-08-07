@@ -6,6 +6,7 @@ export const ja: Locale = {
 	empty: "空", noResults: "該当なし", open: "開く",
 	openNewTab: "新しいタブで開く", openRight: "右側で開く",
 	duplicate: "複製", rename: "名前を変更", delete: "削除",
+	copy: "コピー", cut: "切り取り", paste: "貼り付け", itemsPasted: "{n}件を貼り付けました",
 	deleteN: "{n} 件を削除", duplicateN: "{n} 件を複製",
 	moveTo: "フォルダへ移動…", moveToPlaceholder: "移動先のフォルダを選択…",
 	copyPath: "パスをコピー", copyFullPath: "完全なパスをコピー", pathCopied: "パスをコピーしました", copyFailed: "クリップボードにコピーできませんでした",

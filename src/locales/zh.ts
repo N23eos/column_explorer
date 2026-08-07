@@ -6,6 +6,7 @@ export const zh: Locale = {
 	empty: "空", noResults: "无匹配结果", open: "打开",
 	openNewTab: "在新标签页打开", openRight: "在右侧打开",
 	duplicate: "创建副本", rename: "重命名", delete: "删除",
+	copy: "复制", cut: "剪切", paste: "粘贴", itemsPasted: "已粘贴 {n} 个项目",
 	deleteN: "删除 {n} 个项目", duplicateN: "为 {n} 个项目创建副本",
 	moveTo: "移动到文件夹…", moveToPlaceholder: "选择目标文件夹…",
 	copyPath: "复制路径", copyFullPath: "复制完整路径", pathCopied: "路径已复制", copyFailed: "无法复制到剪贴板",

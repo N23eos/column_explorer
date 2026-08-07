@@ -98,6 +98,37 @@ export async function duplicateFile(app: App, f: TFile): Promise<void> {
 	}
 }
 
+/**
+ * Вставка внутреннего буфера Copy/Paste: копии путей в целевую папку.
+ * Коллизии имён получают числовой суффикс (как импорт из ОС), папки
+ * копируются со всем поддеревом. Возвращает число вставленных элементов.
+ */
+export async function copyFiles(app: App, paths: string[], target: TFolder): Promise<number> {
+	let pasted = 0;
+	for (const path of paths) {
+		const src = app.vault.getAbstractFileByPath(path);
+		if (!src) continue;
+		// Копия папки внутрь самой себя зациклила бы рекурсию
+		if (src.path === target.path || target.path.startsWith(src.path + "/")) {
+			new Notice(t("cantMoveIntoSelf"));
+			continue;
+		}
+		// Свежий набор занятых путей на каждый элемент — учитывает уже вставленные
+		const taken = new Set(app.vault.getAllLoadedFiles().map((f) => f.path));
+		const dest = normalizePath(availablePath(target.isRoot() ? "" : target.path, src.name, taken));
+		try {
+			if (src instanceof TFolder) await copyFolderInto(app, src, dest);
+			else if (src instanceof TFile) await app.vault.copy(src, dest);
+			else continue;
+			pasted++;
+		} catch (err) {
+			new Notice(t("duplicateFailed", { name: src.name, error: errorMessage(err) }));
+		}
+	}
+	if (pasted > 0) new Notice(t("itemsPasted", { n: pasted }));
+	return pasted;
+}
+
 /** Рекурсивная копия папки рядом с исходной, под именем "X copy". */
 export async function duplicateFolder(app: App, folder: TFolder): Promise<void> {
 	const dir = folder.parent && !folder.parent.isRoot() ? folder.parent.path + "/" : "";

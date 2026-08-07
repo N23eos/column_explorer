@@ -6,6 +6,7 @@ export const de: Locale = {
 	empty: "Leer", noResults: "Keine Treffer", open: "Öffnen",
 	openNewTab: "In neuem Tab öffnen", openRight: "Rechts öffnen",
 	duplicate: "Duplizieren", rename: "Umbenennen", delete: "Löschen",
+	copy: "Kopieren", cut: "Ausschneiden", paste: "Einfügen", itemsPasted: "{n} Elemente eingefügt",
 	deleteN: "{n} Elemente löschen", duplicateN: "{n} Elemente duplizieren",
 	moveTo: "In Ordner verschieben…", moveToPlaceholder: "Zielordner wählen…",
 	copyPath: "Pfad kopieren", copyFullPath: "Vollständigen Pfad kopieren", pathCopied: "Pfad kopiert", copyFailed: "Kopieren in die Zwischenablage fehlgeschlagen",

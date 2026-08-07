@@ -392,6 +392,61 @@ describe("more keyboard shortcuts", () => {
 		await vi.waitFor(() => expect(copied).toHaveLength(1));
 	});
 
+	test("Mod+C then Mod+V pastes a copy into the current folder", async () => {
+		const { view, app } = await mountView(["a.md", "target/"]);
+		const copied: string[] = [];
+		Object.assign(app.vault, {
+			getAllLoadedFiles: () => [],
+			copy: (_f: TFile, p: string) => { copied.push(p); return Promise.resolve(); },
+		});
+		view.selection = ["a.md"];
+		view.render();
+
+		keydown(view, "c", { metaKey: true });
+		view.selection = ["target"];
+		view.render();
+		keydown(view, "v", { metaKey: true });
+
+		await vi.waitFor(() => expect(copied).toEqual(["target/a.md"]));
+	});
+
+	test("Mod+C and Mod+V work on a non-Latin layout via the physical key", async () => {
+		const { view, app } = await mountView(["a.md", "target/"]);
+		const copied: string[] = [];
+		Object.assign(app.vault, {
+			getAllLoadedFiles: () => [],
+			copy: (_f: TFile, p: string) => { copied.push(p); return Promise.resolve(); },
+		});
+		view.selection = ["a.md"];
+		view.render();
+
+		keydown(view, "с", { metaKey: true, code: "KeyC" });
+		view.selection = ["target"];
+		view.render();
+		keydown(view, "м", { metaKey: true, code: "KeyV" });
+
+		await vi.waitFor(() => expect(copied).toEqual(["target/a.md"]));
+	});
+
+	test("Mod+X dims the cut item and Mod+V moves it once", async () => {
+		const { view, app } = await mountView(["a.md", "target/"]);
+		view.selection = ["a.md"];
+		view.render();
+
+		keydown(view, "x", { metaKey: true });
+		expect(view.contentEl.querySelector('[data-path="a.md"]')?.classList.contains("is-cut")).toBe(true);
+
+		view.selection = ["target"];
+		view.render();
+		keydown(view, "v", { metaKey: true });
+		await vi.waitFor(() => expect(app.fileManager.renamed).toEqual([{ from: "a.md", to: "target/a.md" }]));
+
+		// Буфер очищен — повторная вставка ничего не двигает
+		keydown(view, "v", { metaKey: true });
+		await Promise.resolve();
+		expect(app.fileManager.renamed).toHaveLength(1);
+	});
+
 	test("Delete with a multi-selection removes every selected file", async () => {
 		const { view, app, vault } = await mountView(["a.md", "b.md"], { confirmDelete: false });
 		view.toggleMulti(vault.getAbstractFileByPath("a.md") as TFile, 0);

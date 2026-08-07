@@ -88,6 +88,10 @@ export function showFileMenu(view: ColumnExplorerView, e: MouseEvent, f: TAbstra
 
 	if (multi) {
 		const paths = [...view.multiSel];
+		menu.addItem(i => i.setTitle(t("copy")).setIcon("copy")
+			.onClick(() => view.copyItems(paths, false)));
+		menu.addItem(i => i.setTitle(t("cut")).setIcon("scissors")
+			.onClick(() => view.copyItems(paths, true)));
 		menu.addItem(i => i.setTitle(t("moveTo")).setIcon("folder-input")
 			.onClick(() => new FolderSuggestModal(app, (target) => {
 				void moveFiles(app, paths, target).then(() => view.clearMulti());
@@ -112,6 +116,10 @@ export function showFileMenu(view: ColumnExplorerView, e: MouseEvent, f: TAbstra
 			.onClick(() => view.createFolder(f)));
 		menu.addItem(i => i.setTitle(t("duplicate")).setIcon("copy")
 			.onClick(() => void duplicateFolder(app, f)));
+		if (view.hasFileClipboard()) {
+			menu.addItem(i => i.setTitle(t("paste")).setIcon("clipboard-paste")
+				.onClick(() => view.pasteClipboard(f)));
+		}
 		addFolderColorMenu(view, menu, f);
 		addFolderIconItems(view, menu, f);
 		menu.addSeparator();
@@ -131,6 +139,11 @@ export function showFileMenu(view: ColumnExplorerView, e: MouseEvent, f: TAbstra
 		menu.addItem(i => i.setTitle(t("duplicate")).setIcon("copy")
 			.onClick(() => duplicateFile(app, f)));
 	}
+
+	menu.addItem(i => i.setTitle(t("copy")).setIcon("copy")
+		.onClick(() => view.copyItems([f.path], false)));
+	menu.addItem(i => i.setTitle(t("cut")).setIcon("scissors")
+		.onClick(() => view.copyItems([f.path], true)));
 
 	const isPinned = view.plugin.settings.pinnedPaths[f.path] !== undefined;
 	menu.addItem(i => i.setTitle(isPinned ? t("unpin") : t("pin")).setIcon(isPinned ? "pin-off" : "pin")
@@ -255,6 +268,10 @@ export function showFolderBackgroundMenu(view: ColumnExplorerView, e: MouseEvent
 		.onClick(() => void view.createFolder(folder)));
 	menu.addItem(i => i.setTitle(t("newCanvas")).setIcon("layout-dashboard")
 		.onClick(() => void view.createNote(folder, "canvas", "{}")));
+	if (view.hasFileClipboard()) {
+		menu.addItem(i => i.setTitle(t("paste")).setIcon("clipboard-paste")
+			.onClick(() => view.pasteClipboard(folder)));
+	}
 	menu.showAtMouseEvent(e);
 }
 

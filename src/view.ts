@@ -34,7 +34,7 @@ import { commitActiveResize, disconnectListObservers, renderCalendarColumn, rend
 import { renderPreviewColumn } from "./preview";
 import { showSortMenu } from "./menus";
 import { ConfirmModal, QuickLookModal } from "./modals";
-import { duplicateFile, duplicateFolder, trashFiles } from "./fileops";
+import { copyFiles, duplicateFile, duplicateFolder, moveFiles, trashFiles } from "./fileops";
 import { clearActiveDrag, setupCrumbDropTarget, setupGlobalDnd } from "./dnd";
 import type ColumnExplorerPlugin from "./main";
 
@@ -84,6 +84,11 @@ export class ColumnExplorerView extends ItemView {
 	private filesByDayKey = "";
 	/** Владелец markdown-превью колонки: живёт до следующего рендера. */
 	private previewOwner: Component | null = null;
+	/**
+	 * Внутренний буфер Copy/Cut/Paste. Не системный clipboard: класть файлы
+	 * в OS-буфер из Obsidian кроссплатформенно нельзя.
+	 */
+	private fileClipboard: { paths: string[]; cut: boolean } | null = null;
 
 	/** Стек истории навигации (снимки selection) для кнопок назад/вперёд. */
 	private history: string[][] = [];
@@ -1017,6 +1022,49 @@ export class ColumnExplorerView extends ItemView {
 		this.render();
 	}
 
+	/* ------------------------- copy / cut / paste -------------------- */
+
+	/** Положить пути в буфер; cut-режим затемняет исходники до вставки. */
+	copyItems(paths: string[], cut: boolean) {
+		// Сентинелы спецпунктов ("::…") — не файлы, копировать нечего
+		const real = paths.filter((p) => !p.startsWith("::"));
+		if (real.length === 0) return;
+		this.fileClipboard = { paths: real, cut };
+		this.render();
+	}
+
+	hasFileClipboard(): boolean {
+		return this.fileClipboard !== null;
+	}
+
+	/** Затемнение вырезанных строк — читается из buildItem при рендере. */
+	isCutPath(path: string): boolean {
+		return this.fileClipboard?.cut === true && this.fileClipboard.paths.includes(path);
+	}
+
+	/**
+	 * Вставить буфер в папку (по умолчанию — текущую). Copy-буфер живёт
+	 * дальше для повторных вставок, cut-буфер очищается после перемещения.
+	 */
+	pasteClipboard(target: TFolder = this.currentFolder()) {
+		const clip = this.fileClipboard;
+		if (!clip) return;
+		if (clip.cut) {
+			this.fileClipboard = null;
+			void moveFiles(this.app, clip.paths, target).then(() => this.render());
+		} else {
+			void copyFiles(this.app, clip.paths, target);
+		}
+	}
+
+	/** Cmd/Ctrl+C или X: мультивыделение либо текущий элемент. */
+	private copySelectionAt(depth: number, cut: boolean) {
+		const paths = this.multiSel.size > 0 && this.multiSelDepth === depth
+			? [...this.multiSel]
+			: [this.selection[depth]].filter((p): p is string => Boolean(p));
+		this.copyItems(paths, cut);
+	}
+
 	/** Cmd/Ctrl+D — duplicate the multi-selection, or the single selected item. */
 	duplicateSelected(depth: number) {
 		const paths = this.multiSel.size > 0 && this.multiSelDepth === depth
@@ -1237,6 +1285,15 @@ export class ColumnExplorerView extends ItemView {
 		} else if ((e.metaKey || e.ctrlKey) && (e.key === "d" || e.key === "D" || e.code === "KeyD")) {
 			e.preventDefault();
 			this.duplicateSelected(depth);
+		} else if ((e.metaKey || e.ctrlKey) && (e.key === "c" || e.key === "C" || e.code === "KeyC")) {
+			e.preventDefault();
+			this.copySelectionAt(depth, false);
+		} else if ((e.metaKey || e.ctrlKey) && (e.key === "x" || e.key === "X" || e.code === "KeyX")) {
+			e.preventDefault();
+			this.copySelectionAt(depth, true);
+		} else if ((e.metaKey || e.ctrlKey) && (e.key === "v" || e.key === "V" || e.code === "KeyV")) {
+			e.preventDefault();
+			this.pasteClipboard();
 		} else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
 			// Type-ahead: как в Finder — набор букв прыгает к совпадению
 			if (e.key === " ") e.preventDefault(); // пробел иначе прокручивает список

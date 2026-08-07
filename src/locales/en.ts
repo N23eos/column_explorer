@@ -8,6 +8,7 @@ export const en = {
 	empty: "Empty", noResults: "No matches", open: "Open",
 	openNewTab: "Open in new tab", openRight: "Open to the right",
 	duplicate: "Duplicate", rename: "Rename", delete: "Delete",
+	copy: "Copy", cut: "Cut", paste: "Paste", itemsPasted: "{n} items pasted",
 	deleteN: "Delete {n} items", duplicateN: "Duplicate {n} items",
 	moveTo: "Move to folder…", moveToPlaceholder: "Choose target folder…",
 	copyPath: "Copy path", copyFullPath: "Copy full path", pathCopied: "Path copied", copyFailed: "Couldn't copy to clipboard",

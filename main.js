@@ -352,6 +352,10 @@ var en = {
   duplicate: "Duplicate",
   rename: "Rename",
   delete: "Delete",
+  copy: "Copy",
+  cut: "Cut",
+  paste: "Paste",
+  itemsPasted: "{n} items pasted",
   deleteN: "Delete {n} items",
   duplicateN: "Duplicate {n} items",
   moveTo: "Move to folder\u2026",
@@ -512,6 +516,10 @@ var ru = {
   duplicate: "\u0414\u0443\u0431\u043B\u0438\u0440\u043E\u0432\u0430\u0442\u044C",
   rename: "\u041F\u0435\u0440\u0435\u0438\u043C\u0435\u043D\u043E\u0432\u0430\u0442\u044C",
   delete: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+  copy: "\u041A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C",
+  cut: "\u0412\u044B\u0440\u0435\u0437\u0430\u0442\u044C",
+  paste: "\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u044C",
+  itemsPasted: "\u0412\u0441\u0442\u0430\u0432\u043B\u0435\u043D\u043E \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432: {n}",
   deleteN: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C {n} \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432",
   duplicateN: "\u0414\u0443\u0431\u043B\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432: {n}",
   moveTo: "\u041F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u044C \u0432 \u043F\u0430\u043F\u043A\u0443\u2026",
@@ -672,6 +680,10 @@ var es = {
   duplicate: "Duplicar",
   rename: "Cambiar nombre",
   delete: "Eliminar",
+  copy: "Copiar",
+  cut: "Cortar",
+  paste: "Pegar",
+  itemsPasted: "{n} elementos pegados",
   deleteN: "Eliminar {n} elementos",
   duplicateN: "Duplicar {n} elementos",
   moveTo: "Mover a la carpeta\u2026",
@@ -832,6 +844,10 @@ var fr = {
   duplicate: "Dupliquer",
   rename: "Renommer",
   delete: "Supprimer",
+  copy: "Copier",
+  cut: "Couper",
+  paste: "Coller",
+  itemsPasted: "{n} \xE9l\xE9ments coll\xE9s",
   deleteN: "Supprimer {n} \xE9l\xE9ments",
   duplicateN: "Dupliquer {n} \xE9l\xE9ments",
   moveTo: "D\xE9placer vers le dossier\u2026",
@@ -992,6 +1008,10 @@ var it = {
   duplicate: "Duplica",
   rename: "Rinomina",
   delete: "Elimina",
+  copy: "Copia",
+  cut: "Taglia",
+  paste: "Incolla",
+  itemsPasted: "{n} elementi incollati",
   deleteN: "Elimina {n} elementi",
   duplicateN: "Duplica {n} elementi",
   moveTo: "Sposta nella cartella\u2026",
@@ -1152,6 +1172,10 @@ var de = {
   duplicate: "Duplizieren",
   rename: "Umbenennen",
   delete: "L\xF6schen",
+  copy: "Kopieren",
+  cut: "Ausschneiden",
+  paste: "Einf\xFCgen",
+  itemsPasted: "{n} Elemente eingef\xFCgt",
   deleteN: "{n} Elemente l\xF6schen",
   duplicateN: "{n} Elemente duplizieren",
   moveTo: "In Ordner verschieben\u2026",
@@ -1312,6 +1336,10 @@ var ptBR = {
   duplicate: "Duplicar",
   rename: "Renomear",
   delete: "Excluir",
+  copy: "Copiar",
+  cut: "Recortar",
+  paste: "Colar",
+  itemsPasted: "{n} itens colados",
   deleteN: "Excluir {n} itens",
   duplicateN: "Duplicar {n} itens",
   moveTo: "Mover para a pasta\u2026",
@@ -1472,6 +1500,10 @@ var zh = {
   duplicate: "\u521B\u5EFA\u526F\u672C",
   rename: "\u91CD\u547D\u540D",
   delete: "\u5220\u9664",
+  copy: "\u590D\u5236",
+  cut: "\u526A\u5207",
+  paste: "\u7C98\u8D34",
+  itemsPasted: "\u5DF2\u7C98\u8D34 {n} \u4E2A\u9879\u76EE",
   deleteN: "\u5220\u9664 {n} \u4E2A\u9879\u76EE",
   duplicateN: "\u4E3A {n} \u4E2A\u9879\u76EE\u521B\u5EFA\u526F\u672C",
   moveTo: "\u79FB\u52A8\u5230\u6587\u4EF6\u5939\u2026",
@@ -1632,6 +1664,10 @@ var ja = {
   duplicate: "\u8907\u88FD",
   rename: "\u540D\u524D\u3092\u5909\u66F4",
   delete: "\u524A\u9664",
+  copy: "\u30B3\u30D4\u30FC",
+  cut: "\u5207\u308A\u53D6\u308A",
+  paste: "\u8CBC\u308A\u4ED8\u3051",
+  itemsPasted: "{n}\u4EF6\u3092\u8CBC\u308A\u4ED8\u3051\u307E\u3057\u305F",
   deleteN: "{n} \u4EF6\u3092\u524A\u9664",
   duplicateN: "{n} \u4EF6\u3092\u8907\u88FD",
   moveTo: "\u30D5\u30A9\u30EB\u30C0\u3078\u79FB\u52D5\u2026",
@@ -1792,6 +1828,10 @@ var ko = {
   duplicate: "\uBCF5\uC81C",
   rename: "\uC774\uB984 \uBC14\uAFB8\uAE30",
   delete: "\uC0AD\uC81C",
+  copy: "\uBCF5\uC0AC",
+  cut: "\uC798\uB77C\uB0B4\uAE30",
+  paste: "\uBD99\uC5EC\uB123\uAE30",
+  itemsPasted: "{n}\uAC1C \uD56D\uBAA9\uC744 \uBD99\uC5EC\uB123\uC5C8\uC2B5\uB2C8\uB2E4",
   deleteN: "{n}\uAC1C \uD56D\uBAA9 \uC0AD\uC81C",
   duplicateN: "{n}\uAC1C \uD56D\uBAA9 \uBCF5\uC81C",
   moveTo: "\uD3F4\uB354\uB85C \uC774\uB3D9\u2026",
@@ -2355,6 +2395,29 @@ async function duplicateFile(app, f) {
     new import_obsidian3.Notice(t("duplicateFailed", { name: f.name, error: errorMessage(err) }));
   }
 }
+async function copyFiles(app, paths, target) {
+  let pasted = 0;
+  for (const path of paths) {
+    const src = app.vault.getAbstractFileByPath(path);
+    if (!src) continue;
+    if (src.path === target.path || target.path.startsWith(src.path + "/")) {
+      new import_obsidian3.Notice(t("cantMoveIntoSelf"));
+      continue;
+    }
+    const taken = new Set(app.vault.getAllLoadedFiles().map((f) => f.path));
+    const dest = (0, import_obsidian3.normalizePath)(availablePath(target.isRoot() ? "" : target.path, src.name, taken));
+    try {
+      if (src instanceof import_obsidian3.TFolder) await copyFolderInto(app, src, dest);
+      else if (src instanceof import_obsidian3.TFile) await app.vault.copy(src, dest);
+      else continue;
+      pasted++;
+    } catch (err) {
+      new import_obsidian3.Notice(t("duplicateFailed", { name: src.name, error: errorMessage(err) }));
+    }
+  }
+  if (pasted > 0) new import_obsidian3.Notice(t("itemsPasted", { n: pasted }));
+  return pasted;
+}
 async function duplicateFolder(app, folder) {
   const dir = folder.parent && !folder.parent.isRoot() ? folder.parent.path + "/" : "";
   let n = 1;
@@ -2712,6 +2775,8 @@ function showFileMenu(view, e, f, depth) {
   const multi = view.multiSelDepth === depth && view.multiSel.has(f.path) && view.multiSel.size > 1;
   if (multi) {
     const paths = [...view.multiSel];
+    menu.addItem((i) => i.setTitle(t("copy")).setIcon("copy").onClick(() => view.copyItems(paths, false)));
+    menu.addItem((i) => i.setTitle(t("cut")).setIcon("scissors").onClick(() => view.copyItems(paths, true)));
     menu.addItem((i) => i.setTitle(t("moveTo")).setIcon("folder-input").onClick(() => new FolderSuggestModal(app, (target) => {
       void moveFiles(app, paths, target).then(() => view.clearMulti());
     }).open()));
@@ -2729,6 +2794,9 @@ function showFileMenu(view, e, f, depth) {
     menu.addItem((i) => i.setTitle(t("newNote")).setIcon("file-plus").onClick(() => view.createNote(f)));
     menu.addItem((i) => i.setTitle(t("newFolder")).setIcon("folder-plus").onClick(() => view.createFolder(f)));
     menu.addItem((i) => i.setTitle(t("duplicate")).setIcon("copy").onClick(() => void duplicateFolder(app, f)));
+    if (view.hasFileClipboard()) {
+      menu.addItem((i) => i.setTitle(t("paste")).setIcon("clipboard-paste").onClick(() => view.pasteClipboard(f)));
+    }
     addFolderColorMenu(view, menu, f);
     addFolderIconItems(view, menu, f);
     menu.addSeparator();
@@ -2742,6 +2810,8 @@ function showFileMenu(view, e, f, depth) {
     menu.addSeparator();
     menu.addItem((i) => i.setTitle(t("duplicate")).setIcon("copy").onClick(() => duplicateFile(app, f)));
   }
+  menu.addItem((i) => i.setTitle(t("copy")).setIcon("copy").onClick(() => view.copyItems([f.path], false)));
+  menu.addItem((i) => i.setTitle(t("cut")).setIcon("scissors").onClick(() => view.copyItems([f.path], true)));
   const isPinned = view.plugin.settings.pinnedPaths[f.path] !== void 0;
   menu.addItem((i) => i.setTitle(isPinned ? t("unpin") : t("pin")).setIcon(isPinned ? "pin-off" : "pin").onClick(async () => {
     const pinned = { ...view.plugin.settings.pinnedPaths };
@@ -2831,6 +2901,9 @@ function showFolderBackgroundMenu(view, e, folder) {
   menu.addItem((i) => i.setTitle(t("newNote")).setIcon("file-plus").onClick(() => void view.createNote(folder)));
   menu.addItem((i) => i.setTitle(t("newFolder")).setIcon("folder-plus").onClick(() => void view.createFolder(folder)));
   menu.addItem((i) => i.setTitle(t("newCanvas")).setIcon("layout-dashboard").onClick(() => void view.createNote(folder, "canvas", "{}")));
+  if (view.hasFileClipboard()) {
+    menu.addItem((i) => i.setTitle(t("paste")).setIcon("clipboard-paste").onClick(() => view.pasteClipboard(folder)));
+  }
   menu.showAtMouseEvent(e);
 }
 function fillSortItems(view, target) {
@@ -3355,6 +3428,7 @@ function buildItem(view, f, depth, isGrid = false) {
   if (view.multiSelDepth === depth && view.multiSel.has(f.path)) item.addClass("is-multi-selected");
   const activeFile = view.app.workspace.getActiveFile();
   if (activeFile && activeFile.path === f.path) item.addClass("is-active-file");
+  if (view.isCutPath(f.path)) item.addClass("is-cut");
   if (f instanceof import_obsidian10.TFolder) {
     const colorKey = view.plugin.settings.folderColors[f.path];
     if (colorKey) {
@@ -3611,6 +3685,11 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     this.filesByDayKey = "";
     /** Владелец markdown-превью колонки: живёт до следующего рендера. */
     this.previewOwner = null;
+    /**
+     * Внутренний буфер Copy/Cut/Paste. Не системный clipboard: класть файлы
+     * в OS-буфер из Obsidian кроссплатформенно нельзя.
+     */
+    this.fileClipboard = null;
     /** Стек истории навигации (снимки selection) для кнопок назад/вперёд. */
     this.history = [];
     this.historyIndex = -1;
@@ -4437,6 +4516,41 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     for (const c of children) this.multiSel.add(c.path);
     this.render();
   }
+  /* ------------------------- copy / cut / paste -------------------- */
+  /** Положить пути в буфер; cut-режим затемняет исходники до вставки. */
+  copyItems(paths, cut) {
+    const real = paths.filter((p) => !p.startsWith("::"));
+    if (real.length === 0) return;
+    this.fileClipboard = { paths: real, cut };
+    this.render();
+  }
+  hasFileClipboard() {
+    return this.fileClipboard !== null;
+  }
+  /** Затемнение вырезанных строк — читается из buildItem при рендере. */
+  isCutPath(path) {
+    var _a;
+    return ((_a = this.fileClipboard) == null ? void 0 : _a.cut) === true && this.fileClipboard.paths.includes(path);
+  }
+  /**
+   * Вставить буфер в папку (по умолчанию — текущую). Copy-буфер живёт
+   * дальше для повторных вставок, cut-буфер очищается после перемещения.
+   */
+  pasteClipboard(target = this.currentFolder()) {
+    const clip = this.fileClipboard;
+    if (!clip) return;
+    if (clip.cut) {
+      this.fileClipboard = null;
+      void moveFiles(this.app, clip.paths, target).then(() => this.render());
+    } else {
+      void copyFiles(this.app, clip.paths, target);
+    }
+  }
+  /** Cmd/Ctrl+C или X: мультивыделение либо текущий элемент. */
+  copySelectionAt(depth, cut) {
+    const paths = this.multiSel.size > 0 && this.multiSelDepth === depth ? [...this.multiSel] : [this.selection[depth]].filter((p) => Boolean(p));
+    this.copyItems(paths, cut);
+  }
   /** Cmd/Ctrl+D — duplicate the multi-selection, or the single selected item. */
   duplicateSelected(depth) {
     const paths = this.multiSel.size > 0 && this.multiSelDepth === depth ? [...this.multiSel] : [this.selection[depth]].filter(Boolean);
@@ -4643,6 +4757,15 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     } else if ((e.metaKey || e.ctrlKey) && (e.key === "d" || e.key === "D" || e.code === "KeyD")) {
       e.preventDefault();
       this.duplicateSelected(depth);
+    } else if ((e.metaKey || e.ctrlKey) && (e.key === "c" || e.key === "C" || e.code === "KeyC")) {
+      e.preventDefault();
+      this.copySelectionAt(depth, false);
+    } else if ((e.metaKey || e.ctrlKey) && (e.key === "x" || e.key === "X" || e.code === "KeyX")) {
+      e.preventDefault();
+      this.copySelectionAt(depth, true);
+    } else if ((e.metaKey || e.ctrlKey) && (e.key === "v" || e.key === "V" || e.code === "KeyV")) {
+      e.preventDefault();
+      this.pasteClipboard();
     } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
       if (e.key === " ") e.preventDefault();
       this.onTypeahead(e.key, children, depth);

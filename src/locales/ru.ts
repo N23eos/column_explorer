@@ -6,6 +6,7 @@ export const ru: Locale = {
 	empty: "Пусто", noResults: "Ничего не найдено", open: "Открыть",
 	openNewTab: "Открыть в новой вкладке", openRight: "Открыть справа",
 	duplicate: "Дублировать", rename: "Переименовать", delete: "Удалить",
+	copy: "Копировать", cut: "Вырезать", paste: "Вставить", itemsPasted: "Вставлено элементов: {n}",
 	deleteN: "Удалить {n} элементов", duplicateN: "Дублировать элементов: {n}",
 	moveTo: "Переместить в папку…", moveToPlaceholder: "Выберите папку…",
 	copyPath: "Скопировать путь", copyFullPath: "Скопировать полный путь", pathCopied: "Путь скопирован", copyFailed: "Не удалось скопировать в буфер обмена",

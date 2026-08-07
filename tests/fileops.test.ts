@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { App, TFile, TFolder } from "obsidian";
 import { createdNotices, resetNotices } from "./__mocks__/obsidian";
-import { duplicateFile, duplicateFolder, importExternalFiles, moveFiles, trashFiles } from "../src/fileops";
+import { copyFiles, duplicateFile, duplicateFolder, importExternalFiles, moveFiles, trashFiles } from "../src/fileops";
+import { t } from "../src/i18n";
 import { makeVault } from "./setup/vault";
 import { makeApp } from "./setup/app";
 
@@ -121,6 +122,45 @@ describe("duplicateFile", () => {
 		await duplicateFile(app, vault.getAbstractFileByPath("a.md") as TFile);
 
 		expect(copied).toEqual([{ from: "a.md", to: "a copy 2.md" }]);
+	});
+});
+
+describe("copyFiles", () => {
+	test("copies files into the target folder", async () => {
+		const { app, vault, copied } = makeFileOpsApp(["a.md", "target/"]);
+
+		await copyFiles(app, ["a.md"], folderOf(vault, "target"));
+
+		expect(copied).toEqual([{ from: "a.md", to: "target/a.md" }]);
+	});
+
+	test("suffixes the name when it is already taken", async () => {
+		const { app, vault, copied } = makeFileOpsApp(["a.md", "target/a.md"]);
+
+		await copyFiles(app, ["a.md"], folderOf(vault, "target"));
+
+		expect(copied).toEqual([{ from: "a.md", to: "target/a 1.md" }]);
+	});
+
+	test("copies a folder with its whole subtree", async () => {
+		const { app, vault, copied, createdFolders } = makeFileOpsApp(["dir/x.md", "dir/sub/y.md", "target/"]);
+
+		await copyFiles(app, ["dir"], folderOf(vault, "target"));
+
+		expect(createdFolders).toEqual(["target/dir", "target/dir/sub"]);
+		expect(copied).toEqual([
+			{ from: "dir/x.md", to: "target/dir/x.md" },
+			{ from: "dir/sub/y.md", to: "target/dir/sub/y.md" },
+		]);
+	});
+
+	test("refuses to paste a folder into itself or a descendant", async () => {
+		const { app, vault, createdFolders } = makeFileOpsApp(["dir/sub/"]);
+
+		await copyFiles(app, ["dir"], folderOf(vault, "dir/sub"));
+
+		expect(createdFolders).toEqual([]);
+		expect(createdNotices.map((n) => n.message)).toContain(t("cantMoveIntoSelf"));
 	});
 });
 

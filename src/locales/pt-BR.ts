@@ -6,6 +6,7 @@ export const ptBR: Locale = {
 	empty: "Vazio", noResults: "Nenhum resultado", open: "Abrir",
 	openNewTab: "Abrir em nova aba", openRight: "Abrir à direita",
 	duplicate: "Duplicar", rename: "Renomear", delete: "Excluir",
+	copy: "Copiar", cut: "Recortar", paste: "Colar", itemsPasted: "{n} itens colados",
 	deleteN: "Excluir {n} itens", duplicateN: "Duplicar {n} itens",
 	moveTo: "Mover para a pasta…", moveToPlaceholder: "Escolha a pasta de destino…",
 	copyPath: "Copiar caminho", copyFullPath: "Copiar caminho completo", pathCopied: "Caminho copiado", copyFailed: "Não foi possível copiar para a área de transferência",

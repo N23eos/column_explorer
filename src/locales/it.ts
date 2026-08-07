@@ -6,6 +6,7 @@ export const it: Locale = {
 	empty: "Vuoto", noResults: "Nessun risultato", open: "Apri",
 	openNewTab: "Apri in una nuova scheda", openRight: "Apri a destra",
 	duplicate: "Duplica", rename: "Rinomina", delete: "Elimina",
+	copy: "Copia", cut: "Taglia", paste: "Incolla", itemsPasted: "{n} elementi incollati",
 	deleteN: "Elimina {n} elementi", duplicateN: "Duplica {n} elementi",
 	moveTo: "Sposta nella cartella…", moveToPlaceholder: "Scegli la cartella di destinazione…",
 	copyPath: "Copia il percorso", copyFullPath: "Copia il percorso completo", pathCopied: "Percorso copiato", copyFailed: "Impossibile copiare negli appunti",

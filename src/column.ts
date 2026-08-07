@@ -191,6 +191,8 @@ function buildItem(view: ColumnExplorerView, f: TAbstractFile, depth: number, is
 
 	const activeFile = view.app.workspace.getActiveFile();
 	if (activeFile && activeFile.path === f.path) item.addClass("is-active-file");
+	// Вырезанные (Cmd+X) затемняются до вставки, как в Finder
+	if (view.isCutPath(f.path)) item.addClass("is-cut");
 
 	if (f instanceof TFolder) {
 		const colorKey = view.plugin.settings.folderColors[f.path];

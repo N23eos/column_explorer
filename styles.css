@@ -113,6 +113,11 @@
 	box-shadow: inset 0 0 0 2px var(--interactive-accent);
 }
 
+/* Вырезанный (Cmd+X) элемент до вставки */
+.column-explorer-item.is-cut {
+	opacity: 0.45;
+}
+
 .column-explorer-item-icon {
 	display: flex;
 	flex-shrink: 0;

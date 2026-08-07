@@ -6,6 +6,7 @@ export const es: Locale = {
 	empty: "Vacío", noResults: "Sin coincidencias", open: "Abrir",
 	openNewTab: "Abrir en una pestaña nueva", openRight: "Abrir a la derecha",
 	duplicate: "Duplicar", rename: "Cambiar nombre", delete: "Eliminar",
+	copy: "Copiar", cut: "Cortar", paste: "Pegar", itemsPasted: "{n} elementos pegados",
 	deleteN: "Eliminar {n} elementos", duplicateN: "Duplicar {n} elementos",
 	moveTo: "Mover a la carpeta…", moveToPlaceholder: "Elige la carpeta de destino…",
 	copyPath: "Copiar ruta", copyFullPath: "Copiar ruta completa", pathCopied: "Ruta copiada", copyFailed: "No se pudo copiar al portapapeles",
