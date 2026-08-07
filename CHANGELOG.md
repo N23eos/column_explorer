@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- Copy, cut and paste for files and folders: `Ctrl`/`Cmd`+`C`/`X`/`V` (layout-independent)
+  and *Copy* / *Cut* / *Paste* in the context menus. Paste goes into the current folder —
+  or the right-clicked one — with numeric suffixes on name clashes; folders are pasted
+  with their whole subtree. Cut items are dimmed until pasted and are moved with the
+  usual undo notice. The clipboard is internal to the plugin: Obsidian cannot place
+  real files on the system clipboard portably.
 - The view can open as a full-width tab in the main area — the most requested change.
   A new *Where to open* setting (Behavior group) switches the open command and the
   ribbon icon between the left sidebar (default) and a main-area tab. An already open

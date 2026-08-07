@@ -58,7 +58,7 @@ Worth knowing early: `Space` previews the selected file, right-clicking empty sp
 - **Sidebar or main area** — a setting opens the view as a full-width tab instead of the left sidebar
 - **Breadcrumbs** — clickable path bar for quick jumps to any ancestor folder
 - **Folder notes** — optionally open the note named like its folder when selecting the folder
-- **Keyboard navigation** — `↑`/`↓` select, `→`/`←` drill in/out, `Home`/`End`/`PageUp`/`PageDown`, type-ahead (start typing to jump, like in Finder), `Enter` open, `Space` Quick Look, `F2` rename, `Delete` trash, `Ctrl`/`Cmd`+`A` select all in the column, `Ctrl`/`Cmd`+`D` duplicate
+- **Keyboard navigation** — `↑`/`↓` select, `→`/`←` drill in/out, `Home`/`End`/`PageUp`/`PageDown`, type-ahead (start typing to jump, like in Finder), `Enter` open, `Space` Quick Look, `F2` rename, `Delete` trash, `Ctrl`/`Cmd`+`A` select all in the column, `Ctrl`/`Cmd`+`D` duplicate, `Ctrl`/`Cmd`+`C`/`X`/`V` copy, cut and paste
 - **Back & forward** — navigation history buttons in the breadcrumbs bar
 - **Favorites** — star any file or folder (context menu, or the star button in the breadcrumbs bar); they sit atop the Bookmarks column
 - **Filter** — live search box that filters files in every column
@@ -92,6 +92,7 @@ The first column can host three virtual rows, each toggleable and positionable i
 
 - **All standard operations** — create notes, canvases and folders (with inline rename), rename, trash, duplicate, move to folder, copy path
 - **Multi-select** — `Ctrl`/`Cmd`-click to toggle, `Shift`-click for range; move, duplicate, delete or drag many at once
+- **Copy, cut & paste** — `Ctrl`/`Cmd`+`C`/`X`/`V` or the context menu; paste lands in the current folder (or the right-clicked one), name clashes get a numeric suffix, cut items are dimmed until pasted
 - **Drag & drop** — move files/folders between columns, straight onto a folder row or onto a breadcrumb segment; drag a file into an editor to insert a link
 - **Full Obsidian context menu** — core & community plugin items (bookmarks, "Reveal in Finder", copy link, …) are injected via the `file-menu` event
 - **Copy links & paths** — vault path, absolute system path, wikilink, Markdown link or `obsidian://` URL, from the context menu
