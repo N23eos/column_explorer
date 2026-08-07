@@ -357,6 +357,7 @@ var en = {
   copyPath: "Copy path",
   copyFullPath: "Copy full path",
   pathCopied: "Path copied",
+  copyFailed: "Couldn't copy to clipboard",
   untitled: "Untitled",
   newFolderName: "New folder",
   cantMoveIntoSelf: "Cannot move a folder into itself",
@@ -389,6 +390,7 @@ var en = {
   cmdReveal: "Reveal active file in columns",
   cmdNewNote: "New note in current folder",
   cmdNewFolder: "New folder in current folder",
+  cmdFocus: "Focus column explorer",
   setFoldersFirst: "Folders first",
   setFoldersFirstDesc: "Always list folders above files.",
   setShowExt: "Show extension badges",
@@ -511,6 +513,7 @@ var ru = {
   copyPath: "\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u043F\u0443\u0442\u044C",
   copyFullPath: "\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u043F\u043E\u043B\u043D\u044B\u0439 \u043F\u0443\u0442\u044C",
   pathCopied: "\u041F\u0443\u0442\u044C \u0441\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u043D",
+  copyFailed: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0432 \u0431\u0443\u0444\u0435\u0440 \u043E\u0431\u043C\u0435\u043D\u0430",
   untitled: "\u0411\u0435\u0437 \u043D\u0430\u0437\u0432\u0430\u043D\u0438\u044F",
   newFolderName: "\u041D\u043E\u0432\u0430\u044F \u043F\u0430\u043F\u043A\u0430",
   cantMoveIntoSelf: "\u041D\u0435\u043B\u044C\u0437\u044F \u043F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u044C \u043F\u0430\u043F\u043A\u0443 \u0432\u043D\u0443\u0442\u0440\u044C \u0441\u0430\u043C\u043E\u0439 \u0441\u0435\u0431\u044F",
@@ -543,6 +546,7 @@ var ru = {
   cmdReveal: "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u0439 \u0444\u0430\u0439\u043B \u0432 \u043A\u043E\u043B\u043E\u043D\u043A\u0430\u0445",
   cmdNewNote: "\u041D\u043E\u0432\u0430\u044F \u0437\u0430\u043C\u0435\u0442\u043A\u0430 \u0432 \u0442\u0435\u043A\u0443\u0449\u0435\u0439 \u043F\u0430\u043F\u043A\u0435",
   cmdNewFolder: "\u041D\u043E\u0432\u0430\u044F \u043F\u0430\u043F\u043A\u0430 \u0432 \u0442\u0435\u043A\u0443\u0449\u0435\u0439 \u043F\u0430\u043F\u043A\u0435",
+  cmdFocus: "\u0424\u043E\u043A\u0443\u0441 \u043D\u0430 \u043F\u0440\u043E\u0432\u043E\u0434\u043D\u0438\u043A-\u043A\u043E\u043B\u043E\u043D\u043A\u0438",
   setFoldersFirst: "\u041F\u0430\u043F\u043A\u0438 \u0441\u0432\u0435\u0440\u0445\u0443",
   setFoldersFirstDesc: "\u0412\u0441\u0435\u0433\u0434\u0430 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u043F\u0430\u043F\u043A\u0438 \u0432\u044B\u0448\u0435 \u0444\u0430\u0439\u043B\u043E\u0432.",
   setShowExt: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u0440\u0430\u0441\u0448\u0438\u0440\u0435\u043D\u0438\u044F",
@@ -665,6 +669,7 @@ var es = {
   copyPath: "Copiar ruta",
   copyFullPath: "Copiar ruta completa",
   pathCopied: "Ruta copiada",
+  copyFailed: "No se pudo copiar al portapapeles",
   untitled: "Sin t\xEDtulo",
   newFolderName: "Nueva carpeta",
   cantMoveIntoSelf: "No se puede mover una carpeta dentro de s\xED misma",
@@ -697,6 +702,7 @@ var es = {
   cmdReveal: "Mostrar el archivo activo en las columnas",
   cmdNewNote: "Nueva nota en la carpeta actual",
   cmdNewFolder: "Nueva carpeta en la carpeta actual",
+  cmdFocus: "Enfocar el explorador de columnas",
   setFoldersFirst: "Carpetas primero",
   setFoldersFirstDesc: "Mostrar siempre las carpetas por encima de los archivos.",
   setShowExt: "Mostrar la extensi\xF3n",
@@ -819,6 +825,7 @@ var fr = {
   copyPath: "Copier le chemin",
   copyFullPath: "Copier le chemin complet",
   pathCopied: "Chemin copi\xE9",
+  copyFailed: "Impossible de copier dans le presse-papiers",
   untitled: "Sans titre",
   newFolderName: "Nouveau dossier",
   cantMoveIntoSelf: "Impossible de d\xE9placer un dossier dans lui-m\xEAme",
@@ -851,6 +858,7 @@ var fr = {
   cmdReveal: "Afficher le fichier actif dans les colonnes",
   cmdNewNote: "Nouvelle note dans le dossier courant",
   cmdNewFolder: "Nouveau dossier dans le dossier courant",
+  cmdFocus: "Activer l'explorateur en colonnes",
   setFoldersFirst: "Dossiers en premier",
   setFoldersFirstDesc: "Toujours afficher les dossiers au-dessus des fichiers.",
   setShowExt: "Afficher l'extension",
@@ -973,6 +981,7 @@ var it = {
   copyPath: "Copia il percorso",
   copyFullPath: "Copia il percorso completo",
   pathCopied: "Percorso copiato",
+  copyFailed: "Impossibile copiare negli appunti",
   untitled: "Senza titolo",
   newFolderName: "Nuova cartella",
   cantMoveIntoSelf: "Impossibile spostare una cartella dentro se stessa",
@@ -1005,6 +1014,7 @@ var it = {
   cmdReveal: "Mostra il file attivo nelle colonne",
   cmdNewNote: "Nuova nota nella cartella corrente",
   cmdNewFolder: "Nuova cartella nella cartella corrente",
+  cmdFocus: "Attiva l'esploratore a colonne",
   setFoldersFirst: "Prima le cartelle",
   setFoldersFirstDesc: "Mostra sempre le cartelle sopra i file.",
   setShowExt: "Mostra l'estensione",
@@ -1127,6 +1137,7 @@ var de = {
   copyPath: "Pfad kopieren",
   copyFullPath: "Vollst\xE4ndigen Pfad kopieren",
   pathCopied: "Pfad kopiert",
+  copyFailed: "Kopieren in die Zwischenablage fehlgeschlagen",
   untitled: "Ohne Titel",
   newFolderName: "Neuer Ordner",
   cantMoveIntoSelf: "Ein Ordner kann nicht in sich selbst verschoben werden",
@@ -1159,6 +1170,7 @@ var de = {
   cmdReveal: "Aktive Datei in den Spalten anzeigen",
   cmdNewNote: "Neue Notiz im aktuellen Ordner",
   cmdNewFolder: "Neuer Ordner im aktuellen Ordner",
+  cmdFocus: "Spaltenexplorer fokussieren",
   setFoldersFirst: "Ordner zuerst",
   setFoldersFirstDesc: "Ordner immer \xFCber den Dateien anzeigen.",
   setShowExt: "Dateiendung anzeigen",
@@ -1281,6 +1293,7 @@ var ptBR = {
   copyPath: "Copiar caminho",
   copyFullPath: "Copiar caminho completo",
   pathCopied: "Caminho copiado",
+  copyFailed: "N\xE3o foi poss\xEDvel copiar para a \xE1rea de transfer\xEAncia",
   untitled: "Sem t\xEDtulo",
   newFolderName: "Nova pasta",
   cantMoveIntoSelf: "N\xE3o \xE9 poss\xEDvel mover uma pasta para dentro dela mesma",
@@ -1313,6 +1326,7 @@ var ptBR = {
   cmdReveal: "Mostrar o arquivo ativo nas colunas",
   cmdNewNote: "Nova nota na pasta atual",
   cmdNewFolder: "Nova pasta na pasta atual",
+  cmdFocus: "Focar o explorador em colunas",
   setFoldersFirst: "Pastas primeiro",
   setFoldersFirstDesc: "Sempre listar as pastas acima dos arquivos.",
   setShowExt: "Mostrar a extens\xE3o",
@@ -1435,6 +1449,7 @@ var zh = {
   copyPath: "\u590D\u5236\u8DEF\u5F84",
   copyFullPath: "\u590D\u5236\u5B8C\u6574\u8DEF\u5F84",
   pathCopied: "\u8DEF\u5F84\u5DF2\u590D\u5236",
+  copyFailed: "\u65E0\u6CD5\u590D\u5236\u5230\u526A\u8D34\u677F",
   untitled: "\u672A\u547D\u540D",
   newFolderName: "\u65B0\u5EFA\u6587\u4EF6\u5939",
   cantMoveIntoSelf: "\u65E0\u6CD5\u5C06\u6587\u4EF6\u5939\u79FB\u52A8\u5230\u5176\u81EA\u8EAB\u5185\u90E8",
@@ -1467,6 +1482,7 @@ var zh = {
   cmdReveal: "\u5728\u5206\u680F\u4E2D\u5B9A\u4F4D\u5F53\u524D\u6587\u4EF6",
   cmdNewNote: "\u5728\u5F53\u524D\u6587\u4EF6\u5939\u65B0\u5EFA\u7B14\u8BB0",
   cmdNewFolder: "\u5728\u5F53\u524D\u6587\u4EF6\u5939\u65B0\u5EFA\u6587\u4EF6\u5939",
+  cmdFocus: "\u805A\u7126\u5206\u680F\u6D4F\u89C8\u5668",
   setFoldersFirst: "\u6587\u4EF6\u5939\u4F18\u5148",
   setFoldersFirstDesc: "\u59CB\u7EC8\u5C06\u6587\u4EF6\u5939\u6392\u5728\u6587\u4EF6\u4E4B\u524D\u3002",
   setShowExt: "\u663E\u793A\u6269\u5C55\u540D",
@@ -1589,6 +1605,7 @@ var ja = {
   copyPath: "\u30D1\u30B9\u3092\u30B3\u30D4\u30FC",
   copyFullPath: "\u5B8C\u5168\u306A\u30D1\u30B9\u3092\u30B3\u30D4\u30FC",
   pathCopied: "\u30D1\u30B9\u3092\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F",
+  copyFailed: "\u30AF\u30EA\u30C3\u30D7\u30DC\u30FC\u30C9\u306B\u30B3\u30D4\u30FC\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F",
   untitled: "\u7121\u984C",
   newFolderName: "\u65B0\u898F\u30D5\u30A9\u30EB\u30C0",
   cantMoveIntoSelf: "\u30D5\u30A9\u30EB\u30C0\u3092\u81EA\u8EAB\u306E\u4E2D\u3078\u306F\u79FB\u52D5\u3067\u304D\u307E\u305B\u3093",
@@ -1621,6 +1638,7 @@ var ja = {
   cmdReveal: "\u30A2\u30AF\u30C6\u30A3\u30D6\u306A\u30D5\u30A1\u30A4\u30EB\u3092\u30AB\u30E9\u30E0\u3067\u8868\u793A",
   cmdNewNote: "\u73FE\u5728\u306E\u30D5\u30A9\u30EB\u30C0\u306B\u65B0\u898F\u30CE\u30FC\u30C8",
   cmdNewFolder: "\u73FE\u5728\u306E\u30D5\u30A9\u30EB\u30C0\u306B\u65B0\u898F\u30D5\u30A9\u30EB\u30C0",
+  cmdFocus: "\u30AB\u30E9\u30E0\u30A8\u30AF\u30B9\u30D7\u30ED\u30FC\u30E9\u30FC\u306B\u30D5\u30A9\u30FC\u30AB\u30B9",
   setFoldersFirst: "\u30D5\u30A9\u30EB\u30C0\u3092\u5148\u306B\u8868\u793A",
   setFoldersFirstDesc: "\u5E38\u306B\u30D5\u30A9\u30EB\u30C0\u3092\u30D5\u30A1\u30A4\u30EB\u3088\u308A\u4E0A\u306B\u4E26\u3079\u307E\u3059\u3002",
   setShowExt: "\u62E1\u5F35\u5B50\u3092\u8868\u793A",
@@ -1743,6 +1761,7 @@ var ko = {
   copyPath: "\uACBD\uB85C \uBCF5\uC0AC",
   copyFullPath: "\uC804\uCCB4 \uACBD\uB85C \uBCF5\uC0AC",
   pathCopied: "\uACBD\uB85C\uB97C \uBCF5\uC0AC\uD588\uC2B5\uB2C8\uB2E4",
+  copyFailed: "\uD074\uB9BD\uBCF4\uB4DC\uC5D0 \uBCF5\uC0AC\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4",
   untitled: "\uC81C\uBAA9 \uC5C6\uC74C",
   newFolderName: "\uC0C8 \uD3F4\uB354",
   cantMoveIntoSelf: "\uD3F4\uB354\uB97C \uC790\uAE30 \uC790\uC2E0 \uC548\uC73C\uB85C \uC62E\uAE38 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4",
@@ -1775,6 +1794,7 @@ var ko = {
   cmdReveal: "\uD604\uC7AC \uD30C\uC77C\uC744 \uCE7C\uB7FC\uC5D0\uC11C \uD45C\uC2DC",
   cmdNewNote: "\uD604\uC7AC \uD3F4\uB354\uC5D0 \uC0C8 \uB178\uD2B8",
   cmdNewFolder: "\uD604\uC7AC \uD3F4\uB354\uC5D0 \uC0C8 \uD3F4\uB354",
+  cmdFocus: "\uCE7C\uB7FC \uD0D0\uC0C9\uAE30\uC5D0 \uD3EC\uCEE4\uC2A4",
   setFoldersFirst: "\uD3F4\uB354 \uBA3C\uC800",
   setFoldersFirstDesc: "\uD56D\uC0C1 \uD3F4\uB354\uB97C \uD30C\uC77C\uBCF4\uB2E4 \uC704\uC5D0 \uD45C\uC2DC\uD569\uB2C8\uB2E4.",
   setShowExt: "\uD655\uC7A5\uC790 \uD45C\uC2DC",
@@ -2283,6 +2303,27 @@ async function duplicateFile(app, f) {
     new import_obsidian3.Notice(t("duplicateFailed", { name: f.name, error: errorMessage(err) }));
   }
 }
+async function duplicateFolder(app, folder) {
+  const dir = folder.parent && !folder.parent.isRoot() ? folder.parent.path + "/" : "";
+  let n = 1;
+  let dest = (0, import_obsidian3.normalizePath)(dir + folder.name + " copy");
+  while (app.vault.getAbstractFileByPath(dest)) {
+    dest = (0, import_obsidian3.normalizePath)(dir + folder.name + " copy " + n++);
+  }
+  try {
+    await copyFolderInto(app, folder, dest);
+  } catch (err) {
+    new import_obsidian3.Notice(t("duplicateFailed", { name: folder.name, error: errorMessage(err) }));
+  }
+}
+async function copyFolderInto(app, folder, dest) {
+  await app.vault.createFolder(dest);
+  for (const child of folder.children) {
+    const childDest = dest + "/" + child.name;
+    if (child instanceof import_obsidian3.TFolder) await copyFolderInto(app, child, childDest);
+    else if (child instanceof import_obsidian3.TFile) await app.vault.copy(child, childDest);
+  }
+}
 async function trashFiles(app, paths) {
   for (const p of paths) {
     const f = app.vault.getAbstractFileByPath(p);
@@ -2566,7 +2607,10 @@ function sortLabel(mode) {
   return t(keys[mode]);
 }
 function copyToClipboard(text, notice) {
-  void navigator.clipboard.writeText(text).then(() => new import_obsidian7.Notice(notice));
+  navigator.clipboard.writeText(text).then(
+    () => new import_obsidian7.Notice(notice),
+    () => new import_obsidian7.Notice(t("copyFailed"))
+  );
 }
 function colorMenuTitle(colorKey, label) {
   return createFragment((frag) => {
@@ -2632,6 +2676,7 @@ function showFileMenu(view, e, f, depth) {
   if (f instanceof import_obsidian7.TFolder) {
     menu.addItem((i) => i.setTitle(t("newNote")).setIcon("file-plus").onClick(() => view.createNote(f)));
     menu.addItem((i) => i.setTitle(t("newFolder")).setIcon("folder-plus").onClick(() => view.createFolder(f)));
+    menu.addItem((i) => i.setTitle(t("duplicate")).setIcon("copy").onClick(() => void duplicateFolder(app, f)));
     addFolderColorMenu(view, menu, f);
     addFolderIconItems(view, menu, f);
     menu.addSeparator();
@@ -2698,6 +2743,15 @@ function addFolderIconItems(view, menu, folder) {
       view.render();
     }));
   }
+}
+function showRecentsMenu(view, e) {
+  const menu = new import_obsidian7.Menu();
+  menu.addItem((i) => i.setTitle(t("clearRecents")).setIcon("eraser").onClick(() => {
+    view.plugin.settings.recentFiles = [];
+    void view.plugin.saveSettings();
+    view.render();
+  }));
+  menu.showAtMouseEvent(e);
 }
 function showColumnHeaderMenu(view, e, folder) {
   const menu = new import_obsidian7.Menu();
@@ -3049,6 +3103,25 @@ function setupColumnDnd(view, listEl, columnFolder, depth) {
     void moveFiles(app, paths, dropFolder).then(() => view.clearMulti());
   });
 }
+function setupCrumbDropTarget(view, el, folder) {
+  if (import_obsidian9.Platform.isMobile) return;
+  el.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+    el.addClass("is-drop-target");
+  });
+  el.addEventListener("dragleave", () => el.removeClass("is-drop-target"));
+  el.addEventListener("drop", (e) => {
+    var _a, _b;
+    e.preventDefault();
+    e.stopPropagation();
+    el.removeClass("is-drop-target");
+    const paths = activeDragPaths != null ? activeDragPaths : parseDragPaths((_b = (_a = e.dataTransfer) == null ? void 0 : _a.getData("text/plain")) != null ? _b : "");
+    activeDragPaths = null;
+    if (paths.length === 0) return;
+    void moveFiles(view.app, paths, folder).then(() => view.clearMulti());
+  });
+}
 function reorderPinned(view, dragPath, targetItem) {
   var _a, _b;
   const targetPath = targetItem == null ? void 0 : targetItem.dataset.path;
@@ -3148,6 +3221,10 @@ function renderColumn(view, container, folder, depth) {
     const hit = itemFromEvent(e);
     if (!hit) {
       if (e.target === list) showFolderBackgroundMenu(view, e, folder);
+      return;
+    }
+    if (view.specialKind(hit.path) === "recents") {
+      showRecentsMenu(view, e);
       return;
     }
     const f = view.app.vault.getAbstractFileByPath(hit.path);
@@ -3654,6 +3731,10 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
   isSearchOpen() {
     return this.searchOpen;
   }
+  /** Команда «Фокус на панель»: клавиатурная навигация без мыши. */
+  focusColumns() {
+    this.columnsEl.focus();
+  }
   isMobileSelecting() {
     return this.mobileSelActive;
   }
@@ -4048,11 +4129,12 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     });
     (0, import_obsidian11.setIcon)(star, "star");
     star.addEventListener("click", () => this.toggleFavorite(current.path));
-    const addSegment = (label, targetDepth, isLast) => {
+    const addSegment = (label, targetDepth, isLast, dropFolder) => {
       const seg = this.breadcrumbsEl.createSpan({
         cls: "column-explorer-crumb" + (isLast ? " is-current" : ""),
         text: label
       });
+      if (dropFolder) setupCrumbDropTarget(this, seg, dropFolder);
       if (!isLast) {
         seg.addEventListener("click", () => {
           this.selection = this.selection.slice(0, targetDepth);
@@ -4063,12 +4145,12 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
         this.breadcrumbsEl.createSpan({ cls: "column-explorer-crumb-sep", text: "\u203A" });
       }
     };
-    addSegment(this.app.vault.getName(), 0, this.selection.length === 0);
+    addSegment(this.app.vault.getName(), 0, this.selection.length === 0, this.app.vault.getRoot());
     this.selection.forEach((path, i) => {
       var _a;
       const f = this.app.vault.getAbstractFileByPath(path);
       const label = f ? displayName(f) : path === RECENTS_PATH ? t("recents") : path === BOOKMARKS_PATH ? t("bookmarks") : path === CALENDAR_PATH ? t("calendar") : path.startsWith(DAY_PATH_PREFIX) ? path.slice(DAY_PATH_PREFIX.length) : (_a = path.split("/").pop()) != null ? _a : path;
-      addSegment(label, i + 1, i === this.selection.length - 1);
+      addSegment(label, i + 1, i === this.selection.length - 1, f instanceof import_obsidian11.TFolder ? f : void 0);
     });
     if (import_obsidian11.Platform.isMobile) {
       window.requestAnimationFrame(() => {
@@ -4303,13 +4385,14 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     for (const c of children) this.multiSel.add(c.path);
     this.render();
   }
-  /** Cmd/Ctrl+D — duplicate the multi-selection, or the single selected file. */
+  /** Cmd/Ctrl+D — duplicate the multi-selection, or the single selected item. */
   duplicateSelected(depth) {
     const paths = this.multiSel.size > 0 && this.multiSelDepth === depth ? [...this.multiSel] : [this.selection[depth]].filter(Boolean);
     void (async () => {
       for (const p of paths) {
         const f = this.app.vault.getAbstractFileByPath(p);
         if (f instanceof import_obsidian11.TFile) await duplicateFile(this.app, f);
+        else if (f instanceof import_obsidian11.TFolder) await duplicateFolder(this.app, f);
       }
     })();
   }
@@ -4484,7 +4567,7 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
       } else if (f instanceof import_obsidian11.TFile && e.key === "Enter") {
         void this.app.workspace.getLeaf(false).openFile(f);
       }
-    } else if (e.key === " ") {
+    } else if (e.key === " " && !this.typeaheadBuffer) {
       e.preventDefault();
       const f = selectedPath ? this.app.vault.getAbstractFileByPath(selectedPath) : null;
       if (f instanceof import_obsidian11.TFile) new QuickLookModal(this.app, this, f).open();
@@ -4502,13 +4585,14 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
         return;
       }
       if (selectedPath && !selectedPath.startsWith("::")) this.deleteMany([selectedPath]);
-    } else if ((e.metaKey || e.ctrlKey) && (e.key === "a" || e.key === "A")) {
+    } else if ((e.metaKey || e.ctrlKey) && (e.key === "a" || e.key === "A" || e.code === "KeyA")) {
       e.preventDefault();
       this.selectAllAt(depth);
-    } else if ((e.metaKey || e.ctrlKey) && (e.key === "d" || e.key === "D")) {
+    } else if ((e.metaKey || e.ctrlKey) && (e.key === "d" || e.key === "D" || e.code === "KeyD")) {
       e.preventDefault();
       this.duplicateSelected(depth);
     } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (e.key === " ") e.preventDefault();
       this.onTypeahead(e.key, children, depth);
     }
   }
@@ -4631,6 +4715,14 @@ var ColumnExplorerPlugin = class extends import_obsidian12.Plugin {
       }
     });
     this.addCommand({
+      id: "focus-view",
+      name: t("cmdFocus"),
+      callback: async () => {
+        const view = await this.activateView();
+        view == null ? void 0 : view.focusColumns();
+      }
+    });
+    this.addCommand({
       id: "new-note-here",
       name: t("cmdNewNote"),
       checkCallback: (checking) => {
@@ -4683,12 +4775,12 @@ var ColumnExplorerPlugin = class extends import_obsidian12.Plugin {
   /** v1.3.x stored pins as `true`; convert to numeric order once. */
   migratePinnedPaths() {
     const raw = this.settings.pinnedPaths;
-    let order = 0;
+    const numeric = Object.values(raw).filter((v) => typeof v === "number");
+    let next = numeric.length > 0 ? Math.max(...numeric) + 1 : 0;
     const migrated = {};
     for (const path of Object.keys(raw)) {
       const value = raw[path];
-      migrated[path] = typeof value === "number" ? value : order;
-      order++;
+      migrated[path] = typeof value === "number" ? value : next++;
     }
     this.settings.pinnedPaths = migrated;
   }

@@ -29,6 +29,7 @@ export const ko: Locale = {
 	importFailed: "“{name}”을(를) 가져오지 못했습니다",
 	cmdOpen: "칼럼 탐색기 열기", cmdReveal: "현재 파일을 칼럼에서 표시",
 	cmdNewNote: "현재 폴더에 새 노트", cmdNewFolder: "현재 폴더에 새 폴더",
+	cmdFocus: "칼럼 탐색기에 포커스",
 	setFoldersFirst: "폴더 먼저", setFoldersFirstDesc: "항상 폴더를 파일보다 위에 표시합니다.",
 	setShowExt: "확장자 표시", setShowExtDesc: "마크다운이 아닌 파일에 확장자를 나타내는 작은 배지를 표시합니다.",
 	setPreview: "미리보기 칼럼 표시", setPreviewDesc: "파일을 선택하면 세부 정보 칼럼을 표시합니다.",

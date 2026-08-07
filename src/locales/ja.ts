@@ -29,6 +29,7 @@ export const ja: Locale = {
 	importFailed: "「{name}」の読み込みに失敗しました",
 	cmdOpen: "カラムエクスプローラーを開く", cmdReveal: "アクティブなファイルをカラムで表示",
 	cmdNewNote: "現在のフォルダに新規ノート", cmdNewFolder: "現在のフォルダに新規フォルダ",
+	cmdFocus: "カラムエクスプローラーにフォーカス",
 	setFoldersFirst: "フォルダを先に表示", setFoldersFirstDesc: "常にフォルダをファイルより上に並べます。",
 	setShowExt: "拡張子を表示", setShowExtDesc: "Markdown 以外のファイルに拡張子の小さなラベルを表示します。",
 	setPreview: "プレビュー列を表示", setPreviewDesc: "ファイルを選択したときに詳細列を表示します。",

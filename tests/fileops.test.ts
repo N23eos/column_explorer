@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { App, TFile, TFolder } from "obsidian";
 import { createdNotices, resetNotices } from "./__mocks__/obsidian";
-import { duplicateFile, importExternalFiles, moveFiles, trashFiles } from "../src/fileops";
+import { duplicateFile, duplicateFolder, importExternalFiles, moveFiles, trashFiles } from "../src/fileops";
 import { makeVault } from "./setup/vault";
 import { makeApp } from "./setup/app";
 
@@ -15,6 +15,7 @@ function makeFileOpsApp(paths: string[]) {
 	const base = makeApp(vault);
 	const created: string[] = [];
 	const copied: { from: string; to: string }[] = [];
+	const createdFolders: string[] = [];
 
 	const app = {
 		...base,
@@ -23,9 +24,10 @@ function makeFileOpsApp(paths: string[]) {
 			getAllLoadedFiles: () => [...vault.index.values()],
 			createBinary: (path: string) => { created.push(path); return Promise.resolve(); },
 			copy: (f: TFile, path: string) => { copied.push({ from: f.path, to: path }); return Promise.resolve(); },
+			createFolder: (path: string) => { createdFolders.push(path); return Promise.resolve(); },
 		},
 	};
-	return { app: app as unknown as App, vault, created, copied, fileManager: base.fileManager };
+	return { app: app as unknown as App, vault, created, copied, createdFolders, fileManager: base.fileManager };
 }
 
 const folderOf = (vault: ReturnType<typeof makeVault>, path: string) => {
@@ -119,6 +121,28 @@ describe("duplicateFile", () => {
 		await duplicateFile(app, vault.getAbstractFileByPath("a.md") as TFile);
 
 		expect(copied).toEqual([{ from: "a.md", to: "a copy 2.md" }]);
+	});
+});
+
+describe("duplicateFolder", () => {
+	test("recreates the folder tree under a ' copy' name", async () => {
+		const { app, vault, copied, createdFolders } = makeFileOpsApp(["dir/a.md", "dir/sub/b.md"]);
+
+		await duplicateFolder(app, folderOf(vault, "dir"));
+
+		expect(createdFolders).toEqual(["dir copy", "dir copy/sub"]);
+		expect(copied).toEqual([
+			{ from: "dir/a.md", to: "dir copy/a.md" },
+			{ from: "dir/sub/b.md", to: "dir copy/sub/b.md" },
+		]);
+	});
+
+	test("numbers the copy when the plain copy name is taken", async () => {
+		const { app, vault, createdFolders } = makeFileOpsApp(["dir/", "dir copy/"]);
+
+		await duplicateFolder(app, folderOf(vault, "dir"));
+
+		expect(createdFolders).toEqual(["dir copy 1"]);
 	});
 });
 

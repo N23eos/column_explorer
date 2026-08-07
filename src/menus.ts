@@ -1,7 +1,7 @@
 import { FileSystemAdapter, Menu, MenuItem, Notice, Platform, TFile, TFolder, TAbstractFile } from "obsidian";
 import { t } from "./i18n";
 import { SORT_MODE_VALUES, shellEscapePath } from "./pure";
-import { duplicateFile, moveFiles } from "./fileops";
+import { duplicateFile, duplicateFolder, moveFiles } from "./fileops";
 import { FolderSuggestModal, IconSuggestModal, QuickLookModal } from "./modals";
 import { FOLDER_COLOR_KEYS, FolderColorKey, SortMode } from "./settings";
 import type { ColumnExplorerView } from "./view";
@@ -110,6 +110,8 @@ export function showFileMenu(view: ColumnExplorerView, e: MouseEvent, f: TAbstra
 			.onClick(() => view.createNote(f)));
 		menu.addItem(i => i.setTitle(t("newFolder")).setIcon("folder-plus")
 			.onClick(() => view.createFolder(f)));
+		menu.addItem(i => i.setTitle(t("duplicate")).setIcon("copy")
+			.onClick(() => void duplicateFolder(app, f)));
 		addFolderColorMenu(view, menu, f);
 		addFolderIconItems(view, menu, f);
 		menu.addSeparator();
@@ -202,6 +204,18 @@ function addFolderIconItems(view: ColumnExplorerView, menu: Menu, folder: TFolde
 				view.render();
 			}));
 	}
+}
+
+/** Контекстное меню спецстроки «Недавние»: очистка списка. */
+export function showRecentsMenu(view: ColumnExplorerView, e: MouseEvent) {
+	const menu = new Menu();
+	menu.addItem(i => i.setTitle(t("clearRecents")).setIcon("eraser")
+		.onClick(() => {
+			view.plugin.settings.recentFiles = [];
+			void view.plugin.saveSettings();
+			view.render();
+		}));
+	menu.showAtMouseEvent(e);
 }
 
 /** Right-click on a column header: create items + per-folder sort override. */

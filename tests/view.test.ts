@@ -146,6 +146,14 @@ describe("keyboard navigation", () => {
 		expect(view.selection).toEqual(["gamma.md"]);
 	});
 
+	test("focusColumns puts keyboard focus on the columns container", async () => {
+		const { view } = await mountView(["a.md"]);
+
+		view.focusColumns();
+
+		expect(document.activeElement?.classList.contains("column-explorer-columns")).toBe(true);
+	});
+
 	test("typeahead treats Space as part of the prefix instead of Quick Look", async () => {
 		// Сортировка по убыванию, чтобы имя с пробелом не было первым совпадением
 		const { view } = await mountView(["ab.md", "a c.md"], { sortMode: "name-desc" });

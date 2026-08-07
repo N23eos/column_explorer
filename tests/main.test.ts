@@ -121,7 +121,7 @@ describe("registration", () => {
 		expect(registered.views).toEqual(["column-explorer-view"]);
 		expect(registered.ribbonIcons).toEqual(["columns-3"]);
 		expect(registered.commands.map((c) => c.id)).toEqual([
-			"open-view", "reveal-active-file", "new-note-here", "new-folder-here",
+			"open-view", "reveal-active-file", "focus-view", "new-note-here", "new-folder-here",
 		]);
 	});
 

@@ -29,6 +29,7 @@ export const zh: Locale = {
 	importFailed: "导入“{name}”失败",
 	cmdOpen: "打开分栏浏览器", cmdReveal: "在分栏中定位当前文件",
 	cmdNewNote: "在当前文件夹新建笔记", cmdNewFolder: "在当前文件夹新建文件夹",
+	cmdFocus: "聚焦分栏浏览器",
 	setFoldersFirst: "文件夹优先", setFoldersFirstDesc: "始终将文件夹排在文件之前。",
 	setShowExt: "显示扩展名", setShowExtDesc: "为非 Markdown 文件显示一个标注扩展名的小标签。",
 	setPreview: "显示预览栏", setPreviewDesc: "选中文件时显示一个详情栏。",

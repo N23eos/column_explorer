@@ -29,6 +29,7 @@ export const fr: Locale = {
 	importFailed: "Échec de l'importation de « {name} »",
 	cmdOpen: "Ouvrir l'explorateur en colonnes", cmdReveal: "Afficher le fichier actif dans les colonnes",
 	cmdNewNote: "Nouvelle note dans le dossier courant", cmdNewFolder: "Nouveau dossier dans le dossier courant",
+	cmdFocus: "Activer l'explorateur en colonnes",
 	setFoldersFirst: "Dossiers en premier", setFoldersFirstDesc: "Toujours afficher les dossiers au-dessus des fichiers.",
 	setShowExt: "Afficher l'extension", setShowExtDesc: "Affiche une petite étiquette avec l'extension pour les fichiers non Markdown.",
 	setPreview: "Afficher la colonne d'aperçu", setPreviewDesc: "Affiche une colonne de détails lorsqu'un fichier est sélectionné.",

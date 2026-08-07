@@ -31,6 +31,7 @@ export const en = {
 	importFailed: "Failed to import “{name}”",
 	cmdOpen: "Open column explorer", cmdReveal: "Reveal active file in columns",
 	cmdNewNote: "New note in current folder", cmdNewFolder: "New folder in current folder",
+	cmdFocus: "Focus column explorer",
 	setFoldersFirst: "Folders first", setFoldersFirstDesc: "Always list folders above files.",
 	setShowExt: "Show extension badges", setShowExtDesc: "Show a small badge with the file extension for non-Markdown files.",
 	setPreview: "Show file preview column", setPreviewDesc: "Show a details column when a file is selected.",

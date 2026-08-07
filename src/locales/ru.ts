@@ -29,6 +29,7 @@ export const ru: Locale = {
 	importFailed: "Не удалось импортировать «{name}»",
 	cmdOpen: "Открыть проводник-колонки", cmdReveal: "Показать активный файл в колонках",
 	cmdNewNote: "Новая заметка в текущей папке", cmdNewFolder: "Новая папка в текущей папке",
+	cmdFocus: "Фокус на проводник-колонки",
 	setFoldersFirst: "Папки сверху", setFoldersFirstDesc: "Всегда показывать папки выше файлов.",
 	setShowExt: "Показывать расширения", setShowExtDesc: "Небольшой бейдж с расширением у не-Markdown файлов.",
 	setPreview: "Колонка превью файла", setPreviewDesc: "Показывать колонку с деталями при выборе файла.",

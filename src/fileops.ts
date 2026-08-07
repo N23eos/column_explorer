@@ -98,6 +98,30 @@ export async function duplicateFile(app: App, f: TFile): Promise<void> {
 	}
 }
 
+/** Рекурсивная копия папки рядом с исходной, под именем "X copy". */
+export async function duplicateFolder(app: App, folder: TFolder): Promise<void> {
+	const dir = folder.parent && !folder.parent.isRoot() ? folder.parent.path + "/" : "";
+	let n = 1;
+	let dest = normalizePath(dir + folder.name + " copy");
+	while (app.vault.getAbstractFileByPath(dest)) {
+		dest = normalizePath(dir + folder.name + " copy " + n++);
+	}
+	try {
+		await copyFolderInto(app, folder, dest);
+	} catch (err) {
+		new Notice(t("duplicateFailed", { name: folder.name, error: errorMessage(err) }));
+	}
+}
+
+async function copyFolderInto(app: App, folder: TFolder, dest: string): Promise<void> {
+	await app.vault.createFolder(dest);
+	for (const child of folder.children) {
+		const childDest = dest + "/" + child.name;
+		if (child instanceof TFolder) await copyFolderInto(app, child, childDest);
+		else if (child instanceof TFile) await app.vault.copy(child, childDest);
+	}
+}
+
 export async function trashFiles(app: App, paths: string[]): Promise<void> {
 	for (const p of paths) {
 		const f = app.vault.getAbstractFileByPath(p);

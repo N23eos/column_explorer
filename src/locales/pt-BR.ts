@@ -29,6 +29,7 @@ export const ptBR: Locale = {
 	importFailed: "Falha ao importar “{name}”",
 	cmdOpen: "Abrir o explorador em colunas", cmdReveal: "Mostrar o arquivo ativo nas colunas",
 	cmdNewNote: "Nova nota na pasta atual", cmdNewFolder: "Nova pasta na pasta atual",
+	cmdFocus: "Focar o explorador em colunas",
 	setFoldersFirst: "Pastas primeiro", setFoldersFirstDesc: "Sempre listar as pastas acima dos arquivos.",
 	setShowExt: "Mostrar a extensão", setShowExtDesc: "Mostra uma pequena etiqueta com a extensão nos arquivos que não são Markdown.",
 	setPreview: "Mostrar a coluna de visualização", setPreviewDesc: "Mostra uma coluna de detalhes quando um arquivo é selecionado.",

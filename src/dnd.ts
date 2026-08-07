@@ -135,6 +135,31 @@ export function setupColumnDnd(view: ColumnExplorerView, listEl: HTMLElement, co
 }
 
 /**
+ * Крошка пути как drop-цель: бросить файл на сегмент — переместить в эту
+ * папку (как в Finder). Вью вешает цель только на сегменты реальных папок,
+ * виртуальные («Недавние», день календаря) сюда не попадают.
+ */
+export function setupCrumbDropTarget(view: ColumnExplorerView, el: HTMLElement, folder: TFolder) {
+	if (Platform.isMobile) return;
+	el.addEventListener("dragover", (e: DragEvent) => {
+		e.preventDefault();
+		if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+		el.addClass("is-drop-target");
+	});
+	el.addEventListener("dragleave", () => el.removeClass("is-drop-target"));
+	el.addEventListener("drop", (e: DragEvent) => {
+		e.preventDefault();
+		e.stopPropagation();
+		el.removeClass("is-drop-target");
+		// Только внутренние переносы: импорт файлов из ОС остаётся за колонками
+		const paths = activeDragPaths ?? parseDragPaths(e.dataTransfer?.getData("text/plain") ?? "");
+		activeDragPaths = null;
+		if (paths.length === 0) return;
+		void moveFiles(view.app, paths, folder).then(() => view.clearMulti());
+	});
+}
+
+/**
  * Dropping a pinned item onto another pinned item of the same folder
  * reorders the pins instead of moving files. Returns true when handled.
  */

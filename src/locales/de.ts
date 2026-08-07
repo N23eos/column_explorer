@@ -29,6 +29,7 @@ export const de: Locale = {
 	importFailed: "„{name}“ konnte nicht importiert werden",
 	cmdOpen: "Spaltenexplorer öffnen", cmdReveal: "Aktive Datei in den Spalten anzeigen",
 	cmdNewNote: "Neue Notiz im aktuellen Ordner", cmdNewFolder: "Neuer Ordner im aktuellen Ordner",
+	cmdFocus: "Spaltenexplorer fokussieren",
 	setFoldersFirst: "Ordner zuerst", setFoldersFirstDesc: "Ordner immer über den Dateien anzeigen.",
 	setShowExt: "Dateiendung anzeigen", setShowExtDesc: "Zeigt bei Nicht-Markdown-Dateien ein kleines Etikett mit der Dateiendung.",
 	setPreview: "Vorschauspalte anzeigen", setPreviewDesc: "Zeigt eine Detailspalte, sobald eine Datei ausgewählt ist.",

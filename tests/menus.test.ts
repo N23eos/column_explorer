@@ -4,7 +4,7 @@ import { TAbstractFile, TFolder } from "obsidian";
 import { Menu, createdNotices, resetNotices } from "./__mocks__/obsidian";
 import {
 	showColumnHeaderMenu, showFileMenu, showFolderBackgroundMenu,
-	showMobileCreateMenu, showMobileMoreMenu, showSortMenu,
+	showMobileCreateMenu, showMobileMoreMenu, showRecentsMenu, showSortMenu,
 } from "../src/menus";
 import { t } from "../src/i18n";
 import { makeVault } from "./setup/vault";
@@ -292,6 +292,18 @@ describe("favorites in the file menu", () => {
 		clickItem(t("removeFavorite"));
 
 		expect(view.plugin.settings.favorites).toEqual([]);
+	});
+});
+
+describe("recents menu", () => {
+	test("clear recents empties the tracked list", () => {
+		const { view } = setup(["a.md"]);
+		view.plugin.settings.recentFiles = ["a.md"];
+
+		showRecentsMenu(view, mouse());
+		clickItem(t("clearRecents"));
+
+		expect(view.plugin.settings.recentFiles).toEqual([]);
 	});
 });
 

@@ -29,6 +29,7 @@ export const es: Locale = {
 	importFailed: "No se pudo importar «{name}»",
 	cmdOpen: "Abrir el explorador de columnas", cmdReveal: "Mostrar el archivo activo en las columnas",
 	cmdNewNote: "Nueva nota en la carpeta actual", cmdNewFolder: "Nueva carpeta en la carpeta actual",
+	cmdFocus: "Enfocar el explorador de columnas",
 	setFoldersFirst: "Carpetas primero", setFoldersFirstDesc: "Mostrar siempre las carpetas por encima de los archivos.",
 	setShowExt: "Mostrar la extensión", setShowExtDesc: "Muestra una pequeña etiqueta con la extensión en los archivos que no son Markdown.",
 	setPreview: "Mostrar la columna de vista previa", setPreviewDesc: "Muestra una columna de detalles cuando se selecciona un archivo.",

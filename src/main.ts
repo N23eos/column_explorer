@@ -71,6 +71,15 @@ export default class ColumnExplorerPlugin extends Plugin {
 		// остаётся отложенной, пока по вкладке не кликнули, и проверка на
 		// загруженную вью прятала бы команды до первого клика
 		this.addCommand({
+			id: "focus-view",
+			name: t("cmdFocus"),
+			callback: async () => {
+				const view = await this.activateView();
+				view?.focusColumns();
+			},
+		});
+
+		this.addCommand({
 			id: "new-note-here",
 			name: t("cmdNewNote"),
 			checkCallback: (checking) => {

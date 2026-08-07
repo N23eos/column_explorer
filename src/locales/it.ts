@@ -29,6 +29,7 @@ export const it: Locale = {
 	importFailed: "Impossibile importare «{name}»",
 	cmdOpen: "Apri l'esploratore a colonne", cmdReveal: "Mostra il file attivo nelle colonne",
 	cmdNewNote: "Nuova nota nella cartella corrente", cmdNewFolder: "Nuova cartella nella cartella corrente",
+	cmdFocus: "Attiva l'esploratore a colonne",
 	setFoldersFirst: "Prima le cartelle", setFoldersFirstDesc: "Mostra sempre le cartelle sopra i file.",
 	setShowExt: "Mostra l'estensione", setShowExtDesc: "Mostra una piccola etichetta con l'estensione per i file non Markdown.",
 	setPreview: "Mostra la colonna di anteprima", setPreviewDesc: "Mostra una colonna con i dettagli quando si seleziona un file.",

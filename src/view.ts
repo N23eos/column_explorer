@@ -34,8 +34,8 @@ import { commitActiveResize, disconnectListObservers, renderCalendarColumn, rend
 import { renderPreviewColumn } from "./preview";
 import { showSortMenu } from "./menus";
 import { ConfirmModal, QuickLookModal } from "./modals";
-import { duplicateFile, trashFiles } from "./fileops";
-import { clearActiveDrag, setupGlobalDnd } from "./dnd";
+import { duplicateFile, duplicateFolder, trashFiles } from "./fileops";
+import { clearActiveDrag, setupCrumbDropTarget, setupGlobalDnd } from "./dnd";
 import type ColumnExplorerPlugin from "./main";
 
 /** Форма пункта core-плагина Bookmarks (приватный API — только чтение). */
@@ -274,6 +274,11 @@ export class ColumnExplorerView extends ItemView {
 	goBack() { this.navigateHistory(-1); }
 	goForward() { this.navigateHistory(1); }
 	isSearchOpen(): boolean { return this.searchOpen; }
+
+	/** Команда «Фокус на панель»: клавиатурная навигация без мыши. */
+	focusColumns() {
+		this.columnsEl.focus();
+	}
 	isMobileSelecting(): boolean { return this.mobileSelActive; }
 
 	/** Мобильные размеры в CSS-переменных: слайдеры настроек зовут это вместо render(). */
@@ -729,11 +734,13 @@ export class ColumnExplorerView extends ItemView {
 		setIcon(star, "star");
 		star.addEventListener("click", () => this.toggleFavorite(current.path));
 
-		const addSegment = (label: string, targetDepth: number, isLast: boolean) => {
+		const addSegment = (label: string, targetDepth: number, isLast: boolean, dropFolder?: TFolder) => {
 			const seg = this.breadcrumbsEl.createSpan({
 				cls: "column-explorer-crumb" + (isLast ? " is-current" : ""),
 				text: label,
 			});
+			// Бросить файл на сегмент пути — переместить в эту папку (как в Finder)
+			if (dropFolder) setupCrumbDropTarget(this, seg, dropFolder);
 			if (!isLast) {
 				seg.addEventListener("click", () => {
 					this.selection = this.selection.slice(0, targetDepth);
@@ -744,7 +751,7 @@ export class ColumnExplorerView extends ItemView {
 				this.breadcrumbsEl.createSpan({ cls: "column-explorer-crumb-sep", text: "›" });
 			}
 		};
-		addSegment(this.app.vault.getName(), 0, this.selection.length === 0);
+		addSegment(this.app.vault.getName(), 0, this.selection.length === 0, this.app.vault.getRoot());
 		this.selection.forEach((path, i) => {
 			const f = this.app.vault.getAbstractFileByPath(path);
 			const label = f ? displayName(f)
@@ -753,7 +760,7 @@ export class ColumnExplorerView extends ItemView {
 				: path === CALENDAR_PATH ? t("calendar")
 				: path.startsWith(DAY_PATH_PREFIX) ? path.slice(DAY_PATH_PREFIX.length)
 				: path.split("/").pop() ?? path;
-			addSegment(label, i + 1, i === this.selection.length - 1);
+			addSegment(label, i + 1, i === this.selection.length - 1, f instanceof TFolder ? f : undefined);
 		});
 
 		// Длинный путь на узком экране: держим в виду текущий, последний сегмент
@@ -1010,7 +1017,7 @@ export class ColumnExplorerView extends ItemView {
 		this.render();
 	}
 
-	/** Cmd/Ctrl+D — duplicate the multi-selection, or the single selected file. */
+	/** Cmd/Ctrl+D — duplicate the multi-selection, or the single selected item. */
 	duplicateSelected(depth: number) {
 		const paths = this.multiSel.size > 0 && this.multiSelDepth === depth
 			? [...this.multiSel]
@@ -1019,6 +1026,7 @@ export class ColumnExplorerView extends ItemView {
 			for (const p of paths) {
 				const f = this.app.vault.getAbstractFileByPath(p);
 				if (f instanceof TFile) await duplicateFile(this.app, f);
+				else if (f instanceof TFolder) await duplicateFolder(this.app, f);
 			}
 		})();
 	}
