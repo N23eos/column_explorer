@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- The view can open as a full-width tab in the main area — the most requested change.
+  A new *Where to open* setting (Behavior group) switches the open command and the
+  ribbon icon between the left sidebar (default) and a main-area tab. An already open
+  view is never moved: drag its tab anywhere and the plugin respects that.
 - Files and folders can now be dropped onto the breadcrumb bar — dropping onto a path
   segment moves them into that folder, the way Finder's path bar works.
 - Folders can be duplicated: *Duplicate* in the folder context menu, or `Ctrl`/`Cmd`+`D`

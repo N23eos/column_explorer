@@ -55,6 +55,7 @@ Worth knowing early: `Space` previews the selected file, right-clicking empty sp
 ### Navigation
 
 - **Miller columns** — drill down through folders, each level in its own column
+- **Sidebar or main area** — a setting opens the view as a full-width tab instead of the left sidebar
 - **Breadcrumbs** — clickable path bar for quick jumps to any ancestor folder
 - **Folder notes** — optionally open the note named like its folder when selecting the folder
 - **Keyboard navigation** — `↑`/`↓` select, `→`/`←` drill in/out, `Home`/`End`/`PageUp`/`PageDown`, type-ahead (start typing to jump, like in Finder), `Enter` open, `Space` Quick Look, `F2` rename, `Delete` trash, `Ctrl`/`Cmd`+`A` select all in the column, `Ctrl`/`Cmd`+`D` duplicate
@@ -129,7 +130,7 @@ All are bindable to hotkeys in **Settings → Hotkeys**.
 No — it's a separate view, and both can be open at once. Most people disable the core File Explorer afterwards, but that's your call.
 
 **Can I open it as a full-width tab instead of in the sidebar?**
-Not yet; the view currently opens in the left sidebar. It's the most requested change and is planned.
+Yes — **Settings → Column Explorer → Where to open** switches the open command and the ribbon icon to a tab in the main area. An already open view is never moved, so you can also just drag its tab wherever you like.
 
 **Why doesn't drag & drop work on my phone?**
 Deliberately disabled: on touch screens a drag gesture competes with scrolling. Long-press an item to enter selection mode, then use the bottom bar to move files.
