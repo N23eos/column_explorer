@@ -38,6 +38,8 @@ export const es: Locale = {
 	setColWidth: "Ancho de columna predeterminado", setColWidthDesc: "En píxeles. Arrastra el borde derecho de una columna para ajustarla; haz doble clic en el borde para restablecerla.",
 	setAutoPanel: "Ajustar el panel automáticamente", setAutoPanelDesc: "Ensancha y estrecha el panel lateral para que quepan todas las columnas abiertas, sin cambiar su ancho.",
 	setSort: "Orden predeterminado",
+	setOpenLocation: "Dónde abrir", setOpenLocationDesc: "Dónde colocan la vista el comando de apertura y el icono de la cinta. Una vista ya abierta se queda donde está.",
+	locSidebar: "Barra lateral izquierda", locTab: "Pestaña en el área principal",
 	setAutoReveal: "Seguir al archivo activo", setAutoRevealDesc: "Sigue la pestaña activa del editor y selecciona su archivo en las columnas.",
 	setExclude: "Archivos excluidos", setExcludeDesc: "Patrones separados por comas, por ejemplo «*.tmp, archive/, .trash».",
 	folderColor: "Color de la carpeta", colorDefault: "Predeterminado",

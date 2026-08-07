@@ -144,7 +144,7 @@ describe("display", () => {
 		const { tab } = makeTab();
 		tab.display();
 
-		const dropdown = firstComponent(tab, DropdownComponent);
+		const dropdown = componentOf(t("setSort"), DropdownComponent);
 
 		expect(Object.keys(dropdown?.options ?? {})).toContain("mtime-desc");
 	});
@@ -248,6 +248,18 @@ describe("display — remaining controls", () => {
 
 		await dropdown?.change("top");
 		expect(plugin.settings.specialItemsPosition).toBe("top");
+	});
+
+	test("the open-location dropdown switches between sidebar and tab", async () => {
+		const { tab, plugin } = makeTab();
+		tab.display();
+		const dropdown = componentOf(t("setOpenLocation"), DropdownComponent);
+
+		await dropdown?.change("tab");
+		expect(plugin.settings.openLocation).toBe("tab");
+
+		await dropdown?.change("sidebar");
+		expect(plugin.settings.openLocation).toBe("sidebar");
 	});
 
 	test("the sort dropdown writes the chosen mode", async () => {

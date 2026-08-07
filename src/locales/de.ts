@@ -38,6 +38,8 @@ export const de: Locale = {
 	setColWidth: "Standardbreite der Spalten", setColWidthDesc: "In Pixeln. Ziehe den rechten Rand einer Spalte, um sie anzupassen; ein Doppelklick auf den Rand setzt sie zurück.",
 	setAutoPanel: "Bereich automatisch anpassen", setAutoPanelDesc: "Verbreitert und verschmälert die Seitenleiste, damit alle geöffneten Spalten hineinpassen, ohne deren Breite zu ändern.",
 	setSort: "Standardsortierung",
+	setOpenLocation: "Wo öffnen", setOpenLocationDesc: "Wohin der Öffnen-Befehl und das Menübandsymbol die Ansicht legen. Eine bereits geöffnete Ansicht bleibt, wo sie ist.",
+	locSidebar: "Linke Seitenleiste", locTab: "Tab im Hauptbereich",
 	setAutoReveal: "Aktiver Datei folgen", setAutoRevealDesc: "Folgt dem aktiven Editor-Tab und wählt dessen Datei in den Spalten aus.",
 	setExclude: "Ausgeschlossene Dateien", setExcludeDesc: "Durch Kommas getrennte Muster, zum Beispiel „*.tmp, archive/, .trash“.",
 	folderColor: "Ordnerfarbe", colorDefault: "Standard",

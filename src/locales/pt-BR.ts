@@ -38,6 +38,8 @@ export const ptBR: Locale = {
 	setColWidth: "Largura padrão das colunas", setColWidthDesc: "Em pixels. Arraste a borda direita de uma coluna para redimensioná-la; dê um duplo clique na borda para restaurá-la.",
 	setAutoPanel: "Ajustar o painel automaticamente", setAutoPanelDesc: "Alarga e estreita o painel lateral para caber todas as colunas abertas, sem mudar a largura delas.",
 	setSort: "Ordenação padrão",
+	setOpenLocation: "Onde abrir", setOpenLocationDesc: "Onde o comando de abrir e o ícone da faixa colocam a visualização. Uma visualização já aberta permanece onde está.",
+	locSidebar: "Barra lateral esquerda", locTab: "Aba na área principal",
 	setAutoReveal: "Seguir o arquivo ativo", setAutoRevealDesc: "Segue a aba ativa do editor e seleciona o arquivo dela nas colunas.",
 	setExclude: "Arquivos excluídos", setExcludeDesc: "Padrões separados por vírgulas, por exemplo “*.tmp, archive/, .trash”.",
 	folderColor: "Cor da pasta", colorDefault: "Padrão",

@@ -55,6 +55,12 @@ describe("loadSettings", () => {
 		expect(plugin.settings.sortMode).toBe("name-asc");
 	});
 
+	test("replaces an unknown open location with the sidebar default", async () => {
+		const { plugin } = await loadPlugin({ openLocation: "nonsense" } as unknown as Partial<ColumnExplorerSettings>);
+
+		expect(plugin.settings.openLocation).toBe("sidebar");
+	});
+
 	test("migrates boolean pins from v1.3.x to numeric order", async () => {
 		const data = { pinnedPaths: { "a.md": true, "b.md": true } } as unknown as Partial<ColumnExplorerSettings>;
 
@@ -200,6 +206,21 @@ describe("activateView", () => {
 
 		await plugin.activateView();
 
+		expect(leaf.states).toEqual([{ type: "column-explorer-view", active: true }]);
+	});
+
+	test("opens in the main area when the setting says tab", async () => {
+		const { plugin, app } = await loadPlugin({ openLocation: "tab" });
+		const leaf = fakeLeaf(null);
+		const requested: string[] = [];
+		Object.assign(app.workspace, {
+			getLeavesOfType: () => [],
+			getLeaf: (where: string) => { requested.push(where); return leaf; },
+		});
+
+		await plugin.activateView();
+
+		expect(requested).toEqual(["tab"]);
 		expect(leaf.states).toEqual([{ type: "column-explorer-view", active: true }]);
 	});
 

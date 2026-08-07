@@ -38,6 +38,8 @@ export const ja: Locale = {
 	setColWidth: "既定のカラム幅", setColWidthDesc: "ピクセル単位。カラムの右端をドラッグすると、そのカラムの幅を変更できます。右端をダブルクリックすると元に戻ります。",
 	setAutoPanel: "パネル幅を自動調整", setAutoPanelDesc: "カラムの幅は保ったまま、開いているカラムがすべて収まるようサイドパネルを伸縮させます。",
 	setSort: "既定の並び替え",
+	setOpenLocation: "開く場所", setOpenLocationDesc: "開くコマンドとリボンアイコンがビューを配置する場所。すでに開いているビューはそのままです。",
+	locSidebar: "左サイドバー", locTab: "メインエリアのタブ",
 	setAutoReveal: "アクティブなファイルを追跡", setAutoRevealDesc: "エディタのアクティブなタブに追従し、そのファイルをカラム内で選択します。",
 	setExclude: "除外するファイル", setExcludeDesc: "カンマ区切りのパターン。例:「*.tmp, archive/, .trash」",
 	folderColor: "フォルダの色", colorDefault: "既定",

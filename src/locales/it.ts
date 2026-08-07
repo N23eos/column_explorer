@@ -38,6 +38,8 @@ export const it: Locale = {
 	setColWidth: "Larghezza predefinita delle colonne", setColWidthDesc: "In pixel. Trascina il bordo destro di una colonna per ridimensionarla; fai doppio clic sul bordo per ripristinarla.",
 	setAutoPanel: "Adatta il pannello automaticamente", setAutoPanelDesc: "Allarga e restringe il pannello laterale per contenere tutte le colonne aperte, senza cambiarne la larghezza.",
 	setSort: "Ordinamento predefinito",
+	setOpenLocation: "Dove aprire", setOpenLocationDesc: "Dove il comando di apertura e l'icona della barra mettono la vista. Una vista già aperta resta dov'è.",
+	locSidebar: "Barra laterale sinistra", locTab: "Scheda nell'area principale",
 	setAutoReveal: "Segui il file attivo", setAutoRevealDesc: "Segue la scheda attiva dell'editor e seleziona il suo file nelle colonne.",
 	setExclude: "File esclusi", setExcludeDesc: "Modelli separati da virgole, ad esempio «*.tmp, archive/, .trash».",
 	folderColor: "Colore della cartella", colorDefault: "Predefinito",

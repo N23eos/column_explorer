@@ -38,6 +38,8 @@ export const fr: Locale = {
 	setColWidth: "Largeur de colonne par défaut", setColWidthDesc: "En pixels. Faites glisser le bord droit d'une colonne pour la redimensionner ; double-cliquez sur le bord pour la réinitialiser.",
 	setAutoPanel: "Ajuster le panneau automatiquement", setAutoPanelDesc: "Élargit et rétrécit le panneau latéral pour contenir toutes les colonnes ouvertes, sans changer leur largeur.",
 	setSort: "Tri par défaut",
+	setOpenLocation: "Où ouvrir", setOpenLocationDesc: "Où la commande d'ouverture et l'icône du ruban placent la vue. Une vue déjà ouverte reste où elle est.",
+	locSidebar: "Barre latérale gauche", locTab: "Onglet dans la zone principale",
 	setAutoReveal: "Suivre le fichier actif", setAutoRevealDesc: "Suit l'onglet actif de l'éditeur et sélectionne son fichier dans les colonnes.",
 	setExclude: "Fichiers exclus", setExcludeDesc: "Motifs séparés par des virgules, par exemple « *.tmp, archive/, .trash ».",
 	folderColor: "Couleur du dossier", colorDefault: "Par défaut",

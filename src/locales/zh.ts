@@ -38,6 +38,8 @@ export const zh: Locale = {
 	setColWidth: "默认栏宽", setColWidthDesc: "单位为像素。拖动某一栏的右边缘可调整该栏宽度，双击边缘可将其重置。",
 	setAutoPanel: "自动调整面板宽度", setAutoPanelDesc: "自动伸缩侧边面板以容纳所有已打开的栏，同时保持栏宽不变。",
 	setSort: "默认排序方式",
+	setOpenLocation: "打开位置", setOpenLocationDesc: "打开命令和功能区图标将视图放在哪里。已打开的视图保持原位。",
+	locSidebar: "左侧边栏", locTab: "主区域标签页",
 	setAutoReveal: "跟随当前文件", setAutoRevealDesc: "跟随编辑器的当前标签页，并在分栏中选中其文件。",
 	setExclude: "排除的文件", setExcludeDesc: "以逗号分隔的匹配模式，例如“*.tmp, archive/, .trash”。",
 	folderColor: "文件夹颜色", colorDefault: "默认",

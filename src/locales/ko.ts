@@ -38,6 +38,8 @@ export const ko: Locale = {
 	setColWidth: "기본 칼럼 너비", setColWidthDesc: "픽셀 단위. 칼럼의 오른쪽 가장자리를 끌어 너비를 조절하고, 가장자리를 두 번 클릭하면 초기화됩니다.",
 	setAutoPanel: "패널 너비 자동 조절", setAutoPanelDesc: "칼럼 너비는 그대로 두고, 열린 칼럼이 모두 들어가도록 사이드 패널을 늘이고 줄입니다.",
 	setSort: "기본 정렬 방식",
+	setOpenLocation: "여는 위치", setOpenLocationDesc: "열기 명령과 리본 아이콘이 뷰를 배치하는 위치입니다. 이미 열려 있는 뷰는 그대로 유지됩니다.",
+	locSidebar: "왼쪽 사이드바", locTab: "기본 영역의 탭",
 	setAutoReveal: "현재 파일 따라가기", setAutoRevealDesc: "편집기의 현재 탭을 따라가며 해당 파일을 칼럼에서 선택합니다.",
 	setExclude: "제외할 파일", setExcludeDesc: "쉼표로 구분한 패턴. 예: “*.tmp, archive/, .trash”",
 	folderColor: "폴더 색상", colorDefault: "기본값",

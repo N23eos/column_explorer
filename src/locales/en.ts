@@ -40,6 +40,8 @@ export const en = {
 	setColWidth: "Default column width", setColWidthDesc: "In pixels. Drag a column's right edge to resize that column; double-click the edge to reset it.",
 	setAutoPanel: "Auto-resize panel", setAutoPanelDesc: "Grow and shrink the sidebar panel to fit all open columns, keeping the column width fixed.",
 	setSort: "Default sort order",
+	setOpenLocation: "Where to open", setOpenLocationDesc: "Where the open command and the ribbon icon put the view. An already open view stays where it is.",
+	locSidebar: "Left sidebar", locTab: "Tab in the main area",
 	setAutoReveal: "Auto-reveal active file", setAutoRevealDesc: "Follow the active editor tab and select its file in the columns.",
 	setExclude: "Excluded files", setExcludeDesc: "Comma-separated patterns to hide, e.g. “*.tmp, archive/, .trash”.",
 	folderColor: "Folder color", colorDefault: "Default",

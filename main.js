@@ -304,6 +304,7 @@ var SORT_MODE_VALUES = [
   "size-asc"
 ];
 var SPECIAL_POSITIONS = ["top", "bottom"];
+var OPEN_LOCATIONS = ["sidebar", "tab"];
 function clampInt(value, min, max, fallback) {
   if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
   return Math.max(min, Math.min(max, Math.round(value)));
@@ -330,7 +331,8 @@ function normalizeSettings(raw) {
     // null — режим «показывать все колонки», это валидное значение
     lockedColumnCount: typeof locked === "number" && Number.isFinite(locked) ? Math.max(1, Math.round(locked)) : null,
     sortMode: oneOf(raw.sortMode, SORT_MODE_VALUES, "name-asc"),
-    specialItemsPosition: oneOf(raw.specialItemsPosition, SPECIAL_POSITIONS, "top")
+    specialItemsPosition: oneOf(raw.specialItemsPosition, SPECIAL_POSITIONS, "top"),
+    openLocation: oneOf(raw.openLocation, OPEN_LOCATIONS, "sidebar")
   };
 }
 
@@ -406,6 +408,10 @@ var en = {
   setAutoPanel: "Auto-resize panel",
   setAutoPanelDesc: "Grow and shrink the sidebar panel to fit all open columns, keeping the column width fixed.",
   setSort: "Default sort order",
+  setOpenLocation: "Where to open",
+  setOpenLocationDesc: "Where the open command and the ribbon icon put the view. An already open view stays where it is.",
+  locSidebar: "Left sidebar",
+  locTab: "Tab in the main area",
   setAutoReveal: "Auto-reveal active file",
   setAutoRevealDesc: "Follow the active editor tab and select its file in the columns.",
   setExclude: "Excluded files",
@@ -562,6 +568,10 @@ var ru = {
   setAutoPanel: "\u0410\u0432\u0442\u043E-\u0448\u0438\u0440\u0438\u043D\u0430 \u043F\u0430\u043D\u0435\u043B\u0438",
   setAutoPanelDesc: "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0440\u0430\u0441\u0448\u0438\u0440\u044F\u0442\u044C \u0438 \u0441\u0443\u0436\u0430\u0442\u044C \u0431\u043E\u043A\u043E\u0432\u0443\u044E \u043F\u0430\u043D\u0435\u043B\u044C \u043F\u043E\u0434 \u043E\u0442\u043A\u0440\u044B\u0442\u044B\u0435 \u043A\u043E\u043B\u043E\u043D\u043A\u0438, \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u044F \u0448\u0438\u0440\u0438\u043D\u0443 \u043A\u043E\u043B\u043E\u043D\u043E\u043A.",
   setSort: "\u0421\u043E\u0440\u0442\u0438\u0440\u043E\u0432\u043A\u0430 \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E",
+  setOpenLocation: "\u0413\u0434\u0435 \u043E\u0442\u043A\u0440\u044B\u0432\u0430\u0442\u044C",
+  setOpenLocationDesc: "\u041A\u0443\u0434\u0430 \u043A\u043E\u043C\u0430\u043D\u0434\u0430 \u043E\u0442\u043A\u0440\u044B\u0442\u0438\u044F \u0438 \u0438\u043A\u043E\u043D\u043A\u0430 \u043D\u0430 \u043B\u0435\u043D\u0442\u0435 \u043F\u043E\u043C\u0435\u0449\u0430\u044E\u0442 \u0432\u044C\u044E. \u0423\u0436\u0435 \u043E\u0442\u043A\u0440\u044B\u0442\u0430\u044F \u0432\u044C\u044E \u043E\u0441\u0442\u0430\u0451\u0442\u0441\u044F \u043D\u0430 \u043C\u0435\u0441\u0442\u0435.",
+  locSidebar: "\u041B\u0435\u0432\u0430\u044F \u043F\u0430\u043D\u0435\u043B\u044C",
+  locTab: "\u0412\u043A\u043B\u0430\u0434\u043A\u0430 \u0432 \u043E\u0441\u043D\u043E\u0432\u043D\u043E\u0439 \u043E\u0431\u043B\u0430\u0441\u0442\u0438",
   setAutoReveal: "\u0421\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u044C \u0437\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u043C \u0444\u0430\u0439\u043B\u043E\u043C",
   setAutoRevealDesc: "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0432\u044B\u0434\u0435\u043B\u044F\u0442\u044C \u0432 \u043A\u043E\u043B\u043E\u043D\u043A\u0430\u0445 \u0444\u0430\u0439\u043B \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0439 \u0432\u043A\u043B\u0430\u0434\u043A\u0438.",
   setExclude: "\u0421\u043A\u0440\u044B\u0442\u044B\u0435 \u0444\u0430\u0439\u043B\u044B",
@@ -718,6 +728,10 @@ var es = {
   setAutoPanel: "Ajustar el panel autom\xE1ticamente",
   setAutoPanelDesc: "Ensancha y estrecha el panel lateral para que quepan todas las columnas abiertas, sin cambiar su ancho.",
   setSort: "Orden predeterminado",
+  setOpenLocation: "D\xF3nde abrir",
+  setOpenLocationDesc: "D\xF3nde colocan la vista el comando de apertura y el icono de la cinta. Una vista ya abierta se queda donde est\xE1.",
+  locSidebar: "Barra lateral izquierda",
+  locTab: "Pesta\xF1a en el \xE1rea principal",
   setAutoReveal: "Seguir al archivo activo",
   setAutoRevealDesc: "Sigue la pesta\xF1a activa del editor y selecciona su archivo en las columnas.",
   setExclude: "Archivos excluidos",
@@ -874,6 +888,10 @@ var fr = {
   setAutoPanel: "Ajuster le panneau automatiquement",
   setAutoPanelDesc: "\xC9largit et r\xE9tr\xE9cit le panneau lat\xE9ral pour contenir toutes les colonnes ouvertes, sans changer leur largeur.",
   setSort: "Tri par d\xE9faut",
+  setOpenLocation: "O\xF9 ouvrir",
+  setOpenLocationDesc: "O\xF9 la commande d'ouverture et l'ic\xF4ne du ruban placent la vue. Une vue d\xE9j\xE0 ouverte reste o\xF9 elle est.",
+  locSidebar: "Barre lat\xE9rale gauche",
+  locTab: "Onglet dans la zone principale",
   setAutoReveal: "Suivre le fichier actif",
   setAutoRevealDesc: "Suit l'onglet actif de l'\xE9diteur et s\xE9lectionne son fichier dans les colonnes.",
   setExclude: "Fichiers exclus",
@@ -1030,6 +1048,10 @@ var it = {
   setAutoPanel: "Adatta il pannello automaticamente",
   setAutoPanelDesc: "Allarga e restringe il pannello laterale per contenere tutte le colonne aperte, senza cambiarne la larghezza.",
   setSort: "Ordinamento predefinito",
+  setOpenLocation: "Dove aprire",
+  setOpenLocationDesc: "Dove il comando di apertura e l'icona della barra mettono la vista. Una vista gi\xE0 aperta resta dov'\xE8.",
+  locSidebar: "Barra laterale sinistra",
+  locTab: "Scheda nell'area principale",
   setAutoReveal: "Segui il file attivo",
   setAutoRevealDesc: "Segue la scheda attiva dell'editor e seleziona il suo file nelle colonne.",
   setExclude: "File esclusi",
@@ -1186,6 +1208,10 @@ var de = {
   setAutoPanel: "Bereich automatisch anpassen",
   setAutoPanelDesc: "Verbreitert und verschm\xE4lert die Seitenleiste, damit alle ge\xF6ffneten Spalten hineinpassen, ohne deren Breite zu \xE4ndern.",
   setSort: "Standardsortierung",
+  setOpenLocation: "Wo \xF6ffnen",
+  setOpenLocationDesc: "Wohin der \xD6ffnen-Befehl und das Men\xFCbandsymbol die Ansicht legen. Eine bereits ge\xF6ffnete Ansicht bleibt, wo sie ist.",
+  locSidebar: "Linke Seitenleiste",
+  locTab: "Tab im Hauptbereich",
   setAutoReveal: "Aktiver Datei folgen",
   setAutoRevealDesc: "Folgt dem aktiven Editor-Tab und w\xE4hlt dessen Datei in den Spalten aus.",
   setExclude: "Ausgeschlossene Dateien",
@@ -1342,6 +1368,10 @@ var ptBR = {
   setAutoPanel: "Ajustar o painel automaticamente",
   setAutoPanelDesc: "Alarga e estreita o painel lateral para caber todas as colunas abertas, sem mudar a largura delas.",
   setSort: "Ordena\xE7\xE3o padr\xE3o",
+  setOpenLocation: "Onde abrir",
+  setOpenLocationDesc: "Onde o comando de abrir e o \xEDcone da faixa colocam a visualiza\xE7\xE3o. Uma visualiza\xE7\xE3o j\xE1 aberta permanece onde est\xE1.",
+  locSidebar: "Barra lateral esquerda",
+  locTab: "Aba na \xE1rea principal",
   setAutoReveal: "Seguir o arquivo ativo",
   setAutoRevealDesc: "Segue a aba ativa do editor e seleciona o arquivo dela nas colunas.",
   setExclude: "Arquivos exclu\xEDdos",
@@ -1498,6 +1528,10 @@ var zh = {
   setAutoPanel: "\u81EA\u52A8\u8C03\u6574\u9762\u677F\u5BBD\u5EA6",
   setAutoPanelDesc: "\u81EA\u52A8\u4F38\u7F29\u4FA7\u8FB9\u9762\u677F\u4EE5\u5BB9\u7EB3\u6240\u6709\u5DF2\u6253\u5F00\u7684\u680F\uFF0C\u540C\u65F6\u4FDD\u6301\u680F\u5BBD\u4E0D\u53D8\u3002",
   setSort: "\u9ED8\u8BA4\u6392\u5E8F\u65B9\u5F0F",
+  setOpenLocation: "\u6253\u5F00\u4F4D\u7F6E",
+  setOpenLocationDesc: "\u6253\u5F00\u547D\u4EE4\u548C\u529F\u80FD\u533A\u56FE\u6807\u5C06\u89C6\u56FE\u653E\u5728\u54EA\u91CC\u3002\u5DF2\u6253\u5F00\u7684\u89C6\u56FE\u4FDD\u6301\u539F\u4F4D\u3002",
+  locSidebar: "\u5DE6\u4FA7\u8FB9\u680F",
+  locTab: "\u4E3B\u533A\u57DF\u6807\u7B7E\u9875",
   setAutoReveal: "\u8DDF\u968F\u5F53\u524D\u6587\u4EF6",
   setAutoRevealDesc: "\u8DDF\u968F\u7F16\u8F91\u5668\u7684\u5F53\u524D\u6807\u7B7E\u9875\uFF0C\u5E76\u5728\u5206\u680F\u4E2D\u9009\u4E2D\u5176\u6587\u4EF6\u3002",
   setExclude: "\u6392\u9664\u7684\u6587\u4EF6",
@@ -1654,6 +1688,10 @@ var ja = {
   setAutoPanel: "\u30D1\u30CD\u30EB\u5E45\u3092\u81EA\u52D5\u8ABF\u6574",
   setAutoPanelDesc: "\u30AB\u30E9\u30E0\u306E\u5E45\u306F\u4FDD\u3063\u305F\u307E\u307E\u3001\u958B\u3044\u3066\u3044\u308B\u30AB\u30E9\u30E0\u304C\u3059\u3079\u3066\u53CE\u307E\u308B\u3088\u3046\u30B5\u30A4\u30C9\u30D1\u30CD\u30EB\u3092\u4F38\u7E2E\u3055\u305B\u307E\u3059\u3002",
   setSort: "\u65E2\u5B9A\u306E\u4E26\u3073\u66FF\u3048",
+  setOpenLocation: "\u958B\u304F\u5834\u6240",
+  setOpenLocationDesc: "\u958B\u304F\u30B3\u30DE\u30F3\u30C9\u3068\u30EA\u30DC\u30F3\u30A2\u30A4\u30B3\u30F3\u304C\u30D3\u30E5\u30FC\u3092\u914D\u7F6E\u3059\u308B\u5834\u6240\u3002\u3059\u3067\u306B\u958B\u3044\u3066\u3044\u308B\u30D3\u30E5\u30FC\u306F\u305D\u306E\u307E\u307E\u3067\u3059\u3002",
+  locSidebar: "\u5DE6\u30B5\u30A4\u30C9\u30D0\u30FC",
+  locTab: "\u30E1\u30A4\u30F3\u30A8\u30EA\u30A2\u306E\u30BF\u30D6",
   setAutoReveal: "\u30A2\u30AF\u30C6\u30A3\u30D6\u306A\u30D5\u30A1\u30A4\u30EB\u3092\u8FFD\u8DE1",
   setAutoRevealDesc: "\u30A8\u30C7\u30A3\u30BF\u306E\u30A2\u30AF\u30C6\u30A3\u30D6\u306A\u30BF\u30D6\u306B\u8FFD\u5F93\u3057\u3001\u305D\u306E\u30D5\u30A1\u30A4\u30EB\u3092\u30AB\u30E9\u30E0\u5185\u3067\u9078\u629E\u3057\u307E\u3059\u3002",
   setExclude: "\u9664\u5916\u3059\u308B\u30D5\u30A1\u30A4\u30EB",
@@ -1810,6 +1848,10 @@ var ko = {
   setAutoPanel: "\uD328\uB110 \uB108\uBE44 \uC790\uB3D9 \uC870\uC808",
   setAutoPanelDesc: "\uCE7C\uB7FC \uB108\uBE44\uB294 \uADF8\uB300\uB85C \uB450\uACE0, \uC5F4\uB9B0 \uCE7C\uB7FC\uC774 \uBAA8\uB450 \uB4E4\uC5B4\uAC00\uB3C4\uB85D \uC0AC\uC774\uB4DC \uD328\uB110\uC744 \uB298\uC774\uACE0 \uC904\uC785\uB2C8\uB2E4.",
   setSort: "\uAE30\uBCF8 \uC815\uB82C \uBC29\uC2DD",
+  setOpenLocation: "\uC5EC\uB294 \uC704\uCE58",
+  setOpenLocationDesc: "\uC5F4\uAE30 \uBA85\uB839\uACFC \uB9AC\uBCF8 \uC544\uC774\uCF58\uC774 \uBDF0\uB97C \uBC30\uCE58\uD558\uB294 \uC704\uCE58\uC785\uB2C8\uB2E4. \uC774\uBBF8 \uC5F4\uB824 \uC788\uB294 \uBDF0\uB294 \uADF8\uB300\uB85C \uC720\uC9C0\uB429\uB2C8\uB2E4.",
+  locSidebar: "\uC67C\uCABD \uC0AC\uC774\uB4DC\uBC14",
+  locTab: "\uAE30\uBCF8 \uC601\uC5ED\uC758 \uD0ED",
   setAutoReveal: "\uD604\uC7AC \uD30C\uC77C \uB530\uB77C\uAC00\uAE30",
   setAutoRevealDesc: "\uD3B8\uC9D1\uAE30\uC758 \uD604\uC7AC \uD0ED\uC744 \uB530\uB77C\uAC00\uBA70 \uD574\uB2F9 \uD30C\uC77C\uC744 \uCE7C\uB7FC\uC5D0\uC11C \uC120\uD0DD\uD569\uB2C8\uB2E4.",
   setExclude: "\uC81C\uC678\uD560 \uD30C\uC77C",
@@ -1943,6 +1985,7 @@ var DEFAULT_SETTINGS = {
   showBookmarks: true,
   showCalendar: true,
   specialItemsPosition: "top",
+  openLocation: "sidebar",
   favorites: [],
   showFavorites: true,
   mobileUiScale: DEFAULT_MOBILE_SCALE,
@@ -1973,6 +2016,11 @@ var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
         type: "group",
         heading: t("headBehavior"),
         items: [
+          {
+            name: t("setOpenLocation"),
+            desc: t("setOpenLocationDesc"),
+            control: { type: "dropdown", key: "openLocation", options: { sidebar: t("locSidebar"), tab: t("locTab") } }
+          },
           {
             name: t("setSort"),
             control: {
@@ -2127,6 +2175,10 @@ var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
       await save();
     }));
     new import_obsidian2.Setting(containerEl).setName(t("headBehavior")).setHeading();
+    new import_obsidian2.Setting(containerEl).setName(t("setOpenLocation")).setDesc(t("setOpenLocationDesc")).addDropdown((d) => d.addOption("sidebar", t("locSidebar")).addOption("tab", t("locTab")).setValue(s.openLocation).onChange(async (v) => {
+      s.openLocation = v === "tab" ? "tab" : "sidebar";
+      await save();
+    }));
     new import_obsidian2.Setting(containerEl).setName(t("setSort")).addDropdown((d) => d.addOption("name-asc", t("sortNameAsc")).addOption("name-desc", t("sortNameDesc")).addOption("mtime-desc", t("sortMtimeDesc")).addOption("mtime-asc", t("sortMtimeAsc")).addOption("ctime-desc", t("sortCtimeDesc")).addOption("ctime-asc", t("sortCtimeAsc")).addOption("size-desc", t("sortSizeDesc")).addOption("size-asc", t("sortSizeAsc")).setValue(s.sortMode).onChange(async (v) => {
       s.sortMode = v;
       await save();
@@ -4813,7 +4865,7 @@ var ColumnExplorerPlugin = class extends import_obsidian12.Plugin {
   }
   async activateView() {
     const existing = this.getViewLeaf();
-    const leaf = existing != null ? existing : this.app.workspace.getLeftLeaf(false);
+    const leaf = existing != null ? existing : this.settings.openLocation === "tab" ? this.app.workspace.getLeaf("tab") : this.app.workspace.getLeftLeaf(false);
     if (!leaf) return null;
     if (!existing) await leaf.setViewState({ type: VIEW_TYPE_COLUMNS, active: true });
     await this.app.workspace.revealLeaf(leaf);
