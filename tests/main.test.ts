@@ -63,6 +63,15 @@ describe("loadSettings", () => {
 		expect(plugin.settings.pinnedPaths).toEqual({ "a.md": 0, "b.md": 1 });
 	});
 
+	test("mixed boolean and numeric pins get unique orders", async () => {
+		// Откат на 1.3.x и обратно: часть пинов уже числа, часть — снова true
+		const data = { pinnedPaths: { "a.md": true, "b.md": 2, "c.md": true } } as unknown as Partial<ColumnExplorerSettings>;
+
+		const { plugin } = await loadPlugin(data);
+
+		expect(plugin.settings.pinnedPaths).toEqual({ "a.md": 3, "b.md": 2, "c.md": 4 });
+	});
+
 	test("keeps numeric pin order untouched", async () => {
 		const { plugin } = await loadPlugin({ pinnedPaths: { "a.md": 5, "b.md": 2 } });
 

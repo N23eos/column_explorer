@@ -8,7 +8,7 @@ export const fr: Locale = {
 	duplicate: "Dupliquer", rename: "Renommer", delete: "Supprimer",
 	deleteN: "Supprimer {n} éléments", duplicateN: "Dupliquer {n} éléments",
 	moveTo: "Déplacer vers le dossier…", moveToPlaceholder: "Choisissez le dossier de destination…",
-	copyPath: "Copier le chemin", copyFullPath: "Copier le chemin complet", pathCopied: "Chemin copié",
+	copyPath: "Copier le chemin", copyFullPath: "Copier le chemin complet", pathCopied: "Chemin copié", copyFailed: "Impossible de copier dans le presse-papiers",
 	untitled: "Sans titre", newFolderName: "Nouveau dossier",
 	cantMoveIntoSelf: "Impossible de déplacer un dossier dans lui-même",
 	alreadyExists: "« {name} » existe déjà dans le dossier de destination",

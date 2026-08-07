@@ -10,7 +10,7 @@ export const en = {
 	duplicate: "Duplicate", rename: "Rename", delete: "Delete",
 	deleteN: "Delete {n} items", duplicateN: "Duplicate {n} items",
 	moveTo: "Move to folder…", moveToPlaceholder: "Choose target folder…",
-	copyPath: "Copy path", copyFullPath: "Copy full path", pathCopied: "Path copied",
+	copyPath: "Copy path", copyFullPath: "Copy full path", pathCopied: "Path copied", copyFailed: "Couldn't copy to clipboard",
 	untitled: "Untitled", newFolderName: "New folder",
 	cantMoveIntoSelf: "Cannot move a folder into itself",
 	alreadyExists: "“{name}” already exists in the target folder",

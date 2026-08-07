@@ -8,7 +8,7 @@ export const de: Locale = {
 	duplicate: "Duplizieren", rename: "Umbenennen", delete: "Löschen",
 	deleteN: "{n} Elemente löschen", duplicateN: "{n} Elemente duplizieren",
 	moveTo: "In Ordner verschieben…", moveToPlaceholder: "Zielordner wählen…",
-	copyPath: "Pfad kopieren", copyFullPath: "Vollständigen Pfad kopieren", pathCopied: "Pfad kopiert",
+	copyPath: "Pfad kopieren", copyFullPath: "Vollständigen Pfad kopieren", pathCopied: "Pfad kopiert", copyFailed: "Kopieren in die Zwischenablage fehlgeschlagen",
 	untitled: "Ohne Titel", newFolderName: "Neuer Ordner",
 	cantMoveIntoSelf: "Ein Ordner kann nicht in sich selbst verschoben werden",
 	alreadyExists: "„{name}“ existiert bereits im Zielordner",

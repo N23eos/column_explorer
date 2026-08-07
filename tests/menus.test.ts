@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { TAbstractFile, TFolder } from "obsidian";
 // Menu — из мока: тест читает накопленные пункты, которых нет в публичном API
-import { Menu } from "./__mocks__/obsidian";
+import { Menu, createdNotices, resetNotices } from "./__mocks__/obsidian";
 import {
 	showColumnHeaderMenu, showFileMenu, showFolderBackgroundMenu,
 	showMobileCreateMenu, showMobileMoreMenu, showSortMenu,
@@ -305,6 +305,21 @@ describe("copy items", () => {
 		});
 		return written;
 	}
+
+	test("failed clipboard write shows an error notice", async () => {
+		resetNotices();
+		Object.defineProperty(globalThis.navigator, "clipboard", {
+			configurable: true,
+			value: { writeText: () => Promise.reject(new Error("denied")) },
+		});
+		const { view, vault } = setup(["a.md"]);
+
+		showFileMenu(view, mouse(), vault.getAbstractFileByPath("a.md") as TAbstractFile, 0);
+		clickItem(t("copyPath"));
+
+		await vi.waitFor(() => expect(createdNotices).toHaveLength(1));
+		expect(createdNotices[0].message).toBe(t("copyFailed"));
+	});
 
 	test("copy path writes the vault-relative path", () => {
 		const written = stubClipboard();

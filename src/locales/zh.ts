@@ -8,7 +8,7 @@ export const zh: Locale = {
 	duplicate: "创建副本", rename: "重命名", delete: "删除",
 	deleteN: "删除 {n} 个项目", duplicateN: "为 {n} 个项目创建副本",
 	moveTo: "移动到文件夹…", moveToPlaceholder: "选择目标文件夹…",
-	copyPath: "复制路径", copyFullPath: "复制完整路径", pathCopied: "路径已复制",
+	copyPath: "复制路径", copyFullPath: "复制完整路径", pathCopied: "路径已复制", copyFailed: "无法复制到剪贴板",
 	untitled: "未命名", newFolderName: "新建文件夹",
 	cantMoveIntoSelf: "无法将文件夹移动到其自身内部",
 	alreadyExists: "目标文件夹中已存在“{name}”",

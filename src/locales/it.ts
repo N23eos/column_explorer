@@ -8,7 +8,7 @@ export const it: Locale = {
 	duplicate: "Duplica", rename: "Rinomina", delete: "Elimina",
 	deleteN: "Elimina {n} elementi", duplicateN: "Duplica {n} elementi",
 	moveTo: "Sposta nella cartella…", moveToPlaceholder: "Scegli la cartella di destinazione…",
-	copyPath: "Copia il percorso", copyFullPath: "Copia il percorso completo", pathCopied: "Percorso copiato",
+	copyPath: "Copia il percorso", copyFullPath: "Copia il percorso completo", pathCopied: "Percorso copiato", copyFailed: "Impossibile copiare negli appunti",
 	untitled: "Senza titolo", newFolderName: "Nuova cartella",
 	cantMoveIntoSelf: "Impossibile spostare una cartella dentro se stessa",
 	alreadyExists: "«{name}» esiste già nella cartella di destinazione",

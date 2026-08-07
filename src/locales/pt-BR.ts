@@ -8,7 +8,7 @@ export const ptBR: Locale = {
 	duplicate: "Duplicar", rename: "Renomear", delete: "Excluir",
 	deleteN: "Excluir {n} itens", duplicateN: "Duplicar {n} itens",
 	moveTo: "Mover para a pasta…", moveToPlaceholder: "Escolha a pasta de destino…",
-	copyPath: "Copiar caminho", copyFullPath: "Copiar caminho completo", pathCopied: "Caminho copiado",
+	copyPath: "Copiar caminho", copyFullPath: "Copiar caminho completo", pathCopied: "Caminho copiado", copyFailed: "Não foi possível copiar para a área de transferência",
 	untitled: "Sem título", newFolderName: "Nova pasta",
 	cantMoveIntoSelf: "Não é possível mover uma pasta para dentro dela mesma",
 	alreadyExists: "“{name}” já existe na pasta de destino",

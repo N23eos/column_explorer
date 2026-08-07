@@ -8,7 +8,7 @@ export const ko: Locale = {
 	duplicate: "복제", rename: "이름 바꾸기", delete: "삭제",
 	deleteN: "{n}개 항목 삭제", duplicateN: "{n}개 항목 복제",
 	moveTo: "폴더로 이동…", moveToPlaceholder: "대상 폴더 선택…",
-	copyPath: "경로 복사", copyFullPath: "전체 경로 복사", pathCopied: "경로를 복사했습니다",
+	copyPath: "경로 복사", copyFullPath: "전체 경로 복사", pathCopied: "경로를 복사했습니다", copyFailed: "클립보드에 복사하지 못했습니다",
 	untitled: "제목 없음", newFolderName: "새 폴더",
 	cantMoveIntoSelf: "폴더를 자기 자신 안으로 옮길 수 없습니다",
 	alreadyExists: "대상 폴더에 “{name}”이(가) 이미 있습니다",

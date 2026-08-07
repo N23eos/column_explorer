@@ -8,7 +8,7 @@ export const ru: Locale = {
 	duplicate: "Дублировать", rename: "Переименовать", delete: "Удалить",
 	deleteN: "Удалить {n} элементов", duplicateN: "Дублировать элементов: {n}",
 	moveTo: "Переместить в папку…", moveToPlaceholder: "Выберите папку…",
-	copyPath: "Скопировать путь", copyFullPath: "Скопировать полный путь", pathCopied: "Путь скопирован",
+	copyPath: "Скопировать путь", copyFullPath: "Скопировать полный путь", pathCopied: "Путь скопирован", copyFailed: "Не удалось скопировать в буфер обмена",
 	untitled: "Без названия", newFolderName: "Новая папка",
 	cantMoveIntoSelf: "Нельзя переместить папку внутрь самой себя",
 	alreadyExists: "В целевой папке уже есть «{name}»",

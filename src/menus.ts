@@ -17,7 +17,12 @@ function sortLabel(mode: SortMode): string {
 }
 
 function copyToClipboard(text: string, notice: string) {
-	void navigator.clipboard.writeText(text).then(() => new Notice(notice));
+	// writeText реджектится при потере фокуса окна — без catch юзер уверен,
+	// что скопировано, а буфер пуст
+	navigator.clipboard.writeText(text).then(
+		() => new Notice(notice),
+		() => new Notice(t("copyFailed"))
+	);
 }
 
 function colorMenuTitle(colorKey: FolderColorKey | null, label: string): DocumentFragment {

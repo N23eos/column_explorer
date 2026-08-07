@@ -137,12 +137,14 @@ export default class ColumnExplorerPlugin extends Plugin {
 	/** v1.3.x stored pins as `true`; convert to numeric order once. */
 	private migratePinnedPaths() {
 		const raw = this.settings.pinnedPaths as Record<string, number | boolean>;
-		let order = 0;
+		// Булевым — номера после максимального существующего: смешанные данные
+		// (откат версии и обратно) иначе давали бы двум пинам один порядок
+		const numeric = Object.values(raw).filter((v): v is number => typeof v === "number");
+		let next = numeric.length > 0 ? Math.max(...numeric) + 1 : 0;
 		const migrated: Record<string, number> = {};
 		for (const path of Object.keys(raw)) {
 			const value = raw[path];
-			migrated[path] = typeof value === "number" ? value : order;
-			order++;
+			migrated[path] = typeof value === "number" ? value : next++;
 		}
 		this.settings.pinnedPaths = migrated;
 	}

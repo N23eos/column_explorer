@@ -8,7 +8,7 @@ export const es: Locale = {
 	duplicate: "Duplicar", rename: "Cambiar nombre", delete: "Eliminar",
 	deleteN: "Eliminar {n} elementos", duplicateN: "Duplicar {n} elementos",
 	moveTo: "Mover a la carpeta…", moveToPlaceholder: "Elige la carpeta de destino…",
-	copyPath: "Copiar ruta", copyFullPath: "Copiar ruta completa", pathCopied: "Ruta copiada",
+	copyPath: "Copiar ruta", copyFullPath: "Copiar ruta completa", pathCopied: "Ruta copiada", copyFailed: "No se pudo copiar al portapapeles",
 	untitled: "Sin título", newFolderName: "Nueva carpeta",
 	cantMoveIntoSelf: "No se puede mover una carpeta dentro de sí misma",
 	alreadyExists: "«{name}» ya existe en la carpeta de destino",

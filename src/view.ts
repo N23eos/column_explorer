@@ -1203,8 +1203,9 @@ export class ColumnExplorerView extends ItemView {
 			} else if (f instanceof TFile && e.key === "Enter") {
 				void this.app.workspace.getLeaf(false).openFile(f);
 			}
-		} else if (e.key === " ") {
-			// Quick Look: как в Finder — пробел открывает превью выделенного файла
+		} else if (e.key === " " && !this.typeaheadBuffer) {
+			// Quick Look: как в Finder — пробел открывает превью выделенного файла.
+			// Во время type-ahead пробел — часть набираемого имени, не превью
 			e.preventDefault();
 			const f = selectedPath ? this.app.vault.getAbstractFileByPath(selectedPath) : null;
 			if (f instanceof TFile) new QuickLookModal(this.app, this, f).open();
@@ -1220,14 +1221,17 @@ export class ColumnExplorerView extends ItemView {
 			if (this.multiSel.size > 0) { this.deleteMany([...this.multiSel]); return; }
 			// Сентинелы спецпунктов ("::…") — не файлы, удалять нечего
 			if (selectedPath && !selectedPath.startsWith("::")) this.deleteMany([selectedPath]);
-		} else if ((e.metaKey || e.ctrlKey) && (e.key === "a" || e.key === "A")) {
+		} else if ((e.metaKey || e.ctrlKey) && (e.key === "a" || e.key === "A" || e.code === "KeyA")) {
+			// e.code — физическая клавиша: на кириллице и прочих не-латинских
+			// раскладках e.key даёт другую букву, и хоткей иначе не срабатывает
 			e.preventDefault();
 			this.selectAllAt(depth);
-		} else if ((e.metaKey || e.ctrlKey) && (e.key === "d" || e.key === "D")) {
+		} else if ((e.metaKey || e.ctrlKey) && (e.key === "d" || e.key === "D" || e.code === "KeyD")) {
 			e.preventDefault();
 			this.duplicateSelected(depth);
 		} else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
 			// Type-ahead: как в Finder — набор букв прыгает к совпадению
+			if (e.key === " ") e.preventDefault(); // пробел иначе прокручивает список
 			this.onTypeahead(e.key, children, depth);
 		}
 	}

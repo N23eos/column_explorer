@@ -8,7 +8,7 @@ export const ja: Locale = {
 	duplicate: "複製", rename: "名前を変更", delete: "削除",
 	deleteN: "{n} 件を削除", duplicateN: "{n} 件を複製",
 	moveTo: "フォルダへ移動…", moveToPlaceholder: "移動先のフォルダを選択…",
-	copyPath: "パスをコピー", copyFullPath: "完全なパスをコピー", pathCopied: "パスをコピーしました",
+	copyPath: "パスをコピー", copyFullPath: "完全なパスをコピー", pathCopied: "パスをコピーしました", copyFailed: "クリップボードにコピーできませんでした",
 	untitled: "無題", newFolderName: "新規フォルダ",
 	cantMoveIntoSelf: "フォルダを自身の中へは移動できません",
 	alreadyExists: "移動先のフォルダには「{name}」が既にあります",
