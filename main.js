@@ -304,6 +304,7 @@ var SORT_MODE_VALUES = [
   "size-asc"
 ];
 var SPECIAL_POSITIONS = ["top", "bottom"];
+var OPEN_LOCATIONS = ["sidebar", "tab"];
 function clampInt(value, min, max, fallback) {
   if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
   return Math.max(min, Math.min(max, Math.round(value)));
@@ -330,7 +331,8 @@ function normalizeSettings(raw) {
     // null — режим «показывать все колонки», это валидное значение
     lockedColumnCount: typeof locked === "number" && Number.isFinite(locked) ? Math.max(1, Math.round(locked)) : null,
     sortMode: oneOf(raw.sortMode, SORT_MODE_VALUES, "name-asc"),
-    specialItemsPosition: oneOf(raw.specialItemsPosition, SPECIAL_POSITIONS, "top")
+    specialItemsPosition: oneOf(raw.specialItemsPosition, SPECIAL_POSITIONS, "top"),
+    openLocation: oneOf(raw.openLocation, OPEN_LOCATIONS, "sidebar")
   };
 }
 
@@ -350,6 +352,10 @@ var en = {
   duplicate: "Duplicate",
   rename: "Rename",
   delete: "Delete",
+  copy: "Copy",
+  cut: "Cut",
+  paste: "Paste",
+  itemsPasted: "{n} items pasted",
   deleteN: "Delete {n} items",
   duplicateN: "Duplicate {n} items",
   moveTo: "Move to folder\u2026",
@@ -357,6 +363,7 @@ var en = {
   copyPath: "Copy path",
   copyFullPath: "Copy full path",
   pathCopied: "Path copied",
+  copyFailed: "Couldn't copy to clipboard",
   untitled: "Untitled",
   newFolderName: "New folder",
   cantMoveIntoSelf: "Cannot move a folder into itself",
@@ -389,6 +396,7 @@ var en = {
   cmdReveal: "Reveal active file in columns",
   cmdNewNote: "New note in current folder",
   cmdNewFolder: "New folder in current folder",
+  cmdFocus: "Focus column explorer",
   setFoldersFirst: "Folders first",
   setFoldersFirstDesc: "Always list folders above files.",
   setShowExt: "Show extension badges",
@@ -404,6 +412,10 @@ var en = {
   setAutoPanel: "Auto-resize panel",
   setAutoPanelDesc: "Grow and shrink the sidebar panel to fit all open columns, keeping the column width fixed.",
   setSort: "Default sort order",
+  setOpenLocation: "Where to open",
+  setOpenLocationDesc: "Where the open command and the ribbon icon put the view. An already open view stays where it is.",
+  locSidebar: "Left sidebar",
+  locTab: "Tab in the main area",
   setAutoReveal: "Auto-reveal active file",
   setAutoRevealDesc: "Follow the active editor tab and select its file in the columns.",
   setExclude: "Excluded files",
@@ -504,6 +516,10 @@ var ru = {
   duplicate: "\u0414\u0443\u0431\u043B\u0438\u0440\u043E\u0432\u0430\u0442\u044C",
   rename: "\u041F\u0435\u0440\u0435\u0438\u043C\u0435\u043D\u043E\u0432\u0430\u0442\u044C",
   delete: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+  copy: "\u041A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C",
+  cut: "\u0412\u044B\u0440\u0435\u0437\u0430\u0442\u044C",
+  paste: "\u0412\u0441\u0442\u0430\u0432\u0438\u0442\u044C",
+  itemsPasted: "\u0412\u0441\u0442\u0430\u0432\u043B\u0435\u043D\u043E \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432: {n}",
   deleteN: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C {n} \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432",
   duplicateN: "\u0414\u0443\u0431\u043B\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u043E\u0432: {n}",
   moveTo: "\u041F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u044C \u0432 \u043F\u0430\u043F\u043A\u0443\u2026",
@@ -511,6 +527,7 @@ var ru = {
   copyPath: "\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u043F\u0443\u0442\u044C",
   copyFullPath: "\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u043F\u043E\u043B\u043D\u044B\u0439 \u043F\u0443\u0442\u044C",
   pathCopied: "\u041F\u0443\u0442\u044C \u0441\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u043D",
+  copyFailed: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0432 \u0431\u0443\u0444\u0435\u0440 \u043E\u0431\u043C\u0435\u043D\u0430",
   untitled: "\u0411\u0435\u0437 \u043D\u0430\u0437\u0432\u0430\u043D\u0438\u044F",
   newFolderName: "\u041D\u043E\u0432\u0430\u044F \u043F\u0430\u043F\u043A\u0430",
   cantMoveIntoSelf: "\u041D\u0435\u043B\u044C\u0437\u044F \u043F\u0435\u0440\u0435\u043C\u0435\u0441\u0442\u0438\u0442\u044C \u043F\u0430\u043F\u043A\u0443 \u0432\u043D\u0443\u0442\u0440\u044C \u0441\u0430\u043C\u043E\u0439 \u0441\u0435\u0431\u044F",
@@ -543,6 +560,7 @@ var ru = {
   cmdReveal: "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u0439 \u0444\u0430\u0439\u043B \u0432 \u043A\u043E\u043B\u043E\u043D\u043A\u0430\u0445",
   cmdNewNote: "\u041D\u043E\u0432\u0430\u044F \u0437\u0430\u043C\u0435\u0442\u043A\u0430 \u0432 \u0442\u0435\u043A\u0443\u0449\u0435\u0439 \u043F\u0430\u043F\u043A\u0435",
   cmdNewFolder: "\u041D\u043E\u0432\u0430\u044F \u043F\u0430\u043F\u043A\u0430 \u0432 \u0442\u0435\u043A\u0443\u0449\u0435\u0439 \u043F\u0430\u043F\u043A\u0435",
+  cmdFocus: "\u0424\u043E\u043A\u0443\u0441 \u043D\u0430 \u043F\u0440\u043E\u0432\u043E\u0434\u043D\u0438\u043A-\u043A\u043E\u043B\u043E\u043D\u043A\u0438",
   setFoldersFirst: "\u041F\u0430\u043F\u043A\u0438 \u0441\u0432\u0435\u0440\u0445\u0443",
   setFoldersFirstDesc: "\u0412\u0441\u0435\u0433\u0434\u0430 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u043F\u0430\u043F\u043A\u0438 \u0432\u044B\u0448\u0435 \u0444\u0430\u0439\u043B\u043E\u0432.",
   setShowExt: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u0440\u0430\u0441\u0448\u0438\u0440\u0435\u043D\u0438\u044F",
@@ -558,6 +576,10 @@ var ru = {
   setAutoPanel: "\u0410\u0432\u0442\u043E-\u0448\u0438\u0440\u0438\u043D\u0430 \u043F\u0430\u043D\u0435\u043B\u0438",
   setAutoPanelDesc: "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0440\u0430\u0441\u0448\u0438\u0440\u044F\u0442\u044C \u0438 \u0441\u0443\u0436\u0430\u0442\u044C \u0431\u043E\u043A\u043E\u0432\u0443\u044E \u043F\u0430\u043D\u0435\u043B\u044C \u043F\u043E\u0434 \u043E\u0442\u043A\u0440\u044B\u0442\u044B\u0435 \u043A\u043E\u043B\u043E\u043D\u043A\u0438, \u0441\u043E\u0445\u0440\u0430\u043D\u044F\u044F \u0448\u0438\u0440\u0438\u043D\u0443 \u043A\u043E\u043B\u043E\u043D\u043E\u043A.",
   setSort: "\u0421\u043E\u0440\u0442\u0438\u0440\u043E\u0432\u043A\u0430 \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E",
+  setOpenLocation: "\u0413\u0434\u0435 \u043E\u0442\u043A\u0440\u044B\u0432\u0430\u0442\u044C",
+  setOpenLocationDesc: "\u041A\u0443\u0434\u0430 \u043A\u043E\u043C\u0430\u043D\u0434\u0430 \u043E\u0442\u043A\u0440\u044B\u0442\u0438\u044F \u0438 \u0438\u043A\u043E\u043D\u043A\u0430 \u043D\u0430 \u043B\u0435\u043D\u0442\u0435 \u043F\u043E\u043C\u0435\u0449\u0430\u044E\u0442 \u0432\u044C\u044E. \u0423\u0436\u0435 \u043E\u0442\u043A\u0440\u044B\u0442\u0430\u044F \u0432\u044C\u044E \u043E\u0441\u0442\u0430\u0451\u0442\u0441\u044F \u043D\u0430 \u043C\u0435\u0441\u0442\u0435.",
+  locSidebar: "\u041B\u0435\u0432\u0430\u044F \u043F\u0430\u043D\u0435\u043B\u044C",
+  locTab: "\u0412\u043A\u043B\u0430\u0434\u043A\u0430 \u0432 \u043E\u0441\u043D\u043E\u0432\u043D\u043E\u0439 \u043E\u0431\u043B\u0430\u0441\u0442\u0438",
   setAutoReveal: "\u0421\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u044C \u0437\u0430 \u0430\u043A\u0442\u0438\u0432\u043D\u044B\u043C \u0444\u0430\u0439\u043B\u043E\u043C",
   setAutoRevealDesc: "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0432\u044B\u0434\u0435\u043B\u044F\u0442\u044C \u0432 \u043A\u043E\u043B\u043E\u043D\u043A\u0430\u0445 \u0444\u0430\u0439\u043B \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0439 \u0432\u043A\u043B\u0430\u0434\u043A\u0438.",
   setExclude: "\u0421\u043A\u0440\u044B\u0442\u044B\u0435 \u0444\u0430\u0439\u043B\u044B",
@@ -658,6 +680,10 @@ var es = {
   duplicate: "Duplicar",
   rename: "Cambiar nombre",
   delete: "Eliminar",
+  copy: "Copiar",
+  cut: "Cortar",
+  paste: "Pegar",
+  itemsPasted: "{n} elementos pegados",
   deleteN: "Eliminar {n} elementos",
   duplicateN: "Duplicar {n} elementos",
   moveTo: "Mover a la carpeta\u2026",
@@ -665,6 +691,7 @@ var es = {
   copyPath: "Copiar ruta",
   copyFullPath: "Copiar ruta completa",
   pathCopied: "Ruta copiada",
+  copyFailed: "No se pudo copiar al portapapeles",
   untitled: "Sin t\xEDtulo",
   newFolderName: "Nueva carpeta",
   cantMoveIntoSelf: "No se puede mover una carpeta dentro de s\xED misma",
@@ -697,6 +724,7 @@ var es = {
   cmdReveal: "Mostrar el archivo activo en las columnas",
   cmdNewNote: "Nueva nota en la carpeta actual",
   cmdNewFolder: "Nueva carpeta en la carpeta actual",
+  cmdFocus: "Enfocar el explorador de columnas",
   setFoldersFirst: "Carpetas primero",
   setFoldersFirstDesc: "Mostrar siempre las carpetas por encima de los archivos.",
   setShowExt: "Mostrar la extensi\xF3n",
@@ -712,6 +740,10 @@ var es = {
   setAutoPanel: "Ajustar el panel autom\xE1ticamente",
   setAutoPanelDesc: "Ensancha y estrecha el panel lateral para que quepan todas las columnas abiertas, sin cambiar su ancho.",
   setSort: "Orden predeterminado",
+  setOpenLocation: "D\xF3nde abrir",
+  setOpenLocationDesc: "D\xF3nde colocan la vista el comando de apertura y el icono de la cinta. Una vista ya abierta se queda donde est\xE1.",
+  locSidebar: "Barra lateral izquierda",
+  locTab: "Pesta\xF1a en el \xE1rea principal",
   setAutoReveal: "Seguir al archivo activo",
   setAutoRevealDesc: "Sigue la pesta\xF1a activa del editor y selecciona su archivo en las columnas.",
   setExclude: "Archivos excluidos",
@@ -812,6 +844,10 @@ var fr = {
   duplicate: "Dupliquer",
   rename: "Renommer",
   delete: "Supprimer",
+  copy: "Copier",
+  cut: "Couper",
+  paste: "Coller",
+  itemsPasted: "{n} \xE9l\xE9ments coll\xE9s",
   deleteN: "Supprimer {n} \xE9l\xE9ments",
   duplicateN: "Dupliquer {n} \xE9l\xE9ments",
   moveTo: "D\xE9placer vers le dossier\u2026",
@@ -819,6 +855,7 @@ var fr = {
   copyPath: "Copier le chemin",
   copyFullPath: "Copier le chemin complet",
   pathCopied: "Chemin copi\xE9",
+  copyFailed: "Impossible de copier dans le presse-papiers",
   untitled: "Sans titre",
   newFolderName: "Nouveau dossier",
   cantMoveIntoSelf: "Impossible de d\xE9placer un dossier dans lui-m\xEAme",
@@ -851,6 +888,7 @@ var fr = {
   cmdReveal: "Afficher le fichier actif dans les colonnes",
   cmdNewNote: "Nouvelle note dans le dossier courant",
   cmdNewFolder: "Nouveau dossier dans le dossier courant",
+  cmdFocus: "Activer l'explorateur en colonnes",
   setFoldersFirst: "Dossiers en premier",
   setFoldersFirstDesc: "Toujours afficher les dossiers au-dessus des fichiers.",
   setShowExt: "Afficher l'extension",
@@ -866,6 +904,10 @@ var fr = {
   setAutoPanel: "Ajuster le panneau automatiquement",
   setAutoPanelDesc: "\xC9largit et r\xE9tr\xE9cit le panneau lat\xE9ral pour contenir toutes les colonnes ouvertes, sans changer leur largeur.",
   setSort: "Tri par d\xE9faut",
+  setOpenLocation: "O\xF9 ouvrir",
+  setOpenLocationDesc: "O\xF9 la commande d'ouverture et l'ic\xF4ne du ruban placent la vue. Une vue d\xE9j\xE0 ouverte reste o\xF9 elle est.",
+  locSidebar: "Barre lat\xE9rale gauche",
+  locTab: "Onglet dans la zone principale",
   setAutoReveal: "Suivre le fichier actif",
   setAutoRevealDesc: "Suit l'onglet actif de l'\xE9diteur et s\xE9lectionne son fichier dans les colonnes.",
   setExclude: "Fichiers exclus",
@@ -966,6 +1008,10 @@ var it = {
   duplicate: "Duplica",
   rename: "Rinomina",
   delete: "Elimina",
+  copy: "Copia",
+  cut: "Taglia",
+  paste: "Incolla",
+  itemsPasted: "{n} elementi incollati",
   deleteN: "Elimina {n} elementi",
   duplicateN: "Duplica {n} elementi",
   moveTo: "Sposta nella cartella\u2026",
@@ -973,6 +1019,7 @@ var it = {
   copyPath: "Copia il percorso",
   copyFullPath: "Copia il percorso completo",
   pathCopied: "Percorso copiato",
+  copyFailed: "Impossibile copiare negli appunti",
   untitled: "Senza titolo",
   newFolderName: "Nuova cartella",
   cantMoveIntoSelf: "Impossibile spostare una cartella dentro se stessa",
@@ -1005,6 +1052,7 @@ var it = {
   cmdReveal: "Mostra il file attivo nelle colonne",
   cmdNewNote: "Nuova nota nella cartella corrente",
   cmdNewFolder: "Nuova cartella nella cartella corrente",
+  cmdFocus: "Attiva l'esploratore a colonne",
   setFoldersFirst: "Prima le cartelle",
   setFoldersFirstDesc: "Mostra sempre le cartelle sopra i file.",
   setShowExt: "Mostra l'estensione",
@@ -1020,6 +1068,10 @@ var it = {
   setAutoPanel: "Adatta il pannello automaticamente",
   setAutoPanelDesc: "Allarga e restringe il pannello laterale per contenere tutte le colonne aperte, senza cambiarne la larghezza.",
   setSort: "Ordinamento predefinito",
+  setOpenLocation: "Dove aprire",
+  setOpenLocationDesc: "Dove il comando di apertura e l'icona della barra mettono la vista. Una vista gi\xE0 aperta resta dov'\xE8.",
+  locSidebar: "Barra laterale sinistra",
+  locTab: "Scheda nell'area principale",
   setAutoReveal: "Segui il file attivo",
   setAutoRevealDesc: "Segue la scheda attiva dell'editor e seleziona il suo file nelle colonne.",
   setExclude: "File esclusi",
@@ -1120,6 +1172,10 @@ var de = {
   duplicate: "Duplizieren",
   rename: "Umbenennen",
   delete: "L\xF6schen",
+  copy: "Kopieren",
+  cut: "Ausschneiden",
+  paste: "Einf\xFCgen",
+  itemsPasted: "{n} Elemente eingef\xFCgt",
   deleteN: "{n} Elemente l\xF6schen",
   duplicateN: "{n} Elemente duplizieren",
   moveTo: "In Ordner verschieben\u2026",
@@ -1127,6 +1183,7 @@ var de = {
   copyPath: "Pfad kopieren",
   copyFullPath: "Vollst\xE4ndigen Pfad kopieren",
   pathCopied: "Pfad kopiert",
+  copyFailed: "Kopieren in die Zwischenablage fehlgeschlagen",
   untitled: "Ohne Titel",
   newFolderName: "Neuer Ordner",
   cantMoveIntoSelf: "Ein Ordner kann nicht in sich selbst verschoben werden",
@@ -1159,6 +1216,7 @@ var de = {
   cmdReveal: "Aktive Datei in den Spalten anzeigen",
   cmdNewNote: "Neue Notiz im aktuellen Ordner",
   cmdNewFolder: "Neuer Ordner im aktuellen Ordner",
+  cmdFocus: "Spaltenexplorer fokussieren",
   setFoldersFirst: "Ordner zuerst",
   setFoldersFirstDesc: "Ordner immer \xFCber den Dateien anzeigen.",
   setShowExt: "Dateiendung anzeigen",
@@ -1174,6 +1232,10 @@ var de = {
   setAutoPanel: "Bereich automatisch anpassen",
   setAutoPanelDesc: "Verbreitert und verschm\xE4lert die Seitenleiste, damit alle ge\xF6ffneten Spalten hineinpassen, ohne deren Breite zu \xE4ndern.",
   setSort: "Standardsortierung",
+  setOpenLocation: "Wo \xF6ffnen",
+  setOpenLocationDesc: "Wohin der \xD6ffnen-Befehl und das Men\xFCbandsymbol die Ansicht legen. Eine bereits ge\xF6ffnete Ansicht bleibt, wo sie ist.",
+  locSidebar: "Linke Seitenleiste",
+  locTab: "Tab im Hauptbereich",
   setAutoReveal: "Aktiver Datei folgen",
   setAutoRevealDesc: "Folgt dem aktiven Editor-Tab und w\xE4hlt dessen Datei in den Spalten aus.",
   setExclude: "Ausgeschlossene Dateien",
@@ -1274,6 +1336,10 @@ var ptBR = {
   duplicate: "Duplicar",
   rename: "Renomear",
   delete: "Excluir",
+  copy: "Copiar",
+  cut: "Recortar",
+  paste: "Colar",
+  itemsPasted: "{n} itens colados",
   deleteN: "Excluir {n} itens",
   duplicateN: "Duplicar {n} itens",
   moveTo: "Mover para a pasta\u2026",
@@ -1281,6 +1347,7 @@ var ptBR = {
   copyPath: "Copiar caminho",
   copyFullPath: "Copiar caminho completo",
   pathCopied: "Caminho copiado",
+  copyFailed: "N\xE3o foi poss\xEDvel copiar para a \xE1rea de transfer\xEAncia",
   untitled: "Sem t\xEDtulo",
   newFolderName: "Nova pasta",
   cantMoveIntoSelf: "N\xE3o \xE9 poss\xEDvel mover uma pasta para dentro dela mesma",
@@ -1313,6 +1380,7 @@ var ptBR = {
   cmdReveal: "Mostrar o arquivo ativo nas colunas",
   cmdNewNote: "Nova nota na pasta atual",
   cmdNewFolder: "Nova pasta na pasta atual",
+  cmdFocus: "Focar o explorador em colunas",
   setFoldersFirst: "Pastas primeiro",
   setFoldersFirstDesc: "Sempre listar as pastas acima dos arquivos.",
   setShowExt: "Mostrar a extens\xE3o",
@@ -1328,6 +1396,10 @@ var ptBR = {
   setAutoPanel: "Ajustar o painel automaticamente",
   setAutoPanelDesc: "Alarga e estreita o painel lateral para caber todas as colunas abertas, sem mudar a largura delas.",
   setSort: "Ordena\xE7\xE3o padr\xE3o",
+  setOpenLocation: "Onde abrir",
+  setOpenLocationDesc: "Onde o comando de abrir e o \xEDcone da faixa colocam a visualiza\xE7\xE3o. Uma visualiza\xE7\xE3o j\xE1 aberta permanece onde est\xE1.",
+  locSidebar: "Barra lateral esquerda",
+  locTab: "Aba na \xE1rea principal",
   setAutoReveal: "Seguir o arquivo ativo",
   setAutoRevealDesc: "Segue a aba ativa do editor e seleciona o arquivo dela nas colunas.",
   setExclude: "Arquivos exclu\xEDdos",
@@ -1428,6 +1500,10 @@ var zh = {
   duplicate: "\u521B\u5EFA\u526F\u672C",
   rename: "\u91CD\u547D\u540D",
   delete: "\u5220\u9664",
+  copy: "\u590D\u5236",
+  cut: "\u526A\u5207",
+  paste: "\u7C98\u8D34",
+  itemsPasted: "\u5DF2\u7C98\u8D34 {n} \u4E2A\u9879\u76EE",
   deleteN: "\u5220\u9664 {n} \u4E2A\u9879\u76EE",
   duplicateN: "\u4E3A {n} \u4E2A\u9879\u76EE\u521B\u5EFA\u526F\u672C",
   moveTo: "\u79FB\u52A8\u5230\u6587\u4EF6\u5939\u2026",
@@ -1435,6 +1511,7 @@ var zh = {
   copyPath: "\u590D\u5236\u8DEF\u5F84",
   copyFullPath: "\u590D\u5236\u5B8C\u6574\u8DEF\u5F84",
   pathCopied: "\u8DEF\u5F84\u5DF2\u590D\u5236",
+  copyFailed: "\u65E0\u6CD5\u590D\u5236\u5230\u526A\u8D34\u677F",
   untitled: "\u672A\u547D\u540D",
   newFolderName: "\u65B0\u5EFA\u6587\u4EF6\u5939",
   cantMoveIntoSelf: "\u65E0\u6CD5\u5C06\u6587\u4EF6\u5939\u79FB\u52A8\u5230\u5176\u81EA\u8EAB\u5185\u90E8",
@@ -1467,6 +1544,7 @@ var zh = {
   cmdReveal: "\u5728\u5206\u680F\u4E2D\u5B9A\u4F4D\u5F53\u524D\u6587\u4EF6",
   cmdNewNote: "\u5728\u5F53\u524D\u6587\u4EF6\u5939\u65B0\u5EFA\u7B14\u8BB0",
   cmdNewFolder: "\u5728\u5F53\u524D\u6587\u4EF6\u5939\u65B0\u5EFA\u6587\u4EF6\u5939",
+  cmdFocus: "\u805A\u7126\u5206\u680F\u6D4F\u89C8\u5668",
   setFoldersFirst: "\u6587\u4EF6\u5939\u4F18\u5148",
   setFoldersFirstDesc: "\u59CB\u7EC8\u5C06\u6587\u4EF6\u5939\u6392\u5728\u6587\u4EF6\u4E4B\u524D\u3002",
   setShowExt: "\u663E\u793A\u6269\u5C55\u540D",
@@ -1482,6 +1560,10 @@ var zh = {
   setAutoPanel: "\u81EA\u52A8\u8C03\u6574\u9762\u677F\u5BBD\u5EA6",
   setAutoPanelDesc: "\u81EA\u52A8\u4F38\u7F29\u4FA7\u8FB9\u9762\u677F\u4EE5\u5BB9\u7EB3\u6240\u6709\u5DF2\u6253\u5F00\u7684\u680F\uFF0C\u540C\u65F6\u4FDD\u6301\u680F\u5BBD\u4E0D\u53D8\u3002",
   setSort: "\u9ED8\u8BA4\u6392\u5E8F\u65B9\u5F0F",
+  setOpenLocation: "\u6253\u5F00\u4F4D\u7F6E",
+  setOpenLocationDesc: "\u6253\u5F00\u547D\u4EE4\u548C\u529F\u80FD\u533A\u56FE\u6807\u5C06\u89C6\u56FE\u653E\u5728\u54EA\u91CC\u3002\u5DF2\u6253\u5F00\u7684\u89C6\u56FE\u4FDD\u6301\u539F\u4F4D\u3002",
+  locSidebar: "\u5DE6\u4FA7\u8FB9\u680F",
+  locTab: "\u4E3B\u533A\u57DF\u6807\u7B7E\u9875",
   setAutoReveal: "\u8DDF\u968F\u5F53\u524D\u6587\u4EF6",
   setAutoRevealDesc: "\u8DDF\u968F\u7F16\u8F91\u5668\u7684\u5F53\u524D\u6807\u7B7E\u9875\uFF0C\u5E76\u5728\u5206\u680F\u4E2D\u9009\u4E2D\u5176\u6587\u4EF6\u3002",
   setExclude: "\u6392\u9664\u7684\u6587\u4EF6",
@@ -1582,6 +1664,10 @@ var ja = {
   duplicate: "\u8907\u88FD",
   rename: "\u540D\u524D\u3092\u5909\u66F4",
   delete: "\u524A\u9664",
+  copy: "\u30B3\u30D4\u30FC",
+  cut: "\u5207\u308A\u53D6\u308A",
+  paste: "\u8CBC\u308A\u4ED8\u3051",
+  itemsPasted: "{n}\u4EF6\u3092\u8CBC\u308A\u4ED8\u3051\u307E\u3057\u305F",
   deleteN: "{n} \u4EF6\u3092\u524A\u9664",
   duplicateN: "{n} \u4EF6\u3092\u8907\u88FD",
   moveTo: "\u30D5\u30A9\u30EB\u30C0\u3078\u79FB\u52D5\u2026",
@@ -1589,6 +1675,7 @@ var ja = {
   copyPath: "\u30D1\u30B9\u3092\u30B3\u30D4\u30FC",
   copyFullPath: "\u5B8C\u5168\u306A\u30D1\u30B9\u3092\u30B3\u30D4\u30FC",
   pathCopied: "\u30D1\u30B9\u3092\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F",
+  copyFailed: "\u30AF\u30EA\u30C3\u30D7\u30DC\u30FC\u30C9\u306B\u30B3\u30D4\u30FC\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F",
   untitled: "\u7121\u984C",
   newFolderName: "\u65B0\u898F\u30D5\u30A9\u30EB\u30C0",
   cantMoveIntoSelf: "\u30D5\u30A9\u30EB\u30C0\u3092\u81EA\u8EAB\u306E\u4E2D\u3078\u306F\u79FB\u52D5\u3067\u304D\u307E\u305B\u3093",
@@ -1621,6 +1708,7 @@ var ja = {
   cmdReveal: "\u30A2\u30AF\u30C6\u30A3\u30D6\u306A\u30D5\u30A1\u30A4\u30EB\u3092\u30AB\u30E9\u30E0\u3067\u8868\u793A",
   cmdNewNote: "\u73FE\u5728\u306E\u30D5\u30A9\u30EB\u30C0\u306B\u65B0\u898F\u30CE\u30FC\u30C8",
   cmdNewFolder: "\u73FE\u5728\u306E\u30D5\u30A9\u30EB\u30C0\u306B\u65B0\u898F\u30D5\u30A9\u30EB\u30C0",
+  cmdFocus: "\u30AB\u30E9\u30E0\u30A8\u30AF\u30B9\u30D7\u30ED\u30FC\u30E9\u30FC\u306B\u30D5\u30A9\u30FC\u30AB\u30B9",
   setFoldersFirst: "\u30D5\u30A9\u30EB\u30C0\u3092\u5148\u306B\u8868\u793A",
   setFoldersFirstDesc: "\u5E38\u306B\u30D5\u30A9\u30EB\u30C0\u3092\u30D5\u30A1\u30A4\u30EB\u3088\u308A\u4E0A\u306B\u4E26\u3079\u307E\u3059\u3002",
   setShowExt: "\u62E1\u5F35\u5B50\u3092\u8868\u793A",
@@ -1636,6 +1724,10 @@ var ja = {
   setAutoPanel: "\u30D1\u30CD\u30EB\u5E45\u3092\u81EA\u52D5\u8ABF\u6574",
   setAutoPanelDesc: "\u30AB\u30E9\u30E0\u306E\u5E45\u306F\u4FDD\u3063\u305F\u307E\u307E\u3001\u958B\u3044\u3066\u3044\u308B\u30AB\u30E9\u30E0\u304C\u3059\u3079\u3066\u53CE\u307E\u308B\u3088\u3046\u30B5\u30A4\u30C9\u30D1\u30CD\u30EB\u3092\u4F38\u7E2E\u3055\u305B\u307E\u3059\u3002",
   setSort: "\u65E2\u5B9A\u306E\u4E26\u3073\u66FF\u3048",
+  setOpenLocation: "\u958B\u304F\u5834\u6240",
+  setOpenLocationDesc: "\u958B\u304F\u30B3\u30DE\u30F3\u30C9\u3068\u30EA\u30DC\u30F3\u30A2\u30A4\u30B3\u30F3\u304C\u30D3\u30E5\u30FC\u3092\u914D\u7F6E\u3059\u308B\u5834\u6240\u3002\u3059\u3067\u306B\u958B\u3044\u3066\u3044\u308B\u30D3\u30E5\u30FC\u306F\u305D\u306E\u307E\u307E\u3067\u3059\u3002",
+  locSidebar: "\u5DE6\u30B5\u30A4\u30C9\u30D0\u30FC",
+  locTab: "\u30E1\u30A4\u30F3\u30A8\u30EA\u30A2\u306E\u30BF\u30D6",
   setAutoReveal: "\u30A2\u30AF\u30C6\u30A3\u30D6\u306A\u30D5\u30A1\u30A4\u30EB\u3092\u8FFD\u8DE1",
   setAutoRevealDesc: "\u30A8\u30C7\u30A3\u30BF\u306E\u30A2\u30AF\u30C6\u30A3\u30D6\u306A\u30BF\u30D6\u306B\u8FFD\u5F93\u3057\u3001\u305D\u306E\u30D5\u30A1\u30A4\u30EB\u3092\u30AB\u30E9\u30E0\u5185\u3067\u9078\u629E\u3057\u307E\u3059\u3002",
   setExclude: "\u9664\u5916\u3059\u308B\u30D5\u30A1\u30A4\u30EB",
@@ -1736,6 +1828,10 @@ var ko = {
   duplicate: "\uBCF5\uC81C",
   rename: "\uC774\uB984 \uBC14\uAFB8\uAE30",
   delete: "\uC0AD\uC81C",
+  copy: "\uBCF5\uC0AC",
+  cut: "\uC798\uB77C\uB0B4\uAE30",
+  paste: "\uBD99\uC5EC\uB123\uAE30",
+  itemsPasted: "{n}\uAC1C \uD56D\uBAA9\uC744 \uBD99\uC5EC\uB123\uC5C8\uC2B5\uB2C8\uB2E4",
   deleteN: "{n}\uAC1C \uD56D\uBAA9 \uC0AD\uC81C",
   duplicateN: "{n}\uAC1C \uD56D\uBAA9 \uBCF5\uC81C",
   moveTo: "\uD3F4\uB354\uB85C \uC774\uB3D9\u2026",
@@ -1743,6 +1839,7 @@ var ko = {
   copyPath: "\uACBD\uB85C \uBCF5\uC0AC",
   copyFullPath: "\uC804\uCCB4 \uACBD\uB85C \uBCF5\uC0AC",
   pathCopied: "\uACBD\uB85C\uB97C \uBCF5\uC0AC\uD588\uC2B5\uB2C8\uB2E4",
+  copyFailed: "\uD074\uB9BD\uBCF4\uB4DC\uC5D0 \uBCF5\uC0AC\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4",
   untitled: "\uC81C\uBAA9 \uC5C6\uC74C",
   newFolderName: "\uC0C8 \uD3F4\uB354",
   cantMoveIntoSelf: "\uD3F4\uB354\uB97C \uC790\uAE30 \uC790\uC2E0 \uC548\uC73C\uB85C \uC62E\uAE38 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4",
@@ -1775,6 +1872,7 @@ var ko = {
   cmdReveal: "\uD604\uC7AC \uD30C\uC77C\uC744 \uCE7C\uB7FC\uC5D0\uC11C \uD45C\uC2DC",
   cmdNewNote: "\uD604\uC7AC \uD3F4\uB354\uC5D0 \uC0C8 \uB178\uD2B8",
   cmdNewFolder: "\uD604\uC7AC \uD3F4\uB354\uC5D0 \uC0C8 \uD3F4\uB354",
+  cmdFocus: "\uCE7C\uB7FC \uD0D0\uC0C9\uAE30\uC5D0 \uD3EC\uCEE4\uC2A4",
   setFoldersFirst: "\uD3F4\uB354 \uBA3C\uC800",
   setFoldersFirstDesc: "\uD56D\uC0C1 \uD3F4\uB354\uB97C \uD30C\uC77C\uBCF4\uB2E4 \uC704\uC5D0 \uD45C\uC2DC\uD569\uB2C8\uB2E4.",
   setShowExt: "\uD655\uC7A5\uC790 \uD45C\uC2DC",
@@ -1790,6 +1888,10 @@ var ko = {
   setAutoPanel: "\uD328\uB110 \uB108\uBE44 \uC790\uB3D9 \uC870\uC808",
   setAutoPanelDesc: "\uCE7C\uB7FC \uB108\uBE44\uB294 \uADF8\uB300\uB85C \uB450\uACE0, \uC5F4\uB9B0 \uCE7C\uB7FC\uC774 \uBAA8\uB450 \uB4E4\uC5B4\uAC00\uB3C4\uB85D \uC0AC\uC774\uB4DC \uD328\uB110\uC744 \uB298\uC774\uACE0 \uC904\uC785\uB2C8\uB2E4.",
   setSort: "\uAE30\uBCF8 \uC815\uB82C \uBC29\uC2DD",
+  setOpenLocation: "\uC5EC\uB294 \uC704\uCE58",
+  setOpenLocationDesc: "\uC5F4\uAE30 \uBA85\uB839\uACFC \uB9AC\uBCF8 \uC544\uC774\uCF58\uC774 \uBDF0\uB97C \uBC30\uCE58\uD558\uB294 \uC704\uCE58\uC785\uB2C8\uB2E4. \uC774\uBBF8 \uC5F4\uB824 \uC788\uB294 \uBDF0\uB294 \uADF8\uB300\uB85C \uC720\uC9C0\uB429\uB2C8\uB2E4.",
+  locSidebar: "\uC67C\uCABD \uC0AC\uC774\uB4DC\uBC14",
+  locTab: "\uAE30\uBCF8 \uC601\uC5ED\uC758 \uD0ED",
   setAutoReveal: "\uD604\uC7AC \uD30C\uC77C \uB530\uB77C\uAC00\uAE30",
   setAutoRevealDesc: "\uD3B8\uC9D1\uAE30\uC758 \uD604\uC7AC \uD0ED\uC744 \uB530\uB77C\uAC00\uBA70 \uD574\uB2F9 \uD30C\uC77C\uC744 \uCE7C\uB7FC\uC5D0\uC11C \uC120\uD0DD\uD569\uB2C8\uB2E4.",
   setExclude: "\uC81C\uC678\uD560 \uD30C\uC77C",
@@ -1923,6 +2025,7 @@ var DEFAULT_SETTINGS = {
   showBookmarks: true,
   showCalendar: true,
   specialItemsPosition: "top",
+  openLocation: "sidebar",
   favorites: [],
   showFavorites: true,
   mobileUiScale: DEFAULT_MOBILE_SCALE,
@@ -1953,6 +2056,11 @@ var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
         type: "group",
         heading: t("headBehavior"),
         items: [
+          {
+            name: t("setOpenLocation"),
+            desc: t("setOpenLocationDesc"),
+            control: { type: "dropdown", key: "openLocation", options: { sidebar: t("locSidebar"), tab: t("locTab") } }
+          },
           {
             name: t("setSort"),
             control: {
@@ -2107,6 +2215,10 @@ var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
       await save();
     }));
     new import_obsidian2.Setting(containerEl).setName(t("headBehavior")).setHeading();
+    new import_obsidian2.Setting(containerEl).setName(t("setOpenLocation")).setDesc(t("setOpenLocationDesc")).addDropdown((d) => d.addOption("sidebar", t("locSidebar")).addOption("tab", t("locTab")).setValue(s.openLocation).onChange(async (v) => {
+      s.openLocation = v === "tab" ? "tab" : "sidebar";
+      await save();
+    }));
     new import_obsidian2.Setting(containerEl).setName(t("setSort")).addDropdown((d) => d.addOption("name-asc", t("sortNameAsc")).addOption("name-desc", t("sortNameDesc")).addOption("mtime-desc", t("sortMtimeDesc")).addOption("mtime-asc", t("sortMtimeAsc")).addOption("ctime-desc", t("sortCtimeDesc")).addOption("ctime-asc", t("sortCtimeAsc")).addOption("size-desc", t("sortSizeDesc")).addOption("size-asc", t("sortSizeAsc")).setValue(s.sortMode).onChange(async (v) => {
       s.sortMode = v;
       await save();
@@ -2281,6 +2393,50 @@ async function duplicateFile(app, f) {
     await app.vault.copy(f, path);
   } catch (err) {
     new import_obsidian3.Notice(t("duplicateFailed", { name: f.name, error: errorMessage(err) }));
+  }
+}
+async function copyFiles(app, paths, target) {
+  let pasted = 0;
+  for (const path of paths) {
+    const src = app.vault.getAbstractFileByPath(path);
+    if (!src) continue;
+    if (src.path === target.path || target.path.startsWith(src.path + "/")) {
+      new import_obsidian3.Notice(t("cantMoveIntoSelf"));
+      continue;
+    }
+    const taken = new Set(app.vault.getAllLoadedFiles().map((f) => f.path));
+    const dest = (0, import_obsidian3.normalizePath)(availablePath(target.isRoot() ? "" : target.path, src.name, taken));
+    try {
+      if (src instanceof import_obsidian3.TFolder) await copyFolderInto(app, src, dest);
+      else if (src instanceof import_obsidian3.TFile) await app.vault.copy(src, dest);
+      else continue;
+      pasted++;
+    } catch (err) {
+      new import_obsidian3.Notice(t("duplicateFailed", { name: src.name, error: errorMessage(err) }));
+    }
+  }
+  if (pasted > 0) new import_obsidian3.Notice(t("itemsPasted", { n: pasted }));
+  return pasted;
+}
+async function duplicateFolder(app, folder) {
+  const dir = folder.parent && !folder.parent.isRoot() ? folder.parent.path + "/" : "";
+  let n = 1;
+  let dest = (0, import_obsidian3.normalizePath)(dir + folder.name + " copy");
+  while (app.vault.getAbstractFileByPath(dest)) {
+    dest = (0, import_obsidian3.normalizePath)(dir + folder.name + " copy " + n++);
+  }
+  try {
+    await copyFolderInto(app, folder, dest);
+  } catch (err) {
+    new import_obsidian3.Notice(t("duplicateFailed", { name: folder.name, error: errorMessage(err) }));
+  }
+}
+async function copyFolderInto(app, folder, dest) {
+  await app.vault.createFolder(dest);
+  for (const child of folder.children) {
+    const childDest = dest + "/" + child.name;
+    if (child instanceof import_obsidian3.TFolder) await copyFolderInto(app, child, childDest);
+    else if (child instanceof import_obsidian3.TFile) await app.vault.copy(child, childDest);
   }
 }
 async function trashFiles(app, paths) {
@@ -2566,7 +2722,10 @@ function sortLabel(mode) {
   return t(keys[mode]);
 }
 function copyToClipboard(text, notice) {
-  void navigator.clipboard.writeText(text).then(() => new import_obsidian7.Notice(notice));
+  navigator.clipboard.writeText(text).then(
+    () => new import_obsidian7.Notice(notice),
+    () => new import_obsidian7.Notice(t("copyFailed"))
+  );
 }
 function colorMenuTitle(colorKey, label) {
   return createFragment((frag) => {
@@ -2616,6 +2775,8 @@ function showFileMenu(view, e, f, depth) {
   const multi = view.multiSelDepth === depth && view.multiSel.has(f.path) && view.multiSel.size > 1;
   if (multi) {
     const paths = [...view.multiSel];
+    menu.addItem((i) => i.setTitle(t("copy")).setIcon("copy").onClick(() => view.copyItems(paths, false)));
+    menu.addItem((i) => i.setTitle(t("cut")).setIcon("scissors").onClick(() => view.copyItems(paths, true)));
     menu.addItem((i) => i.setTitle(t("moveTo")).setIcon("folder-input").onClick(() => new FolderSuggestModal(app, (target) => {
       void moveFiles(app, paths, target).then(() => view.clearMulti());
     }).open()));
@@ -2632,6 +2793,10 @@ function showFileMenu(view, e, f, depth) {
   if (f instanceof import_obsidian7.TFolder) {
     menu.addItem((i) => i.setTitle(t("newNote")).setIcon("file-plus").onClick(() => view.createNote(f)));
     menu.addItem((i) => i.setTitle(t("newFolder")).setIcon("folder-plus").onClick(() => view.createFolder(f)));
+    menu.addItem((i) => i.setTitle(t("duplicate")).setIcon("copy").onClick(() => void duplicateFolder(app, f)));
+    if (view.hasFileClipboard()) {
+      menu.addItem((i) => i.setTitle(t("paste")).setIcon("clipboard-paste").onClick(() => view.pasteClipboard(f)));
+    }
     addFolderColorMenu(view, menu, f);
     addFolderIconItems(view, menu, f);
     menu.addSeparator();
@@ -2645,6 +2810,8 @@ function showFileMenu(view, e, f, depth) {
     menu.addSeparator();
     menu.addItem((i) => i.setTitle(t("duplicate")).setIcon("copy").onClick(() => duplicateFile(app, f)));
   }
+  menu.addItem((i) => i.setTitle(t("copy")).setIcon("copy").onClick(() => view.copyItems([f.path], false)));
+  menu.addItem((i) => i.setTitle(t("cut")).setIcon("scissors").onClick(() => view.copyItems([f.path], true)));
   const isPinned = view.plugin.settings.pinnedPaths[f.path] !== void 0;
   menu.addItem((i) => i.setTitle(isPinned ? t("unpin") : t("pin")).setIcon(isPinned ? "pin-off" : "pin").onClick(async () => {
     const pinned = { ...view.plugin.settings.pinnedPaths };
@@ -2699,6 +2866,15 @@ function addFolderIconItems(view, menu, folder) {
     }));
   }
 }
+function showRecentsMenu(view, e) {
+  const menu = new import_obsidian7.Menu();
+  menu.addItem((i) => i.setTitle(t("clearRecents")).setIcon("eraser").onClick(() => {
+    view.plugin.settings.recentFiles = [];
+    void view.plugin.saveSettings();
+    view.render();
+  }));
+  menu.showAtMouseEvent(e);
+}
 function showColumnHeaderMenu(view, e, folder) {
   const menu = new import_obsidian7.Menu();
   menu.addItem((i) => i.setTitle(t("newNote")).setIcon("file-plus").onClick(() => void view.createNote(folder)));
@@ -2725,6 +2901,9 @@ function showFolderBackgroundMenu(view, e, folder) {
   menu.addItem((i) => i.setTitle(t("newNote")).setIcon("file-plus").onClick(() => void view.createNote(folder)));
   menu.addItem((i) => i.setTitle(t("newFolder")).setIcon("folder-plus").onClick(() => void view.createFolder(folder)));
   menu.addItem((i) => i.setTitle(t("newCanvas")).setIcon("layout-dashboard").onClick(() => void view.createNote(folder, "canvas", "{}")));
+  if (view.hasFileClipboard()) {
+    menu.addItem((i) => i.setTitle(t("paste")).setIcon("clipboard-paste").onClick(() => view.pasteClipboard(folder)));
+  }
   menu.showAtMouseEvent(e);
 }
 function fillSortItems(view, target) {
@@ -3049,6 +3228,25 @@ function setupColumnDnd(view, listEl, columnFolder, depth) {
     void moveFiles(app, paths, dropFolder).then(() => view.clearMulti());
   });
 }
+function setupCrumbDropTarget(view, el, folder) {
+  if (import_obsidian9.Platform.isMobile) return;
+  el.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    if (e.dataTransfer) e.dataTransfer.dropEffect = "move";
+    el.addClass("is-drop-target");
+  });
+  el.addEventListener("dragleave", () => el.removeClass("is-drop-target"));
+  el.addEventListener("drop", (e) => {
+    var _a, _b;
+    e.preventDefault();
+    e.stopPropagation();
+    el.removeClass("is-drop-target");
+    const paths = activeDragPaths != null ? activeDragPaths : parseDragPaths((_b = (_a = e.dataTransfer) == null ? void 0 : _a.getData("text/plain")) != null ? _b : "");
+    activeDragPaths = null;
+    if (paths.length === 0) return;
+    void moveFiles(view.app, paths, folder).then(() => view.clearMulti());
+  });
+}
 function reorderPinned(view, dragPath, targetItem) {
   var _a, _b;
   const targetPath = targetItem == null ? void 0 : targetItem.dataset.path;
@@ -3150,6 +3348,10 @@ function renderColumn(view, container, folder, depth) {
       if (e.target === list) showFolderBackgroundMenu(view, e, folder);
       return;
     }
+    if (view.specialKind(hit.path) === "recents") {
+      showRecentsMenu(view, e);
+      return;
+    }
     const f = view.app.vault.getAbstractFileByPath(hit.path);
     if (f) showFileMenu(view, e, f, depth);
   });
@@ -3226,6 +3428,7 @@ function buildItem(view, f, depth, isGrid = false) {
   if (view.multiSelDepth === depth && view.multiSel.has(f.path)) item.addClass("is-multi-selected");
   const activeFile = view.app.workspace.getActiveFile();
   if (activeFile && activeFile.path === f.path) item.addClass("is-active-file");
+  if (view.isCutPath(f.path)) item.addClass("is-cut");
   if (f instanceof import_obsidian10.TFolder) {
     const colorKey = view.plugin.settings.folderColors[f.path];
     if (colorKey) {
@@ -3482,6 +3685,11 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     this.filesByDayKey = "";
     /** Владелец markdown-превью колонки: живёт до следующего рендера. */
     this.previewOwner = null;
+    /**
+     * Внутренний буфер Copy/Cut/Paste. Не системный clipboard: класть файлы
+     * в OS-буфер из Obsidian кроссплатформенно нельзя.
+     */
+    this.fileClipboard = null;
     /** Стек истории навигации (снимки selection) для кнопок назад/вперёд. */
     this.history = [];
     this.historyIndex = -1;
@@ -3653,6 +3861,10 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
   }
   isSearchOpen() {
     return this.searchOpen;
+  }
+  /** Команда «Фокус на панель»: клавиатурная навигация без мыши. */
+  focusColumns() {
+    this.columnsEl.focus();
   }
   isMobileSelecting() {
     return this.mobileSelActive;
@@ -4048,11 +4260,12 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     });
     (0, import_obsidian11.setIcon)(star, "star");
     star.addEventListener("click", () => this.toggleFavorite(current.path));
-    const addSegment = (label, targetDepth, isLast) => {
+    const addSegment = (label, targetDepth, isLast, dropFolder) => {
       const seg = this.breadcrumbsEl.createSpan({
         cls: "column-explorer-crumb" + (isLast ? " is-current" : ""),
         text: label
       });
+      if (dropFolder) setupCrumbDropTarget(this, seg, dropFolder);
       if (!isLast) {
         seg.addEventListener("click", () => {
           this.selection = this.selection.slice(0, targetDepth);
@@ -4063,12 +4276,12 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
         this.breadcrumbsEl.createSpan({ cls: "column-explorer-crumb-sep", text: "\u203A" });
       }
     };
-    addSegment(this.app.vault.getName(), 0, this.selection.length === 0);
+    addSegment(this.app.vault.getName(), 0, this.selection.length === 0, this.app.vault.getRoot());
     this.selection.forEach((path, i) => {
       var _a;
       const f = this.app.vault.getAbstractFileByPath(path);
       const label = f ? displayName(f) : path === RECENTS_PATH ? t("recents") : path === BOOKMARKS_PATH ? t("bookmarks") : path === CALENDAR_PATH ? t("calendar") : path.startsWith(DAY_PATH_PREFIX) ? path.slice(DAY_PATH_PREFIX.length) : (_a = path.split("/").pop()) != null ? _a : path;
-      addSegment(label, i + 1, i === this.selection.length - 1);
+      addSegment(label, i + 1, i === this.selection.length - 1, f instanceof import_obsidian11.TFolder ? f : void 0);
     });
     if (import_obsidian11.Platform.isMobile) {
       window.requestAnimationFrame(() => {
@@ -4303,13 +4516,49 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
     for (const c of children) this.multiSel.add(c.path);
     this.render();
   }
-  /** Cmd/Ctrl+D — duplicate the multi-selection, or the single selected file. */
+  /* ------------------------- copy / cut / paste -------------------- */
+  /** Положить пути в буфер; cut-режим затемняет исходники до вставки. */
+  copyItems(paths, cut) {
+    const real = paths.filter((p) => !p.startsWith("::"));
+    if (real.length === 0) return;
+    this.fileClipboard = { paths: real, cut };
+    this.render();
+  }
+  hasFileClipboard() {
+    return this.fileClipboard !== null;
+  }
+  /** Затемнение вырезанных строк — читается из buildItem при рендере. */
+  isCutPath(path) {
+    var _a;
+    return ((_a = this.fileClipboard) == null ? void 0 : _a.cut) === true && this.fileClipboard.paths.includes(path);
+  }
+  /**
+   * Вставить буфер в папку (по умолчанию — текущую). Copy-буфер живёт
+   * дальше для повторных вставок, cut-буфер очищается после перемещения.
+   */
+  pasteClipboard(target = this.currentFolder()) {
+    const clip = this.fileClipboard;
+    if (!clip) return;
+    if (clip.cut) {
+      this.fileClipboard = null;
+      void moveFiles(this.app, clip.paths, target).then(() => this.render());
+    } else {
+      void copyFiles(this.app, clip.paths, target);
+    }
+  }
+  /** Cmd/Ctrl+C или X: мультивыделение либо текущий элемент. */
+  copySelectionAt(depth, cut) {
+    const paths = this.multiSel.size > 0 && this.multiSelDepth === depth ? [...this.multiSel] : [this.selection[depth]].filter((p) => Boolean(p));
+    this.copyItems(paths, cut);
+  }
+  /** Cmd/Ctrl+D — duplicate the multi-selection, or the single selected item. */
   duplicateSelected(depth) {
     const paths = this.multiSel.size > 0 && this.multiSelDepth === depth ? [...this.multiSel] : [this.selection[depth]].filter(Boolean);
     void (async () => {
       for (const p of paths) {
         const f = this.app.vault.getAbstractFileByPath(p);
         if (f instanceof import_obsidian11.TFile) await duplicateFile(this.app, f);
+        else if (f instanceof import_obsidian11.TFolder) await duplicateFolder(this.app, f);
       }
     })();
   }
@@ -4484,7 +4733,7 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
       } else if (f instanceof import_obsidian11.TFile && e.key === "Enter") {
         void this.app.workspace.getLeaf(false).openFile(f);
       }
-    } else if (e.key === " ") {
+    } else if (e.key === " " && !this.typeaheadBuffer) {
       e.preventDefault();
       const f = selectedPath ? this.app.vault.getAbstractFileByPath(selectedPath) : null;
       if (f instanceof import_obsidian11.TFile) new QuickLookModal(this.app, this, f).open();
@@ -4502,13 +4751,23 @@ var ColumnExplorerView = class extends import_obsidian11.ItemView {
         return;
       }
       if (selectedPath && !selectedPath.startsWith("::")) this.deleteMany([selectedPath]);
-    } else if ((e.metaKey || e.ctrlKey) && (e.key === "a" || e.key === "A")) {
+    } else if ((e.metaKey || e.ctrlKey) && (e.key === "a" || e.key === "A" || e.code === "KeyA")) {
       e.preventDefault();
       this.selectAllAt(depth);
-    } else if ((e.metaKey || e.ctrlKey) && (e.key === "d" || e.key === "D")) {
+    } else if ((e.metaKey || e.ctrlKey) && (e.key === "d" || e.key === "D" || e.code === "KeyD")) {
       e.preventDefault();
       this.duplicateSelected(depth);
+    } else if ((e.metaKey || e.ctrlKey) && (e.key === "c" || e.key === "C" || e.code === "KeyC")) {
+      e.preventDefault();
+      this.copySelectionAt(depth, false);
+    } else if ((e.metaKey || e.ctrlKey) && (e.key === "x" || e.key === "X" || e.code === "KeyX")) {
+      e.preventDefault();
+      this.copySelectionAt(depth, true);
+    } else if ((e.metaKey || e.ctrlKey) && (e.key === "v" || e.key === "V" || e.code === "KeyV")) {
+      e.preventDefault();
+      this.pasteClipboard();
     } else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (e.key === " ") e.preventDefault();
       this.onTypeahead(e.key, children, depth);
     }
   }
@@ -4631,6 +4890,14 @@ var ColumnExplorerPlugin = class extends import_obsidian12.Plugin {
       }
     });
     this.addCommand({
+      id: "focus-view",
+      name: t("cmdFocus"),
+      callback: async () => {
+        const view = await this.activateView();
+        view == null ? void 0 : view.focusColumns();
+      }
+    });
+    this.addCommand({
       id: "new-note-here",
       name: t("cmdNewNote"),
       checkCallback: (checking) => {
@@ -4683,12 +4950,12 @@ var ColumnExplorerPlugin = class extends import_obsidian12.Plugin {
   /** v1.3.x stored pins as `true`; convert to numeric order once. */
   migratePinnedPaths() {
     const raw = this.settings.pinnedPaths;
-    let order = 0;
+    const numeric = Object.values(raw).filter((v) => typeof v === "number");
+    let next = numeric.length > 0 ? Math.max(...numeric) + 1 : 0;
     const migrated = {};
     for (const path of Object.keys(raw)) {
       const value = raw[path];
-      migrated[path] = typeof value === "number" ? value : order;
-      order++;
+      migrated[path] = typeof value === "number" ? value : next++;
     }
     this.settings.pinnedPaths = migrated;
   }
@@ -4721,7 +4988,7 @@ var ColumnExplorerPlugin = class extends import_obsidian12.Plugin {
   }
   async activateView() {
     const existing = this.getViewLeaf();
-    const leaf = existing != null ? existing : this.app.workspace.getLeftLeaf(false);
+    const leaf = existing != null ? existing : this.settings.openLocation === "tab" ? this.app.workspace.getLeaf("tab") : this.app.workspace.getLeftLeaf(false);
     if (!leaf) return null;
     if (!existing) await leaf.setViewState({ type: VIEW_TYPE_COLUMNS, active: true });
     await this.app.workspace.revealLeaf(leaf);

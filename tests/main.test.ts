@@ -55,12 +55,27 @@ describe("loadSettings", () => {
 		expect(plugin.settings.sortMode).toBe("name-asc");
 	});
 
+	test("replaces an unknown open location with the sidebar default", async () => {
+		const { plugin } = await loadPlugin({ openLocation: "nonsense" } as unknown as Partial<ColumnExplorerSettings>);
+
+		expect(plugin.settings.openLocation).toBe("sidebar");
+	});
+
 	test("migrates boolean pins from v1.3.x to numeric order", async () => {
 		const data = { pinnedPaths: { "a.md": true, "b.md": true } } as unknown as Partial<ColumnExplorerSettings>;
 
 		const { plugin } = await loadPlugin(data);
 
 		expect(plugin.settings.pinnedPaths).toEqual({ "a.md": 0, "b.md": 1 });
+	});
+
+	test("mixed boolean and numeric pins get unique orders", async () => {
+		// Откат на 1.3.x и обратно: часть пинов уже числа, часть — снова true
+		const data = { pinnedPaths: { "a.md": true, "b.md": 2, "c.md": true } } as unknown as Partial<ColumnExplorerSettings>;
+
+		const { plugin } = await loadPlugin(data);
+
+		expect(plugin.settings.pinnedPaths).toEqual({ "a.md": 3, "b.md": 2, "c.md": 4 });
 	});
 
 	test("keeps numeric pin order untouched", async () => {
@@ -112,7 +127,7 @@ describe("registration", () => {
 		expect(registered.views).toEqual(["column-explorer-view"]);
 		expect(registered.ribbonIcons).toEqual(["columns-3"]);
 		expect(registered.commands.map((c) => c.id)).toEqual([
-			"open-view", "reveal-active-file", "new-note-here", "new-folder-here",
+			"open-view", "reveal-active-file", "focus-view", "new-note-here", "new-folder-here",
 		]);
 	});
 
@@ -191,6 +206,21 @@ describe("activateView", () => {
 
 		await plugin.activateView();
 
+		expect(leaf.states).toEqual([{ type: "column-explorer-view", active: true }]);
+	});
+
+	test("opens in the main area when the setting says tab", async () => {
+		const { plugin, app } = await loadPlugin({ openLocation: "tab" });
+		const leaf = fakeLeaf(null);
+		const requested: string[] = [];
+		Object.assign(app.workspace, {
+			getLeavesOfType: () => [],
+			getLeaf: (where: string) => { requested.push(where); return leaf; },
+		});
+
+		await plugin.activateView();
+
+		expect(requested).toEqual(["tab"]);
 		expect(leaf.states).toEqual([{ type: "column-explorer-view", active: true }]);
 	});
 

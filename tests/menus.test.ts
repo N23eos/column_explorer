@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { TAbstractFile, TFolder } from "obsidian";
 // Menu — из мока: тест читает накопленные пункты, которых нет в публичном API
-import { Menu } from "./__mocks__/obsidian";
+import { Menu, createdNotices, resetNotices } from "./__mocks__/obsidian";
 import {
 	showColumnHeaderMenu, showFileMenu, showFolderBackgroundMenu,
-	showMobileCreateMenu, showMobileMoreMenu, showSortMenu,
+	showMobileCreateMenu, showMobileMoreMenu, showRecentsMenu, showSortMenu,
 } from "../src/menus";
 import { t } from "../src/i18n";
 import { makeVault } from "./setup/vault";
@@ -295,6 +295,63 @@ describe("favorites in the file menu", () => {
 	});
 });
 
+describe("clipboard menu items", () => {
+	test("copy and cut hand the file to the view clipboard", () => {
+		const { view, vault } = setup(["a.md"]);
+		const copyItems = vi.fn();
+		Object.assign(view, { copyItems });
+
+		showFileMenu(view, mouse(), vault.getAbstractFileByPath("a.md") as TAbstractFile, 0);
+		clickItem(t("copy"));
+		clickItem(t("cut"));
+
+		expect(copyItems).toHaveBeenNthCalledWith(1, ["a.md"], false);
+		expect(copyItems).toHaveBeenNthCalledWith(2, ["a.md"], true);
+	});
+
+	test("paste on a folder pastes into that folder", () => {
+		const { view, vault } = setup(["sub/a.md"]);
+		const pasteClipboard = vi.fn();
+		Object.assign(view, { pasteClipboard, hasFileClipboard: () => true });
+
+		showFileMenu(view, mouse(), vault.getAbstractFileByPath("sub") as TFolder, 0);
+		clickItem(t("paste"));
+
+		expect(pasteClipboard).toHaveBeenCalledWith(vault.getAbstractFileByPath("sub"));
+	});
+
+	test("paste is absent while the clipboard is empty", () => {
+		const { view, vault } = setup(["sub/a.md"]);
+
+		showFileMenu(view, mouse(), vault.getAbstractFileByPath("sub") as TFolder, 0);
+
+		expect(menuTitles()).not.toContain(t("paste"));
+	});
+
+	test("the column background menu offers paste into the column folder", () => {
+		const { view, vault } = setup(["sub/a.md"]);
+		const pasteClipboard = vi.fn();
+		Object.assign(view, { pasteClipboard, hasFileClipboard: () => true });
+
+		showFolderBackgroundMenu(view, mouse(), vault.getAbstractFileByPath("sub") as TFolder);
+		clickItem(t("paste"));
+
+		expect(pasteClipboard).toHaveBeenCalledWith(vault.getAbstractFileByPath("sub"));
+	});
+});
+
+describe("recents menu", () => {
+	test("clear recents empties the tracked list", () => {
+		const { view } = setup(["a.md"]);
+		view.plugin.settings.recentFiles = ["a.md"];
+
+		showRecentsMenu(view, mouse());
+		clickItem(t("clearRecents"));
+
+		expect(view.plugin.settings.recentFiles).toEqual([]);
+	});
+});
+
 describe("copy items", () => {
 	/** Перехват записи в буфер обмена — navigator.clipboard в happy-dom нет. */
 	function stubClipboard(): string[] {
@@ -305,6 +362,21 @@ describe("copy items", () => {
 		});
 		return written;
 	}
+
+	test("failed clipboard write shows an error notice", async () => {
+		resetNotices();
+		Object.defineProperty(globalThis.navigator, "clipboard", {
+			configurable: true,
+			value: { writeText: () => Promise.reject(new Error("denied")) },
+		});
+		const { view, vault } = setup(["a.md"]);
+
+		showFileMenu(view, mouse(), vault.getAbstractFileByPath("a.md") as TAbstractFile, 0);
+		clickItem(t("copyPath"));
+
+		await vi.waitFor(() => expect(createdNotices).toHaveLength(1));
+		expect(createdNotices[0].message).toBe(t("copyFailed"));
+	});
 
 	test("copy path writes the vault-relative path", () => {
 		const written = stubClipboard();

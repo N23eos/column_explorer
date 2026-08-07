@@ -113,6 +113,11 @@
 	box-shadow: inset 0 0 0 2px var(--interactive-accent);
 }
 
+/* Вырезанный (Cmd+X) элемент до вставки */
+.column-explorer-item.is-cut {
+	opacity: 0.45;
+}
+
 .column-explorer-item-icon {
 	display: flex;
 	flex-shrink: 0;
@@ -273,6 +278,10 @@
 .column-explorer-crumb:not(.is-current):hover {
 	background-color: var(--background-modifier-hover);
 	color: var(--text-normal);
+}
+
+.column-explorer-crumb.is-drop-target {
+	box-shadow: inset 0 0 0 2px var(--interactive-accent);
 }
 
 .column-explorer-crumb.is-current {

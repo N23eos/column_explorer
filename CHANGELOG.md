@@ -5,7 +5,39 @@ All notable changes to Column Explorer are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.13.0] — 2026-08-08
+
+### Added
+- Copy, cut and paste for files and folders: `Ctrl`/`Cmd`+`C`/`X`/`V` (layout-independent)
+  and *Copy* / *Cut* / *Paste* in the context menus. Paste goes into the current folder —
+  or the right-clicked one — with numeric suffixes on name clashes; folders are pasted
+  with their whole subtree. Cut items are dimmed until pasted and are moved with the
+  usual undo notice. The clipboard is internal to the plugin: Obsidian cannot place
+  real files on the system clipboard portably.
+- The view can open as a full-width tab in the main area — the most requested change.
+  A new *Where to open* setting (Behavior group) switches the open command and the
+  ribbon icon between the left sidebar (default) and a main-area tab. An already open
+  view is never moved: drag its tab anywhere and the plugin respects that.
+- Files and folders can now be dropped onto the breadcrumb bar — dropping onto a path
+  segment moves them into that folder, the way Finder's path bar works.
+- Folders can be duplicated: *Duplicate* in the folder context menu, or `Ctrl`/`Cmd`+`D`
+  with a folder selected, copies the folder with its whole subtree as `Name copy`.
+- Right-clicking the *Recents* row offers *Clear recent files* — previously the list
+  could only be cleared from the settings tab.
+- New command *Focus column explorer*: puts keyboard focus on the columns so arrow-key
+  navigation works without reaching for the mouse. Bindable in **Settings → Hotkeys**.
+
+### Fixed
+- `Ctrl`/`Cmd`+`A` (select all) and `Ctrl`/`Cmd`+`D` (duplicate) did not work on
+  non-Latin keyboard layouts — Cyrillic, Greek, Hebrew and others — because the check
+  looked at the typed character instead of the physical key.
+- A failed clipboard write (for example when the window loses focus mid-action) showed
+  the usual "copied" flow with an empty clipboard. It now reports the failure.
+- Type-ahead could not match names containing spaces: `Space` always opened Quick Look.
+  While a prefix is being typed, `Space` now continues the prefix; Quick Look still
+  opens on a plain `Space`.
+- Migrating pins saved by v1.3.x could assign the same order to two pins when the
+  saved data mixed old boolean and new numeric values (a version rollback and back).
 
 ### Changed
 - Search in the toolbar is now fuzzy, matching the behaviour of Obsidian's Quick Switcher:

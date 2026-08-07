@@ -473,6 +473,9 @@ export const SORT_MODE_VALUES = [
 
 export const SPECIAL_POSITIONS = ["top", "bottom"] as const;
 
+/** Где команда/ribbon открывают вью: левая панель или вкладка в основной области. */
+export const OPEN_LOCATIONS = ["sidebar", "tab"] as const;
+
 function clampInt(value: unknown, min: number, max: number, fallback: number): number {
 	if (typeof value !== "number" || !Number.isFinite(value)) return fallback;
 	return Math.max(min, Math.min(max, Math.round(value)));
@@ -503,6 +506,7 @@ export interface NormalizedSettings {
 	lockedColumnCount: number | null;
 	sortMode: (typeof SORT_MODE_VALUES)[number];
 	specialItemsPosition: (typeof SPECIAL_POSITIONS)[number];
+	openLocation: (typeof OPEN_LOCATIONS)[number];
 }
 
 /**
@@ -522,5 +526,6 @@ export function normalizeSettings(raw: Record<string, unknown>): NormalizedSetti
 			: null,
 		sortMode: oneOf(raw.sortMode, SORT_MODE_VALUES, "name-asc"),
 		specialItemsPosition: oneOf(raw.specialItemsPosition, SPECIAL_POSITIONS, "top"),
+		openLocation: oneOf(raw.openLocation, OPEN_LOCATIONS, "sidebar"),
 	};
 }

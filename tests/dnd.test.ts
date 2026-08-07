@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { TFolder } from "obsidian";
-import { clearActiveDrag, setupColumnDnd } from "../src/dnd";
+import { clearActiveDrag, setupColumnDnd, setupCrumbDropTarget } from "../src/dnd";
 import { renderColumnList } from "../src/column";
 import { makeVault } from "./setup/vault";
 import { makeView } from "./setup/view";
@@ -127,6 +127,35 @@ describe("drop", () => {
 		dragEvent("drop", itemEl(list, "sub"));
 
 		expect(list.querySelector(".is-drop-target")).toBeNull();
+	});
+});
+
+describe("breadcrumb drop target", () => {
+	test("dragover highlights the crumb", () => {
+		const { view, vault } = setup(["a.md", "other/"], "/");
+		const crumb = document.createElement("span");
+		document.body.appendChild(crumb);
+		setupCrumbDropTarget(view, crumb, vault.getAbstractFileByPath("other") as TFolder);
+
+		dragEvent("dragover", crumb);
+
+		expect(crumb.classList.contains("is-drop-target")).toBe(true);
+	});
+
+	test("dropping a dragged file onto a crumb moves it into that folder", async () => {
+		const { list, view, vault } = setup(["sub/a.md", "other/"], "sub");
+		const renamed: { from: string; to: string }[] = [];
+		(view.app.fileManager as unknown as { renameFile: (f: { path: string }, p: string) => Promise<void> })
+			.renameFile = (f, path) => { renamed.push({ from: f.path, to: path }); return Promise.resolve(); };
+		const crumb = document.createElement("span");
+		document.body.appendChild(crumb);
+		setupCrumbDropTarget(view, crumb, vault.getAbstractFileByPath("other") as TFolder);
+
+		dragEvent("dragstart", itemEl(list, "sub/a.md"));
+		dragEvent("drop", crumb);
+		await vi.waitFor(() => expect(renamed).toHaveLength(1));
+
+		expect(renamed).toEqual([{ from: "sub/a.md", to: "other/a.md" }]);
 	});
 });
 

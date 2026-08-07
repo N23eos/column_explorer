@@ -63,6 +63,8 @@ export interface ColumnExplorerSettings {
 	showCalendar: boolean;
 	/** Where the virtual rows sit in the root column. */
 	specialItemsPosition: "top" | "bottom";
+	/** Where the open command and ribbon icon put the view. */
+	openLocation: "sidebar" | "tab";
 	/** Own favorite paths (files and folders), shown atop the Bookmarks column. */
 	favorites: string[];
 	/** Show the favorites section in the Bookmarks column. */
@@ -98,6 +100,7 @@ export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
 	showBookmarks: true,
 	showCalendar: true,
 	specialItemsPosition: "top",
+	openLocation: "sidebar",
 	favorites: [],
 	showFavorites: true,
 	mobileUiScale: DEFAULT_MOBILE_SCALE,
@@ -130,6 +133,10 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 			},
 			{
 				type: "group", heading: t("headBehavior"), items: [
+					{
+						name: t("setOpenLocation"), desc: t("setOpenLocationDesc"),
+						control: { type: "dropdown", key: "openLocation", options: { sidebar: t("locSidebar"), tab: t("locTab") } },
+					},
 					{
 						name: t("setSort"),
 						control: {
@@ -269,6 +276,13 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 			.addToggle(tg => tg.setValue(s.showMarkdownPreview).onChange(async (v) => { s.showMarkdownPreview = v; await save(); }));
 
 		new Setting(containerEl).setName(t("headBehavior")).setHeading();
+
+		new Setting(containerEl).setName(t("setOpenLocation")).setDesc(t("setOpenLocationDesc"))
+			.addDropdown(d => d
+				.addOption("sidebar", t("locSidebar"))
+				.addOption("tab", t("locTab"))
+				.setValue(s.openLocation)
+				.onChange(async (v) => { s.openLocation = v === "tab" ? "tab" : "sidebar"; await save(); }));
 
 		new Setting(containerEl).setName(t("setSort"))
 			.addDropdown(d => d

@@ -4,7 +4,7 @@ import { BOOKMARKS_PATH, CALENDAR_PATH, DAY_PATH_PREFIX, RECENTS_PATH, dayKey, m
 import { displayName, folderNoteOf, iconFor, isImageFile } from "./utils";
 import { addUpButton, setupLongPress } from "./mobile";
 import { notifyDragManager, setupColumnDnd } from "./dnd";
-import { showColumnHeaderMenu, showFileMenu, showFolderBackgroundMenu } from "./menus";
+import { showColumnHeaderMenu, showFileMenu, showFolderBackgroundMenu, showRecentsMenu } from "./menus";
 import { MAX_COLUMN_WIDTH, MIN_COLUMN_WIDTH, ROOT_COLUMN_EXTRA_WIDTH } from "./settings";
 import type { ColumnExplorerView } from "./view";
 
@@ -91,6 +91,8 @@ export function renderColumn(view: ColumnExplorerView, container: HTMLElement, f
 			if (e.target === list) showFolderBackgroundMenu(view, e, folder);
 			return;
 		}
+		// Спецстрока «Недавние» — своё меню (очистка списка)
+		if (view.specialKind(hit.path) === "recents") { showRecentsMenu(view, e); return; }
 		const f = view.app.vault.getAbstractFileByPath(hit.path);
 		if (f) showFileMenu(view, e, f, depth);
 	});
@@ -189,6 +191,8 @@ function buildItem(view: ColumnExplorerView, f: TAbstractFile, depth: number, is
 
 	const activeFile = view.app.workspace.getActiveFile();
 	if (activeFile && activeFile.path === f.path) item.addClass("is-active-file");
+	// Вырезанные (Cmd+X) затемняются до вставки, как в Finder
+	if (view.isCutPath(f.path)) item.addClass("is-cut");
 
 	if (f instanceof TFolder) {
 		const colorKey = view.plugin.settings.folderColors[f.path];

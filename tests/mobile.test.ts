@@ -256,6 +256,7 @@ describe("normalizeSettings", () => {
 			lockedColumnCount: 2,
 			sortMode: "size-desc",
 			specialItemsPosition: "bottom",
+			openLocation: "tab",
 		});
 
 		expect(result).toEqual({
@@ -265,6 +266,7 @@ describe("normalizeSettings", () => {
 			lockedColumnCount: 2,
 			sortMode: "size-desc",
 			specialItemsPosition: "bottom",
+			openLocation: "tab",
 		});
 	});
 

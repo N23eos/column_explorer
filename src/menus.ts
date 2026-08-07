@@ -1,7 +1,7 @@
 import { FileSystemAdapter, Menu, MenuItem, Notice, Platform, TFile, TFolder, TAbstractFile } from "obsidian";
 import { t } from "./i18n";
 import { SORT_MODE_VALUES, shellEscapePath } from "./pure";
-import { duplicateFile, moveFiles } from "./fileops";
+import { duplicateFile, duplicateFolder, moveFiles } from "./fileops";
 import { FolderSuggestModal, IconSuggestModal, QuickLookModal } from "./modals";
 import { FOLDER_COLOR_KEYS, FolderColorKey, SortMode } from "./settings";
 import type { ColumnExplorerView } from "./view";
@@ -17,7 +17,12 @@ function sortLabel(mode: SortMode): string {
 }
 
 function copyToClipboard(text: string, notice: string) {
-	void navigator.clipboard.writeText(text).then(() => new Notice(notice));
+	// writeText реджектится при потере фокуса окна — без catch юзер уверен,
+	// что скопировано, а буфер пуст
+	navigator.clipboard.writeText(text).then(
+		() => new Notice(notice),
+		() => new Notice(t("copyFailed"))
+	);
 }
 
 function colorMenuTitle(colorKey: FolderColorKey | null, label: string): DocumentFragment {
@@ -83,6 +88,10 @@ export function showFileMenu(view: ColumnExplorerView, e: MouseEvent, f: TAbstra
 
 	if (multi) {
 		const paths = [...view.multiSel];
+		menu.addItem(i => i.setTitle(t("copy")).setIcon("copy")
+			.onClick(() => view.copyItems(paths, false)));
+		menu.addItem(i => i.setTitle(t("cut")).setIcon("scissors")
+			.onClick(() => view.copyItems(paths, true)));
 		menu.addItem(i => i.setTitle(t("moveTo")).setIcon("folder-input")
 			.onClick(() => new FolderSuggestModal(app, (target) => {
 				void moveFiles(app, paths, target).then(() => view.clearMulti());
@@ -105,6 +114,12 @@ export function showFileMenu(view: ColumnExplorerView, e: MouseEvent, f: TAbstra
 			.onClick(() => view.createNote(f)));
 		menu.addItem(i => i.setTitle(t("newFolder")).setIcon("folder-plus")
 			.onClick(() => view.createFolder(f)));
+		menu.addItem(i => i.setTitle(t("duplicate")).setIcon("copy")
+			.onClick(() => void duplicateFolder(app, f)));
+		if (view.hasFileClipboard()) {
+			menu.addItem(i => i.setTitle(t("paste")).setIcon("clipboard-paste")
+				.onClick(() => view.pasteClipboard(f)));
+		}
 		addFolderColorMenu(view, menu, f);
 		addFolderIconItems(view, menu, f);
 		menu.addSeparator();
@@ -124,6 +139,11 @@ export function showFileMenu(view: ColumnExplorerView, e: MouseEvent, f: TAbstra
 		menu.addItem(i => i.setTitle(t("duplicate")).setIcon("copy")
 			.onClick(() => duplicateFile(app, f)));
 	}
+
+	menu.addItem(i => i.setTitle(t("copy")).setIcon("copy")
+		.onClick(() => view.copyItems([f.path], false)));
+	menu.addItem(i => i.setTitle(t("cut")).setIcon("scissors")
+		.onClick(() => view.copyItems([f.path], true)));
 
 	const isPinned = view.plugin.settings.pinnedPaths[f.path] !== undefined;
 	menu.addItem(i => i.setTitle(isPinned ? t("unpin") : t("pin")).setIcon(isPinned ? "pin-off" : "pin")
@@ -199,6 +219,18 @@ function addFolderIconItems(view: ColumnExplorerView, menu: Menu, folder: TFolde
 	}
 }
 
+/** Контекстное меню спецстроки «Недавние»: очистка списка. */
+export function showRecentsMenu(view: ColumnExplorerView, e: MouseEvent) {
+	const menu = new Menu();
+	menu.addItem(i => i.setTitle(t("clearRecents")).setIcon("eraser")
+		.onClick(() => {
+			view.plugin.settings.recentFiles = [];
+			void view.plugin.saveSettings();
+			view.render();
+		}));
+	menu.showAtMouseEvent(e);
+}
+
 /** Right-click on a column header: create items + per-folder sort override. */
 export function showColumnHeaderMenu(view: ColumnExplorerView, e: MouseEvent, folder: TFolder) {
 	const menu = new Menu();
@@ -236,6 +268,10 @@ export function showFolderBackgroundMenu(view: ColumnExplorerView, e: MouseEvent
 		.onClick(() => void view.createFolder(folder)));
 	menu.addItem(i => i.setTitle(t("newCanvas")).setIcon("layout-dashboard")
 		.onClick(() => void view.createNote(folder, "canvas", "{}")));
+	if (view.hasFileClipboard()) {
+		menu.addItem(i => i.setTitle(t("paste")).setIcon("clipboard-paste")
+			.onClick(() => view.pasteClipboard(folder)));
+	}
 	menu.showAtMouseEvent(e);
 }
 

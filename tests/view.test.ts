@@ -146,12 +146,44 @@ describe("keyboard navigation", () => {
 		expect(view.selection).toEqual(["gamma.md"]);
 	});
 
+	test("focusColumns puts keyboard focus on the columns container", async () => {
+		const { view } = await mountView(["a.md"]);
+
+		view.focusColumns();
+
+		expect(document.activeElement?.classList.contains("column-explorer-columns")).toBe(true);
+	});
+
+	test("typeahead treats Space as part of the prefix instead of Quick Look", async () => {
+		// Сортировка по убыванию, чтобы имя с пробелом не было первым совпадением
+		const { view } = await mountView(["ab.md", "a c.md"], { sortMode: "name-desc" });
+		view.selection = ["ab.md"];
+		view.render();
+
+		keydown(view, "a");
+		keydown(view, " ");
+		keydown(view, "c");
+
+		expect(view.selection).toEqual(["a c.md"]);
+	});
+
 	test("Mod+A multi-selects every sibling in the column", async () => {
 		const { view } = await mountView(["a.md", "b.md"]);
 		view.selection = ["a.md"];
 		view.render();
 
 		keydown(view, "a", { metaKey: true });
+
+		expect([...view.multiSel].sort()).toEqual(["a.md", "b.md"]);
+	});
+
+	test("Mod+A multi-selects on a non-Latin layout via the physical key", async () => {
+		const { view } = await mountView(["a.md", "b.md"]);
+		view.selection = ["a.md"];
+		view.render();
+
+		// Кириллическая раскладка: e.key = "ф", физическая клавиша — KeyA
+		keydown(view, "ф", { metaKey: true, code: "KeyA" });
 
 		expect([...view.multiSel].sort()).toEqual(["a.md", "b.md"]);
 	});
@@ -346,6 +378,73 @@ describe("more keyboard shortcuts", () => {
 		await vi.waitFor(() => expect(copied).toHaveLength(1));
 
 		expect(copied[0]).toBe("a copy.md");
+	});
+
+	test("Mod+D duplicates on a non-Latin layout via the physical key", async () => {
+		const { view, app } = await mountView(["a.md"]);
+		const copied: string[] = [];
+		(app.vault as unknown as { copy: (f: TFile, p: string) => Promise<void> })
+			.copy = (_f, p) => { copied.push(p); return Promise.resolve(); };
+		view.selection = ["a.md"];
+		view.render();
+
+		keydown(view, "в", { metaKey: true, code: "KeyD" });
+		await vi.waitFor(() => expect(copied).toHaveLength(1));
+	});
+
+	test("Mod+C then Mod+V pastes a copy into the current folder", async () => {
+		const { view, app } = await mountView(["a.md", "target/"]);
+		const copied: string[] = [];
+		Object.assign(app.vault, {
+			getAllLoadedFiles: () => [],
+			copy: (_f: TFile, p: string) => { copied.push(p); return Promise.resolve(); },
+		});
+		view.selection = ["a.md"];
+		view.render();
+
+		keydown(view, "c", { metaKey: true });
+		view.selection = ["target"];
+		view.render();
+		keydown(view, "v", { metaKey: true });
+
+		await vi.waitFor(() => expect(copied).toEqual(["target/a.md"]));
+	});
+
+	test("Mod+C and Mod+V work on a non-Latin layout via the physical key", async () => {
+		const { view, app } = await mountView(["a.md", "target/"]);
+		const copied: string[] = [];
+		Object.assign(app.vault, {
+			getAllLoadedFiles: () => [],
+			copy: (_f: TFile, p: string) => { copied.push(p); return Promise.resolve(); },
+		});
+		view.selection = ["a.md"];
+		view.render();
+
+		keydown(view, "с", { metaKey: true, code: "KeyC" });
+		view.selection = ["target"];
+		view.render();
+		keydown(view, "м", { metaKey: true, code: "KeyV" });
+
+		await vi.waitFor(() => expect(copied).toEqual(["target/a.md"]));
+	});
+
+	test("Mod+X dims the cut item and Mod+V moves it once", async () => {
+		const { view, app } = await mountView(["a.md", "target/"]);
+		view.selection = ["a.md"];
+		view.render();
+
+		keydown(view, "x", { metaKey: true });
+		expect(view.contentEl.querySelector('[data-path="a.md"]')?.classList.contains("is-cut")).toBe(true);
+
+		view.selection = ["target"];
+		view.render();
+		keydown(view, "v", { metaKey: true });
+		await vi.waitFor(() => expect(app.fileManager.renamed).toEqual([{ from: "a.md", to: "target/a.md" }]));
+
+		// Буфер очищен — повторная вставка ничего не двигает
+		keydown(view, "v", { metaKey: true });
+		await Promise.resolve();
+		expect(app.fileManager.renamed).toHaveLength(1);
 	});
 
 	test("Delete with a multi-selection removes every selected file", async () => {

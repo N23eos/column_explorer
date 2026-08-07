@@ -71,6 +71,15 @@ export default class ColumnExplorerPlugin extends Plugin {
 		// остаётся отложенной, пока по вкладке не кликнули, и проверка на
 		// загруженную вью прятала бы команды до первого клика
 		this.addCommand({
+			id: "focus-view",
+			name: t("cmdFocus"),
+			callback: async () => {
+				const view = await this.activateView();
+				view?.focusColumns();
+			},
+		});
+
+		this.addCommand({
 			id: "new-note-here",
 			name: t("cmdNewNote"),
 			checkCallback: (checking) => {
@@ -137,12 +146,14 @@ export default class ColumnExplorerPlugin extends Plugin {
 	/** v1.3.x stored pins as `true`; convert to numeric order once. */
 	private migratePinnedPaths() {
 		const raw = this.settings.pinnedPaths as Record<string, number | boolean>;
-		let order = 0;
+		// Булевым — номера после максимального существующего: смешанные данные
+		// (откат версии и обратно) иначе давали бы двум пинам один порядок
+		const numeric = Object.values(raw).filter((v): v is number => typeof v === "number");
+		let next = numeric.length > 0 ? Math.max(...numeric) + 1 : 0;
 		const migrated: Record<string, number> = {};
 		for (const path of Object.keys(raw)) {
 			const value = raw[path];
-			migrated[path] = typeof value === "number" ? value : order;
-			order++;
+			migrated[path] = typeof value === "number" ? value : next++;
 		}
 		this.settings.pinnedPaths = migrated;
 	}
@@ -180,7 +191,11 @@ export default class ColumnExplorerPlugin extends Plugin {
 
 	async activateView(): Promise<ColumnExplorerView | null> {
 		const existing = this.getViewLeaf();
-		const leaf = existing ?? this.app.workspace.getLeftLeaf(false);
+		// Уже открытую вью не переносим — где пользователь её оставил, там и
+		// показываем; настройка решает только место для НОВОГО листа
+		const leaf = existing ?? (this.settings.openLocation === "tab"
+			? this.app.workspace.getLeaf("tab")
+			: this.app.workspace.getLeftLeaf(false));
 		if (!leaf) return null;
 		if (!existing) await leaf.setViewState({ type: VIEW_TYPE_COLUMNS, active: true });
 		await this.app.workspace.revealLeaf(leaf);

@@ -59,6 +59,10 @@ export function makeView(vault: FakeVault, options: FakeViewOptions = {}) {
 		hasFilter: () => filter.length > 0,
 		filterQuery: () => filter,
 		isRenaming: () => false,
+		isCutPath: () => false,
+		hasFileClipboard: () => false,
+		copyItems: () => { /* меню зовёт вью; тесты подменяют vi.fn() */ },
+		pasteClipboard: () => { /* меню зовёт вью; тесты подменяют vi.fn() */ },
 		specialKind: options.specialKind ?? (() => null),
 		/** Счётчик перерисовок — тесты проверяют, что действие её вызвало. */
 		renderCount: 0,

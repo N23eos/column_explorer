@@ -34,8 +34,8 @@ import { commitActiveResize, disconnectListObservers, renderCalendarColumn, rend
 import { renderPreviewColumn } from "./preview";
 import { showSortMenu } from "./menus";
 import { ConfirmModal, QuickLookModal } from "./modals";
-import { duplicateFile, trashFiles } from "./fileops";
-import { clearActiveDrag, setupGlobalDnd } from "./dnd";
+import { copyFiles, duplicateFile, duplicateFolder, moveFiles, trashFiles } from "./fileops";
+import { clearActiveDrag, setupCrumbDropTarget, setupGlobalDnd } from "./dnd";
 import type ColumnExplorerPlugin from "./main";
 
 /** Форма пункта core-плагина Bookmarks (приватный API — только чтение). */
@@ -84,6 +84,11 @@ export class ColumnExplorerView extends ItemView {
 	private filesByDayKey = "";
 	/** Владелец markdown-превью колонки: живёт до следующего рендера. */
 	private previewOwner: Component | null = null;
+	/**
+	 * Внутренний буфер Copy/Cut/Paste. Не системный clipboard: класть файлы
+	 * в OS-буфер из Obsidian кроссплатформенно нельзя.
+	 */
+	private fileClipboard: { paths: string[]; cut: boolean } | null = null;
 
 	/** Стек истории навигации (снимки selection) для кнопок назад/вперёд. */
 	private history: string[][] = [];
@@ -274,6 +279,11 @@ export class ColumnExplorerView extends ItemView {
 	goBack() { this.navigateHistory(-1); }
 	goForward() { this.navigateHistory(1); }
 	isSearchOpen(): boolean { return this.searchOpen; }
+
+	/** Команда «Фокус на панель»: клавиатурная навигация без мыши. */
+	focusColumns() {
+		this.columnsEl.focus();
+	}
 	isMobileSelecting(): boolean { return this.mobileSelActive; }
 
 	/** Мобильные размеры в CSS-переменных: слайдеры настроек зовут это вместо render(). */
@@ -729,11 +739,13 @@ export class ColumnExplorerView extends ItemView {
 		setIcon(star, "star");
 		star.addEventListener("click", () => this.toggleFavorite(current.path));
 
-		const addSegment = (label: string, targetDepth: number, isLast: boolean) => {
+		const addSegment = (label: string, targetDepth: number, isLast: boolean, dropFolder?: TFolder) => {
 			const seg = this.breadcrumbsEl.createSpan({
 				cls: "column-explorer-crumb" + (isLast ? " is-current" : ""),
 				text: label,
 			});
+			// Бросить файл на сегмент пути — переместить в эту папку (как в Finder)
+			if (dropFolder) setupCrumbDropTarget(this, seg, dropFolder);
 			if (!isLast) {
 				seg.addEventListener("click", () => {
 					this.selection = this.selection.slice(0, targetDepth);
@@ -744,7 +756,7 @@ export class ColumnExplorerView extends ItemView {
 				this.breadcrumbsEl.createSpan({ cls: "column-explorer-crumb-sep", text: "›" });
 			}
 		};
-		addSegment(this.app.vault.getName(), 0, this.selection.length === 0);
+		addSegment(this.app.vault.getName(), 0, this.selection.length === 0, this.app.vault.getRoot());
 		this.selection.forEach((path, i) => {
 			const f = this.app.vault.getAbstractFileByPath(path);
 			const label = f ? displayName(f)
@@ -753,7 +765,7 @@ export class ColumnExplorerView extends ItemView {
 				: path === CALENDAR_PATH ? t("calendar")
 				: path.startsWith(DAY_PATH_PREFIX) ? path.slice(DAY_PATH_PREFIX.length)
 				: path.split("/").pop() ?? path;
-			addSegment(label, i + 1, i === this.selection.length - 1);
+			addSegment(label, i + 1, i === this.selection.length - 1, f instanceof TFolder ? f : undefined);
 		});
 
 		// Длинный путь на узком экране: держим в виду текущий, последний сегмент
@@ -1010,7 +1022,50 @@ export class ColumnExplorerView extends ItemView {
 		this.render();
 	}
 
-	/** Cmd/Ctrl+D — duplicate the multi-selection, or the single selected file. */
+	/* ------------------------- copy / cut / paste -------------------- */
+
+	/** Положить пути в буфер; cut-режим затемняет исходники до вставки. */
+	copyItems(paths: string[], cut: boolean) {
+		// Сентинелы спецпунктов ("::…") — не файлы, копировать нечего
+		const real = paths.filter((p) => !p.startsWith("::"));
+		if (real.length === 0) return;
+		this.fileClipboard = { paths: real, cut };
+		this.render();
+	}
+
+	hasFileClipboard(): boolean {
+		return this.fileClipboard !== null;
+	}
+
+	/** Затемнение вырезанных строк — читается из buildItem при рендере. */
+	isCutPath(path: string): boolean {
+		return this.fileClipboard?.cut === true && this.fileClipboard.paths.includes(path);
+	}
+
+	/**
+	 * Вставить буфер в папку (по умолчанию — текущую). Copy-буфер живёт
+	 * дальше для повторных вставок, cut-буфер очищается после перемещения.
+	 */
+	pasteClipboard(target: TFolder = this.currentFolder()) {
+		const clip = this.fileClipboard;
+		if (!clip) return;
+		if (clip.cut) {
+			this.fileClipboard = null;
+			void moveFiles(this.app, clip.paths, target).then(() => this.render());
+		} else {
+			void copyFiles(this.app, clip.paths, target);
+		}
+	}
+
+	/** Cmd/Ctrl+C или X: мультивыделение либо текущий элемент. */
+	private copySelectionAt(depth: number, cut: boolean) {
+		const paths = this.multiSel.size > 0 && this.multiSelDepth === depth
+			? [...this.multiSel]
+			: [this.selection[depth]].filter((p): p is string => Boolean(p));
+		this.copyItems(paths, cut);
+	}
+
+	/** Cmd/Ctrl+D — duplicate the multi-selection, or the single selected item. */
 	duplicateSelected(depth: number) {
 		const paths = this.multiSel.size > 0 && this.multiSelDepth === depth
 			? [...this.multiSel]
@@ -1019,6 +1074,7 @@ export class ColumnExplorerView extends ItemView {
 			for (const p of paths) {
 				const f = this.app.vault.getAbstractFileByPath(p);
 				if (f instanceof TFile) await duplicateFile(this.app, f);
+				else if (f instanceof TFolder) await duplicateFolder(this.app, f);
 			}
 		})();
 	}
@@ -1203,8 +1259,9 @@ export class ColumnExplorerView extends ItemView {
 			} else if (f instanceof TFile && e.key === "Enter") {
 				void this.app.workspace.getLeaf(false).openFile(f);
 			}
-		} else if (e.key === " ") {
-			// Quick Look: как в Finder — пробел открывает превью выделенного файла
+		} else if (e.key === " " && !this.typeaheadBuffer) {
+			// Quick Look: как в Finder — пробел открывает превью выделенного файла.
+			// Во время type-ahead пробел — часть набираемого имени, не превью
 			e.preventDefault();
 			const f = selectedPath ? this.app.vault.getAbstractFileByPath(selectedPath) : null;
 			if (f instanceof TFile) new QuickLookModal(this.app, this, f).open();
@@ -1220,14 +1277,26 @@ export class ColumnExplorerView extends ItemView {
 			if (this.multiSel.size > 0) { this.deleteMany([...this.multiSel]); return; }
 			// Сентинелы спецпунктов ("::…") — не файлы, удалять нечего
 			if (selectedPath && !selectedPath.startsWith("::")) this.deleteMany([selectedPath]);
-		} else if ((e.metaKey || e.ctrlKey) && (e.key === "a" || e.key === "A")) {
+		} else if ((e.metaKey || e.ctrlKey) && (e.key === "a" || e.key === "A" || e.code === "KeyA")) {
+			// e.code — физическая клавиша: на кириллице и прочих не-латинских
+			// раскладках e.key даёт другую букву, и хоткей иначе не срабатывает
 			e.preventDefault();
 			this.selectAllAt(depth);
-		} else if ((e.metaKey || e.ctrlKey) && (e.key === "d" || e.key === "D")) {
+		} else if ((e.metaKey || e.ctrlKey) && (e.key === "d" || e.key === "D" || e.code === "KeyD")) {
 			e.preventDefault();
 			this.duplicateSelected(depth);
+		} else if ((e.metaKey || e.ctrlKey) && (e.key === "c" || e.key === "C" || e.code === "KeyC")) {
+			e.preventDefault();
+			this.copySelectionAt(depth, false);
+		} else if ((e.metaKey || e.ctrlKey) && (e.key === "x" || e.key === "X" || e.code === "KeyX")) {
+			e.preventDefault();
+			this.copySelectionAt(depth, true);
+		} else if ((e.metaKey || e.ctrlKey) && (e.key === "v" || e.key === "V" || e.code === "KeyV")) {
+			e.preventDefault();
+			this.pasteClipboard();
 		} else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
 			// Type-ahead: как в Finder — набор букв прыгает к совпадению
+			if (e.key === " ") e.preventDefault(); // пробел иначе прокручивает список
 			this.onTypeahead(e.key, children, depth);
 		}
 	}
