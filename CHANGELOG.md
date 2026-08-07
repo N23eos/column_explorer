@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Files and folders can now be dropped onto the breadcrumb bar — dropping onto a path
+  segment moves them into that folder, the way Finder's path bar works.
+- Folders can be duplicated: *Duplicate* in the folder context menu, or `Ctrl`/`Cmd`+`D`
+  with a folder selected, copies the folder with its whole subtree as `Name copy`.
+- Right-clicking the *Recents* row offers *Clear recent files* — previously the list
+  could only be cleared from the settings tab.
+- New command *Focus column explorer*: puts keyboard focus on the columns so arrow-key
+  navigation works without reaching for the mouse. Bindable in **Settings → Hotkeys**.
+
+### Fixed
+- `Ctrl`/`Cmd`+`A` (select all) and `Ctrl`/`Cmd`+`D` (duplicate) did not work on
+  non-Latin keyboard layouts — Cyrillic, Greek, Hebrew and others — because the check
+  looked at the typed character instead of the physical key.
+- A failed clipboard write (for example when the window loses focus mid-action) showed
+  the usual "copied" flow with an empty clipboard. It now reports the failure.
+- Type-ahead could not match names containing spaces: `Space` always opened Quick Look.
+  While a prefix is being typed, `Space` now continues the prefix; Quick Look still
+  opens on a plain `Space`.
+- Migrating pins saved by v1.3.x could assign the same order to two pins when the
+  saved data mixed old boolean and new numeric values (a version rollback and back).
+
 ### Changed
 - Search in the toolbar is now fuzzy, matching the behaviour of Obsidian's Quick Switcher:
   typing `col ex` finds `Column Explorer`. Every matched fragment of the name is highlighted.

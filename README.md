@@ -91,7 +91,7 @@ The first column can host three virtual rows, each toggleable and positionable i
 
 - **All standard operations** — create notes, canvases and folders (with inline rename), rename, trash, duplicate, move to folder, copy path
 - **Multi-select** — `Ctrl`/`Cmd`-click to toggle, `Shift`-click for range; move, duplicate, delete or drag many at once
-- **Drag & drop** — move files/folders between columns or straight onto a folder row; drag a file into an editor to insert a link
+- **Drag & drop** — move files/folders between columns, straight onto a folder row or onto a breadcrumb segment; drag a file into an editor to insert a link
 - **Full Obsidian context menu** — core & community plugin items (bookmarks, "Reveal in Finder", copy link, …) are injected via the `file-menu` event
 - **Copy links & paths** — vault path, absolute system path, wikilink, Markdown link or `obsidian://` URL, from the context menu
 - **Excluded files** — hide files and folders by comma-separated patterns. `*.tmp` matches by file name at any depth; `.trash` matches any path containing it; a trailing slash (`archive/`) is a path prefix **from the vault root**, so nested folders need their full path (`Notes/archive/`)
@@ -119,6 +119,7 @@ All are bindable to hotkeys in **Settings → Hotkeys**.
 |---------|--------------|
 | *Open column explorer* | opens (or reveals) the view |
 | *Reveal active file in columns* | jumps to the note open in the editor |
+| *Focus column explorer* | puts keyboard focus on the columns for arrow-key navigation |
 | *New note in current folder* | creates a note in the deepest selected folder |
 | *New folder in current folder* | same, for a folder |
 
