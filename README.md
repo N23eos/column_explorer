@@ -1,3 +1,6 @@
+> **⭐ Found this useful? [Star the repo](https://github.com/n23eos/column_explorer)** — that's how other people find it.
+> **🐦 I build in public on X — [@Raincoat_talk](https://x.com/Raincoat_talk)** for new plugins and updates.
+
 # Column Explorer
 
 [![Downloads](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fraw.githubusercontent.com%2Fobsidianmd%2Fobsidian-releases%2Fmaster%2Fcommunity-plugin-stats.json&query=%24%5B%22column-explorer%22%5D.downloads&label=downloads&color=7c3aed&style=flat-square&logo=obsidian)](https://obsidian.md/plugins?id=column-explorer)
