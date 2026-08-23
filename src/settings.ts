@@ -2,8 +2,9 @@ import { App, Notice, PluginSettingTab, Setting, SettingDefinitionItem, SliderCo
 import { t } from "./i18n";
 import {
 	DEFAULT_COLUMN_WIDTH, DEFAULT_MOBILE_ICON, DEFAULT_MOBILE_SCALE, DEFAULT_RECENT_FILES,
-	MAX_COLUMN_WIDTH, MAX_MOBILE_ICON, MAX_MOBILE_SCALE, MAX_RECENT_FILES,
-	MIN_COLUMN_WIDTH, MIN_MOBILE_ICON, MIN_MOBILE_SCALE, MIN_RECENT_FILES,
+	DEFAULT_STORAGE_RINGS,
+	MAX_COLUMN_WIDTH, MAX_MOBILE_ICON, MAX_MOBILE_SCALE, MAX_RECENT_FILES, MAX_STORAGE_RINGS,
+	MIN_COLUMN_WIDTH, MIN_MOBILE_ICON, MIN_MOBILE_SCALE, MIN_RECENT_FILES, MIN_STORAGE_RINGS,
 	SORT_MODE_VALUES, normalizeMobileSettings,
 } from "./pure";
 import type ColumnExplorerPlugin from "./main";
@@ -61,6 +62,12 @@ export interface ColumnExplorerSettings {
 	showBookmarks: boolean;
 	/** Show the virtual "Calendar" row. */
 	showCalendar: boolean;
+	/** Show the virtual "Disk usage" row with the sunburst chart. */
+	showStorage: boolean;
+	/** Comma-separated vault paths the disk-usage scan skips. */
+	storageExcluded: string;
+	/** How many rings (nesting levels) the disk-usage chart draws at once. */
+	storageRingCount: number;
 	/** Where the virtual rows sit in the root column. */
 	specialItemsPosition: "top" | "bottom";
 	/** Where the open command and ribbon icon put the view. */
@@ -99,6 +106,9 @@ export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
 	showRecents: true,
 	showBookmarks: true,
 	showCalendar: true,
+	showStorage: true,
+	storageExcluded: "",
+	storageRingCount: DEFAULT_STORAGE_RINGS,
 	specialItemsPosition: "top",
 	openLocation: "sidebar",
 	favorites: [],
@@ -180,6 +190,12 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 					{ name: t("setShowFavorites"), desc: t("setShowFavoritesDesc"), control: { type: "toggle", key: "showFavorites" } },
 					{ name: t("setShowBookmarks"), desc: t("setShowBookmarksDesc"), control: { type: "toggle", key: "showBookmarks" } },
 					{ name: t("setShowCalendar"), desc: t("setShowCalendarDesc"), control: { type: "toggle", key: "showCalendar" } },
+					{ name: t("setShowStorage"), desc: t("setShowStorageDesc"), control: { type: "toggle", key: "showStorage" } },
+					{ name: t("setStorageExclude"), desc: t("setStorageExcludeDesc"), control: { type: "text", key: "storageExcluded" } },
+					{
+						name: t("setStorageRings"), desc: t("setStorageRingsDesc"),
+						control: { type: "slider", key: "storageRingCount", min: MIN_STORAGE_RINGS, max: MAX_STORAGE_RINGS, step: 1 },
+					},
 				],
 			},
 			{
@@ -358,6 +374,18 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl).setName(t("setShowCalendar")).setDesc(t("setShowCalendarDesc"))
 			.addToggle(tg => tg.setValue(s.showCalendar).onChange(async (v) => { s.showCalendar = v; await save(); }));
+
+		new Setting(containerEl).setName(t("setShowStorage")).setDesc(t("setShowStorageDesc"))
+			.addToggle(tg => tg.setValue(s.showStorage).onChange(async (v) => { s.showStorage = v; await save(); }));
+
+		new Setting(containerEl).setName(t("setStorageExclude")).setDesc(t("setStorageExcludeDesc"))
+			.addText(txt => txt.setValue(s.storageExcluded)
+				.onChange((v) => { s.storageExcluded = v; saveTextInput(); }));
+
+		new Setting(containerEl).setName(t("setStorageRings")).setDesc(t("setStorageRingsDesc"))
+			.addSlider(sl => sl.setLimits(MIN_STORAGE_RINGS, MAX_STORAGE_RINGS, 1)
+				.setValue(s.storageRingCount)
+				.onChange(async (v) => { s.storageRingCount = v; await save(); }));
 
 		new Setting(containerEl).setName(t("headMobile")).setHeading();
 

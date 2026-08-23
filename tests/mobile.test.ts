@@ -257,6 +257,7 @@ describe("normalizeSettings", () => {
 			sortMode: "size-desc",
 			specialItemsPosition: "bottom",
 			openLocation: "tab",
+			storageRingCount: 7,
 		});
 
 		expect(result).toEqual({
@@ -267,6 +268,7 @@ describe("normalizeSettings", () => {
 			sortMode: "size-desc",
 			specialItemsPosition: "bottom",
 			openLocation: "tab",
+			storageRingCount: 7,
 		});
 	});
 
@@ -278,6 +280,7 @@ describe("normalizeSettings", () => {
 		expect(result.lockedColumnCount).toBeNull();
 		expect(result.sortMode).toBe("name-asc");
 		expect(result.specialItemsPosition).toBe("top");
+		expect(result.storageRingCount).toBe(5);
 		expect(result.columnWidths).toEqual({});
 	});
 
@@ -286,6 +289,9 @@ describe("normalizeSettings", () => {
 		expect(normalizeSettings({ columnWidth: 10 }).columnWidth).toBe(140);
 		expect(normalizeSettings({ recentFilesCount: 0 }).recentFilesCount).toBe(5);
 		expect(normalizeSettings({ recentFilesCount: 999 }).recentFilesCount).toBe(50);
+		expect(normalizeSettings({ storageRingCount: 1 }).storageRingCount).toBe(3);
+		expect(normalizeSettings({ storageRingCount: 99 }).storageRingCount).toBe(8);
+		expect(normalizeSettings({ storageRingCount: "many" }).storageRingCount).toBe(5);
 	});
 
 	test("rounds fractional numbers", () => {

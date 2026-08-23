@@ -18,7 +18,7 @@ async function mountView(paths: string[], settings: Partial<ColumnExplorerSettin
 	// сдвигают индексы, а здесь проверяется навигация по обычным файлам.
 	// Тесты самих спецпунктов включают их явно.
 	const plugin = makePlugin(app, {
-		showRecents: false, showBookmarks: false, showCalendar: false, ...settings,
+		showRecents: false, showBookmarks: false, showCalendar: false, showStorage: false, ...settings,
 	});
 	// leaf.getRoot() зовёт autoResizePanel — отдаём объект, не равный
 	// left/rightSplit, чтобы ширину панели тесты не трогали

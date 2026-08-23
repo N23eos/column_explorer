@@ -36,12 +36,13 @@ If your vault is flat and small, the default explorer is fine. If you keep a dee
 2. **Click a folder** — its contents appear in a new column to the right. Keep clicking to drill down; the breadcrumb bar above shows the full path and jumps back to any level.
 3. **Make it yours** — right-click a folder for colors, icons and *Pin to top*; click the star in the breadcrumb bar to add the current folder to Favorites; drag the right edge of a column to resize it.
 
-Worth knowing early: `Space` previews the selected file, right-clicking empty space creates a note or folder there, and **Settings → Column Explorer** has a *Special items* section that turns on the Recents, Bookmarks and Calendar rows.
+Worth knowing early: `Space` previews the selected file, right-clicking empty space creates a note or folder there, and **Settings → Column Explorer** has a *Special items* section that turns on the Recents, Bookmarks, Calendar and Disk usage rows.
 
 ## Highlights
 
 - **Miller columns** — Finder-style navigation, each folder opens a new column
 - **Recents, Bookmarks & Calendar** — virtual rows in the first column: recently opened files (up to 50), your core-plugin bookmarks, and a month calendar with per-day created-note badges — click a day to list the notes created then
+- **Disk usage** — a sunburst chart of the vault by size, word count or file count, with animated zoom into any folder
 - **Import from the OS** — drop files from Finder/Explorer into any column to copy them into the vault
 - **Folder colors, icons and pins** — eight theme-aware colors, any lucide icon, pin items to the top
 - **List or icon grid per folder** — the grid shows real image thumbnails
@@ -67,13 +68,14 @@ Worth knowing early: `Space` previews the selected file, right-clicking empty sp
 
 ### Special items
 
-The first column can host three virtual rows, each toggleable and positionable in settings.
+The first column can host four virtual rows, each toggleable and positionable in settings.
 
 ![Column Explorer — calendar column with per-day created-note counts](docs/screenshot-2.jpg)
 
 - **Recents** — the last files you opened, up to 50
 - **Bookmarks** — your core Bookmarks plugin items, with Favorites pinned above them
 - **Calendar** — a month grid with a badge per day showing how many notes were created then; click a day to list them
+- **Disk usage** — an interactive sunburst chart of the whole vault, in the spirit of classic disk-usage analyzers. Switch between **size** (bytes on disk), **words** and **files**; click a folder to fly inside it, `Esc` or the centre circle to go back out, and click a file to open it. Sectors too thin to see merge into one muted "small items" arc, hovering highlights a folder with all of its descendants, and the chart rescans itself when the vault changes. Excluded folders and the number of visible rings are configurable.
 
 ### Appearance
 

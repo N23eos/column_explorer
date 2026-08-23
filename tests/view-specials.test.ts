@@ -39,7 +39,7 @@ beforeEach(() => {
 describe("recents column", () => {
 	test("lists the recent files that still exist", async () => {
 		const { view } = await mountView(["a.md", "b.md"], {
-			recentFiles: ["b.md", "ghost.md", "a.md"], showBookmarks: false, showCalendar: false,
+			recentFiles: ["b.md", "ghost.md", "a.md"], showBookmarks: false, showCalendar: false, showStorage: false,
 		});
 
 		view.selectSpecial(RECENTS_PATH);
@@ -196,7 +196,7 @@ describe("search filter", () => {
 		// "bz" совпадает лучше (буква в начале), но сортировка по имени
 		// ставит "a-----z" первым — порядок колонки важнее релевантности
 		const { view } = await mountView(["a-----z.md", "bz.md"], {
-			showRecents: false, showBookmarks: false, showCalendar: false,
+			showRecents: false, showBookmarks: false, showCalendar: false, showStorage: false,
 		});
 
 		typeSearch(view, "z");

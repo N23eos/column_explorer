@@ -236,6 +236,7 @@ export function availablePath(folderPath: string, fileName: string, taken: Reado
  */
 export const RECENTS_PATH = "::recents::";
 export const BOOKMARKS_PATH = "::bookmarks::";
+export const STORAGE_PATH = "::storage::";
 export const CALENDAR_PATH = "::calendar::";
 /** Префикс сентинела дня календаря: "::day::2026-07-19". */
 export const DAY_PATH_PREFIX = "::day::";
@@ -458,6 +459,8 @@ export const MAX_COLUMN_WIDTH = 500;
 export const DEFAULT_COLUMN_WIDTH = 200;
 /** Корневая колонка по умолчанию шире остальных — там самые длинные ярлыки. */
 export const ROOT_COLUMN_EXTRA_WIDTH = 60;
+/** Колонке с диаграммой нужен квадрат под кольца, а не список строк. */
+export const DEFAULT_STORAGE_COLUMN_WIDTH = 420;
 
 export const MIN_RECENT_FILES = 5;
 export const MAX_RECENT_FILES = 50;
@@ -472,6 +475,11 @@ export const SORT_MODE_VALUES = [
 ] as const;
 
 export const SPECIAL_POSITIONS = ["top", "bottom"] as const;
+
+/** Сколько уровней вложенности показывает диаграмма «Использование диска». */
+export const MIN_STORAGE_RINGS = 3;
+export const MAX_STORAGE_RINGS = 8;
+export const DEFAULT_STORAGE_RINGS = 5;
 
 /** Где команда/ribbon открывают вью: левая панель или вкладка в основной области. */
 export const OPEN_LOCATIONS = ["sidebar", "tab"] as const;
@@ -507,6 +515,7 @@ export interface NormalizedSettings {
 	sortMode: (typeof SORT_MODE_VALUES)[number];
 	specialItemsPosition: (typeof SPECIAL_POSITIONS)[number];
 	openLocation: (typeof OPEN_LOCATIONS)[number];
+	storageRingCount: number;
 }
 
 /**
@@ -527,5 +536,6 @@ export function normalizeSettings(raw: Record<string, unknown>): NormalizedSetti
 		sortMode: oneOf(raw.sortMode, SORT_MODE_VALUES, "name-asc"),
 		specialItemsPosition: oneOf(raw.specialItemsPosition, SPECIAL_POSITIONS, "top"),
 		openLocation: oneOf(raw.openLocation, OPEN_LOCATIONS, "sidebar"),
+		storageRingCount: clampInt(raw.storageRingCount, MIN_STORAGE_RINGS, MAX_STORAGE_RINGS, DEFAULT_STORAGE_RINGS),
 	};
 }

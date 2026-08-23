@@ -18,7 +18,7 @@ import {
 } from "obsidian";
 import { t } from "./i18n";
 import {
-	BOOKMARKS_PATH, CALENDAR_PATH, DAY_PATH_PREFIX, RECENTS_PATH,
+	BOOKMARKS_PATH, CALENDAR_PATH, DAY_PATH_PREFIX, RECENTS_PATH, STORAGE_PATH,
 	NameMatcher,
 	dayKey, desiredPanelWidth, errorMessage, filterByMatcher, lockedColumnVisible, matchesExcludePatterns,
 	mobileSelectionMode, parentSelection,
@@ -30,8 +30,9 @@ import {
 } from "./mobile";
 import { displayName, folderNoteOf, visibleChildren } from "./utils";
 import { MIN_COLUMN_WIDTH } from "./settings";
-import { commitActiveResize, disconnectListObservers, renderCalendarColumn, renderColumn, renderColumnList, renderFileListColumn } from "./column";
+import { commitActiveResize, disconnectListObservers, renderCalendarColumn, renderColumn, renderColumnList, renderFileListColumn, renderStorageColumn } from "./column";
 import { renderPreviewColumn } from "./preview";
+import { SunburstController } from "./storage/sunburst";
 import { showSortMenu } from "./menus";
 import { ConfirmModal, QuickLookModal } from "./modals";
 import { copyFiles, duplicateFile, duplicateFolder, moveFiles, trashFiles } from "./fileops";
@@ -84,6 +85,8 @@ export class ColumnExplorerView extends ItemView {
 	private filesByDayKey = "";
 	/** Владелец markdown-превью колонки: живёт до следующего рендера. */
 	private previewOwner: Component | null = null;
+	/** Диаграмма «Использование диска»; создаётся при первом показе колонки. */
+	private sunburst: SunburstController | null = null;
 	/**
 	 * Внутренний буфер Copy/Cut/Paste. Не системный clipboard: класть файлы
 	 * в OS-буфер из Obsidian кроссплатформенно нельзя.
@@ -559,6 +562,7 @@ export class ColumnExplorerView extends ItemView {
 
 		const validSel: string[] = [];
 		const special = this.specialKind(this.selection[0]);
+		if (!this.plugin.settings.showStorage) this.dropSunburst();
 		if (special === "calendar") {
 			// Календарь: сентинел + опционально день + опционально файл дня
 			validSel.push(CALENDAR_PATH);
@@ -616,6 +620,8 @@ export class ColumnExplorerView extends ItemView {
 				: [];
 			renderFileListColumn(this, this.columnsEl, t("bookmarks"), core, BOOKMARKS_PATH, 1, favs);
 			previewOf(this.selection[1]);
+		} else if (special === "storage") {
+			renderStorageColumn(this, this.columnsEl);
 		} else if (special === "calendar") {
 			const daySentinel = this.selection[1];
 			// На телефоне колонка одна: открытый день заменяет сетку месяца
@@ -820,12 +826,34 @@ export class ColumnExplorerView extends ItemView {
 	}
 
 	/** Тип спецпункта по сентинел-пути с учётом настроек и доступности. */
-	specialKind(path: string | undefined): "recents" | "bookmarks" | "calendar" | null {
+	specialKind(path: string | undefined): "recents" | "bookmarks" | "calendar" | "storage" | null {
 		const s = this.plugin.settings;
 		if (path === RECENTS_PATH && s.showRecents) return "recents";
 		if (path === BOOKMARKS_PATH && ((s.showBookmarks && this.bookmarksAvailable()) || (s.showFavorites && s.favorites.length > 0))) return "bookmarks";
 		if (path === CALENDAR_PATH && s.showCalendar) return "calendar";
+		if (path === STORAGE_PATH && s.showStorage) return "storage";
 		return null;
+	}
+
+	/**
+	 * Контроллер диаграммы «Использование диска». Создаётся при первом
+	 * открытии колонки: скан хранилища слишком дорог, чтобы делать его на
+	 * загрузке плагина. Дальше живёт до закрытия вью — колонки
+	 * перерисовываются часто, а дерево и кэш словосчёта переживают рендер.
+	 */
+	sunburstController(): SunburstController {
+		if (!this.sunburst) {
+			this.sunburst = new SunburstController(this);
+			this.addChild(this.sunburst);
+		}
+		return this.sunburst;
+	}
+
+	/** Спецстроку выключили в настройках — диаграмма и её подписки не нужны. */
+	private dropSunburst() {
+		if (!this.sunburst) return;
+		this.removeChild(this.sunburst);
+		this.sunburst = null;
 	}
 
 	selectSpecial(path: string) {
@@ -1265,9 +1293,14 @@ export class ColumnExplorerView extends ItemView {
 			e.preventDefault();
 			const f = selectedPath ? this.app.vault.getAbstractFileByPath(selectedPath) : null;
 			if (f instanceof TFile) new QuickLookModal(this.app, this, f).open();
-		} else if (e.key === "Escape" && this.hasFilter()) {
-			e.preventDefault();
-			this.clearFilter();
+		} else if (e.key === "Escape") {
+			// В диаграмме «Использование диска» Escape — шаг зума наружу
+			if (this.specialKind(this.selection[0]) === "storage" && this.sunburst?.zoomOut()) {
+				e.preventDefault();
+			} else if (this.hasFilter()) {
+				e.preventDefault();
+				this.clearFilter();
+			}
 		} else if (e.key === "F2") {
 			e.preventDefault();
 			const f = selectedPath ? this.app.vault.getAbstractFileByPath(selectedPath) : null;
@@ -1325,6 +1358,8 @@ export class ColumnExplorerView extends ItemView {
 		if (special && depth >= 1) {
 			if (special === "recents") return this.recentFiles().map(toEntry);
 			if (special === "bookmarks") return this.bookmarkedItems().map(toEntry);
+			// Диаграмма — не список: стрелками внутрь неё ходить некуда
+			if (special === "storage") return [];
 			// Календарь: глубина 1 — сетка дней (не список), глубина 2 — файлы дня
 			const day = this.selectedDayKey();
 			return depth === 2 && day ? this.filesCreatedOn(day).map(toEntry) : [];
@@ -1336,6 +1371,7 @@ export class ColumnExplorerView extends ItemView {
 		if (this.specialKind(RECENTS_PATH)) specials.push({ path: RECENTS_PATH, name: t("recents") });
 		if (this.specialKind(BOOKMARKS_PATH)) specials.push({ path: BOOKMARKS_PATH, name: t("bookmarks") });
 		if (this.specialKind(CALENDAR_PATH)) specials.push({ path: CALENDAR_PATH, name: t("calendar") });
+		if (this.specialKind(STORAGE_PATH)) specials.push({ path: STORAGE_PATH, name: t("diskUsage") });
 		return this.plugin.settings.specialItemsPosition === "top" ? [...specials, ...entries] : [...entries, ...specials];
 	}
 

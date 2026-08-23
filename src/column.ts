@@ -1,6 +1,6 @@
 import { Platform, TAbstractFile, TFile, TFolder, getLanguage, setIcon } from "obsidian";
 import { t } from "./i18n";
-import { BOOKMARKS_PATH, CALENDAR_PATH, DAY_PATH_PREFIX, RECENTS_PATH, dayKey, matchRanges, monthGrid } from "./pure";
+import { BOOKMARKS_PATH, CALENDAR_PATH, DAY_PATH_PREFIX, DEFAULT_STORAGE_COLUMN_WIDTH, RECENTS_PATH, STORAGE_PATH, dayKey, matchRanges, monthGrid } from "./pure";
 import { displayName, folderNoteOf, iconFor, isImageFile } from "./utils";
 import { addUpButton, setupLongPress } from "./mobile";
 import { notifyDragManager, setupColumnDnd } from "./dnd";
@@ -249,6 +249,7 @@ function buildSpecialItems(view: ColumnExplorerView): HTMLElement[] {
 	if (view.specialKind(RECENTS_PATH)) items.push(buildSpecialItem(view, RECENTS_PATH, "history", t("recents")));
 	if (view.specialKind(BOOKMARKS_PATH)) items.push(buildSpecialItem(view, BOOKMARKS_PATH, "bookmark", t("bookmarks")));
 	if (view.specialKind(CALENDAR_PATH)) items.push(buildSpecialItem(view, CALENDAR_PATH, "calendar-days", t("calendar")));
+	if (view.specialKind(STORAGE_PATH)) items.push(buildSpecialItem(view, STORAGE_PATH, "pie-chart", t("diskUsage")));
 	return items;
 }
 
@@ -401,6 +402,27 @@ export function renderCalendarColumn(view: ColumnExplorerView, container: HTMLEl
 		if (cell?.dataset.day) view.selectDay(cell.dataset.day);
 	});
 	addResizeHandle(view, col, CALENDAR_PATH);
+	return col;
+}
+
+/**
+ * Колонка «Использование диска»: держит SVG-диаграмму хранилища. Сам чарт
+ * живёт в контроллере вью и переживает перерисовки — колонка только принимает
+ * готовый элемент и задаёт ширину: кольцам нужен квадрат, а не узкий список.
+ */
+export function renderStorageColumn(view: ColumnExplorerView, container: HTMLElement) {
+	const col = container.createDiv({ cls: "column-explorer-column column-explorer-storage" });
+	col.dataset.depth = "1";
+	col.dataset.folderPath = STORAGE_PATH;
+	const customWidth = view.plugin.settings.columnWidths[STORAGE_PATH] ?? DEFAULT_STORAGE_COLUMN_WIDTH;
+	col.style.setProperty("--ce-col-width", customWidth + "px");
+
+	const header = col.createDiv({ cls: "column-explorer-column-header" });
+	if (Platform.isMobile) addUpButton(view, header);
+	header.createSpan({ cls: "column-explorer-column-title", text: t("diskUsage") });
+
+	view.sunburstController().mount(col);
+	addResizeHandle(view, col, STORAGE_PATH);
 	return col;
 }
 
