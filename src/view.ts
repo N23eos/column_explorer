@@ -131,8 +131,10 @@ export class ColumnExplorerView extends ItemView {
 	}
 
 	async setState(state: ColumnViewState, result: ViewStateResult) {
-		if (state?.selection && Array.isArray(state.selection)) {
-			this.selection = state.selection;
+		if (Array.isArray(state?.selection)) {
+			// workspace.json тоже переживает откаты версий и правки руками:
+			// не-строка в цепочке выбора упала бы на первом же startsWith
+			this.selection = (state.selection as unknown[]).filter((p): p is string => typeof p === "string");
 			if (this.columnsEl) this.render();
 		}
 		return super.setState(state, result);

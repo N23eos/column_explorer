@@ -200,6 +200,15 @@ describe("view state", () => {
 		expect(view.selection).toEqual(["notes", "notes/a.md"]);
 	});
 
+	// workspace.json тоже правится руками: число в цепочке роняло render
+	test("drops non-string entries from a restored selection", async () => {
+		const { view } = await mount(["notes/a.md"]);
+
+		await view.setState({ selection: ["notes", 7, null, "notes/a.md"] } as never, {} as never);
+
+		expect(view.selection).toEqual(["notes", "notes/a.md"]);
+	});
+
 	test("reports its type, name and icon", async () => {
 		const { view } = await mount(["a.md"]);
 
