@@ -5,26 +5,24 @@ import {
 	DEFAULT_STORAGE_RINGS,
 	MAX_COLUMN_WIDTH, MAX_MOBILE_ICON, MAX_MOBILE_SCALE, MAX_RECENT_FILES, MAX_STORAGE_RINGS,
 	MIN_COLUMN_WIDTH, MIN_MOBILE_ICON, MIN_MOBILE_SCALE, MIN_RECENT_FILES, MIN_STORAGE_RINGS,
-	SORT_MODE_VALUES, normalizeMobileSettings,
+	COLUMN_VIEW_MODES, FOLDER_COLOR_KEYS, SORT_MODE_VALUES, normalizeMobileSettings,
 } from "./pure";
 import type ColumnExplorerPlugin from "./main";
 
 // Границы и список режимов живут в pure.ts (их использует normalizeSettings);
 // здесь реэкспорт, чтобы остальные модули импортировали их как раньше
 export {
+	FOLDER_COLOR_KEYS,
 	MAX_COLUMN_WIDTH, MAX_RECENT_FILES, MIN_COLUMN_WIDTH, MIN_RECENT_FILES,
 	ROOT_COLUMN_EXTRA_WIDTH, SORT_MODE_VALUES,
 } from "./pure";
 
 export type SortMode = (typeof SORT_MODE_VALUES)[number];
-export type ColumnViewMode = "list" | "grid";
+export type ColumnViewMode = (typeof COLUMN_VIEW_MODES)[number];
+export type FolderColorKey = (typeof FOLDER_COLOR_KEYS)[number];
 
 /** Пауза перед сохранением текстового поля настроек — гасит запись на букву. */
 const TEXT_INPUT_SAVE_DELAY_MS = 500;
-
-/** Theme color keys — resolve to Obsidian's native `--color-*` CSS variables. */
-export const FOLDER_COLOR_KEYS = ["red", "orange", "yellow", "green", "cyan", "blue", "purple", "pink"] as const;
-export type FolderColorKey = (typeof FOLDER_COLOR_KEYS)[number];
 
 export interface ColumnExplorerSettings {
 	foldersFirst: boolean;

@@ -260,6 +260,12 @@ describe("normalizeSettings", () => {
 			storageRingCount: 7,
 			seenAt: { "Notes/a.md": 1700 },
 			unreadBaseline: 1600,
+			folderColors: { Notes: "blue" },
+			columnViewModes: { Notes: "grid" },
+			columnSortModes: { Notes: "size-asc" },
+			folderIcons: { Notes: "star" },
+			favorites: ["Notes/a.md"],
+			recentFiles: ["Notes/a.md"],
 		});
 
 		expect(result).toEqual({
@@ -273,6 +279,12 @@ describe("normalizeSettings", () => {
 			storageRingCount: 7,
 			seenAt: { "Notes/a.md": 1700 },
 			unreadBaseline: 1600,
+			folderColors: { Notes: "blue" },
+			columnViewModes: { Notes: "grid" },
+			columnSortModes: { Notes: "size-asc" },
+			folderIcons: { Notes: "star" },
+			favorites: ["Notes/a.md"],
+			recentFiles: ["Notes/a.md"],
 		});
 	});
 
@@ -335,6 +347,46 @@ describe("normalizeSettings", () => {
 		expect(normalizeSettings({ columnWidths: "nope" }).columnWidths).toEqual({});
 		expect(normalizeSettings({ columnWidths: [1, 2] }).columnWidths).toEqual({});
 		expect(normalizeSettings({ columnWidths: null }).columnWidths).toEqual({});
+	});
+
+	test("drops record entries whose value is not a known one", () => {
+		const result = normalizeSettings({
+			folderColors: { ok: "green", bad: "chartreuse", wrong: 7 },
+			columnViewModes: { ok: "grid", bad: "gallery" },
+			columnSortModes: { ok: "mtime-desc", bad: "chaos" },
+			folderIcons: { ok: "star", bad: 12 },
+		});
+
+		expect(result.folderColors).toEqual({ ok: "green" });
+		expect(result.columnViewModes).toEqual({ ok: "grid" });
+		expect(result.columnSortModes).toEqual({ ok: "mtime-desc" });
+		expect(result.folderIcons).toEqual({ ok: "star" });
+	});
+
+	// Строка или null вместо объекта роняли загрузку плагина на первом Object.keys
+	test("survives records and lists that are not containers at all", () => {
+		const result = normalizeSettings({
+			folderColors: "nope",
+			columnViewModes: null,
+			columnSortModes: [1, 2],
+			folderIcons: 42,
+			favorites: "a.md",
+			recentFiles: null,
+		});
+
+		expect(result.folderColors).toEqual({});
+		expect(result.columnViewModes).toEqual({});
+		expect(result.columnSortModes).toEqual({});
+		expect(result.folderIcons).toEqual({});
+		expect(result.favorites).toEqual([]);
+		expect(result.recentFiles).toEqual([]);
+	});
+
+	test("drops non-string entries from path lists", () => {
+		const result = normalizeSettings({ favorites: ["a.md", 7, null, "b.md"], recentFiles: [{}, "c.md"] });
+
+		expect(result.favorites).toEqual(["a.md", "b.md"]);
+		expect(result.recentFiles).toEqual(["c.md"]);
 	});
 });
 

@@ -478,6 +478,12 @@ export const SORT_MODE_VALUES = [
 
 export const SPECIAL_POSITIONS = ["top", "bottom"] as const;
 
+/** Режимы отображения колонки: список или сетка миниатюр. */
+export const COLUMN_VIEW_MODES = ["list", "grid"] as const;
+
+/** Theme color keys — resolve to Obsidian's native `--color-*` CSS variables. */
+export const FOLDER_COLOR_KEYS = ["red", "orange", "yellow", "green", "cyan", "blue", "purple", "pink"] as const;
+
 /** Сколько уровней вложенности показывает диаграмма «Использование диска». */
 export const MIN_STORAGE_RINGS = 3;
 export const MAX_STORAGE_RINGS = 8;
@@ -495,6 +501,35 @@ function oneOf<T extends string>(value: unknown, allowed: readonly T[], fallback
 	return typeof value === "string" && (allowed as readonly string[]).includes(value)
 		? (value as T)
 		: fallback;
+}
+
+/**
+ * Запись «путь → значение из списка»: не-объект даёт {}, значения вне
+ * списка выбрасываются вместе со своими ключами.
+ */
+function cleanEnumRecord<T extends string>(value: unknown, allowed: readonly T[]): Record<string, T> {
+	if (typeof value !== "object" || value === null || Array.isArray(value)) return {};
+	const result: Record<string, T> = {};
+	for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+		if (typeof raw === "string" && (allowed as readonly string[]).includes(raw)) result[key] = raw as T;
+	}
+	return result;
+}
+
+/** Запись «путь → строка» (иконки папок): не-объект даёт {}, не-строки выбрасываются. */
+function cleanStringRecord(value: unknown): Record<string, string> {
+	if (typeof value !== "object" || value === null || Array.isArray(value)) return {};
+	const result: Record<string, string> = {};
+	for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+		if (typeof raw === "string") result[key] = raw;
+	}
+	return result;
+}
+
+/** Список путей: не-массив даёт [], не-строки выбрасываются. */
+function cleanPathList(value: unknown): string[] {
+	if (!Array.isArray(value)) return [];
+	return (value as unknown[]).filter((p): p is string => typeof p === "string");
 }
 
 /** Числовые значения записи путь → ширина, вышедшие за пределы, отбрасываются. */
@@ -560,6 +595,12 @@ export interface NormalizedSettings {
 	storageRingCount: number;
 	seenAt: Record<string, number>;
 	unreadBaseline: number;
+	folderColors: Record<string, (typeof FOLDER_COLOR_KEYS)[number]>;
+	columnViewModes: Record<string, (typeof COLUMN_VIEW_MODES)[number]>;
+	columnSortModes: Record<string, (typeof SORT_MODE_VALUES)[number]>;
+	folderIcons: Record<string, string>;
+	favorites: string[];
+	recentFiles: string[];
 }
 
 /**
@@ -584,5 +625,13 @@ export function normalizeSettings(raw: Record<string, unknown>): NormalizedSetti
 		seenAt: cleanSeenAt(raw.seenAt),
 		// 0 — «фича ещё не включалась»; момент включения проставит main.ts
 		unreadBaseline: clampInt(raw.unreadBaseline, 0, Number.MAX_SAFE_INTEGER, 0),
+		// Записи путь → значение и списки путей: без этого строка или null
+		// вместо объекта роняли бы загрузку плагина на первом же Object.keys
+		folderColors: cleanEnumRecord(raw.folderColors, FOLDER_COLOR_KEYS),
+		columnViewModes: cleanEnumRecord(raw.columnViewModes, COLUMN_VIEW_MODES),
+		columnSortModes: cleanEnumRecord(raw.columnSortModes, SORT_MODE_VALUES),
+		folderIcons: cleanStringRecord(raw.folderIcons),
+		favorites: cleanPathList(raw.favorites),
+		recentFiles: cleanPathList(raw.recentFiles),
 	};
 }
