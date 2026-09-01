@@ -52,7 +52,7 @@ export function notifyDragManager(app: App, e: DragEvent, f: TAbstractFile) {
 	} catch { /* ignore */ }
 }
 
-function itemUnderEvent(listEl: HTMLElement, e: Event): HTMLElement | null {
+function itemUnderEvent(e: Event): HTMLElement | null {
 	const target = e.target as HTMLElement | null;
 	return target?.closest<HTMLElement>(".column-explorer-item") ?? null;
 }
@@ -84,7 +84,7 @@ export function setupColumnDnd(view: ColumnExplorerView, listEl: HTMLElement, co
 	};
 
 	listEl.addEventListener("dragstart", (e: DragEvent) => {
-		const item = itemUnderEvent(listEl, e);
+		const item = itemUnderEvent(e);
 		if (!item?.dataset.path) return;
 		const f = app.vault.getAbstractFileByPath(item.dataset.path);
 		if (!f) return;
@@ -106,8 +106,8 @@ export function setupColumnDnd(view: ColumnExplorerView, listEl: HTMLElement, co
 		e.stopPropagation();
 		// Файлы из ОС копируются, внутренние перетаскивания — перемещаются
 		if (e.dataTransfer) e.dataTransfer.dropEffect = e.dataTransfer.types.includes("Files") ? "copy" : "move";
-		const targetFolder = folderForItem(app, itemUnderEvent(listEl, e));
-		setHighlight(targetFolder ? itemUnderEvent(listEl, e) : listEl);
+		const targetFolder = folderForItem(app, itemUnderEvent(e));
+		setHighlight(targetFolder ? itemUnderEvent(e) : listEl);
 	});
 
 	listEl.addEventListener("dragleave", (e: DragEvent) => {
@@ -117,7 +117,7 @@ export function setupColumnDnd(view: ColumnExplorerView, listEl: HTMLElement, co
 	listEl.addEventListener("drop", (e: DragEvent) => {
 		e.preventDefault();
 		e.stopPropagation();
-		const dropFolder = folderForItem(app, itemUnderEvent(listEl, e)) ?? columnFolder;
+		const dropFolder = folderForItem(app, itemUnderEvent(e)) ?? columnFolder;
 		setHighlight(null);
 		// Файлы из ОС (Finder и т.п.) — импорт копированием в папку под курсором
 		const osFiles = e.dataTransfer?.files;
@@ -129,7 +129,7 @@ export function setupColumnDnd(view: ColumnExplorerView, listEl: HTMLElement, co
 		const paths = activeDragPaths ?? parseDragPaths(e.dataTransfer?.getData("text/plain") ?? "");
 		activeDragPaths = null;
 		if (paths.length === 0) return;
-		if (paths.length === 1 && reorderPinned(view, paths[0], itemUnderEvent(listEl, e))) return;
+		if (paths.length === 1 && reorderPinned(view, paths[0], itemUnderEvent(e))) return;
 		void moveFiles(app, paths, dropFolder).then(() => view.clearMulti());
 	});
 }
