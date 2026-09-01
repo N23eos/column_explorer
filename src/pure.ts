@@ -90,7 +90,9 @@ export function shellEscapePath(path: string): string {
 export function formatTemplate(template: string, vars: Record<string, string | number>): string {
 	let result = template;
 	for (const key of Object.keys(vars)) {
-		result = result.replace("{" + key + "}", String(vars[key]));
+		// Функция-замена, а не строка: иначе "$&" и "$'" в имени файла
+		// трактуются как спецпаттерны String.replace и портят подстановку
+		result = result.replace("{" + key + "}", () => String(vars[key]));
 	}
 	return result;
 }

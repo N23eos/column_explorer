@@ -108,6 +108,13 @@ describe("formatTemplate", () => {
 	test("returns template unchanged without variables", () => {
 		expect(formatTemplate("Nothing here", {})).toBe("Nothing here");
 	});
+
+	// "$&", "$'", "$`" — спецпаттерны String.replace; в имени файла они легальны
+	test("inserts dollar patterns from values literally", () => {
+		expect(formatTemplate("“{name}” exists", { name: "a$&b.md" })).toBe("“a$&b.md” exists");
+		expect(formatTemplate("failed: {error}", { error: "cost $'99" })).toBe("failed: cost $'99");
+		expect(formatTemplate("“{name}” exists", { name: "x$`y" })).toBe("“x$`y” exists");
+	});
 });
 
 import { remapPathKeys, prunePathKeys, prunePathSet, pinnedFirst, movePinnedBefore } from "../src/pure";
