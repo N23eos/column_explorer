@@ -24,7 +24,7 @@ jobs:
       - run: npm run build
       - name: Check bundle size
         run: |
-          limit=266240 # 260 KB
+          limit=327680 # 320 KB (диаграмма «Использование диска» добавила ~50 KB)
           size=$(wc -c < main.js)
           echo "main.js: $size bytes (limit $limit)"
           if [ "$size" -gt "$limit" ]; then

@@ -7,7 +7,13 @@
 [![Release](https://img.shields.io/github/v/release/n23eos/column_explorer?style=flat-square&color=7c3aed)](https://github.com/n23eos/column_explorer/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
-**Browse your vault in Finder-style Miller columns.** Click a folder and its contents open in a new column to the right — a full file manager with create, rename, move, drag & drop, multi-select, context menus and folder colors.
+**Column Explorer replaces Obsidian's file tree with Finder-style Miller columns.** Clicking a folder opens its contents in a new column to the right, so the path you came through stays on screen instead of scrolling away inside one narrow list. It works as a full file manager: create, rename, move, delete, drag and drop, multi-select, context menus, folder colors and icons, pinned and starred folders. The first column can also carry virtual rows for recent files, core-plugin bookmarks and a month calendar with per-day counts of notes created. A sunburst chart reports vault disk usage by size, word count or file count.
+
+<div align="center">
+
+[![Star on GitHub](https://img.shields.io/github/stars/n23eos/column_explorer?style=for-the-badge&logo=github&label=Star%20this%20repo&color=FFD700&labelColor=1a1a1a)](https://github.com/n23eos/column_explorer)
+
+</div>
 
 ![Column Explorer — Miller columns with Recents and Calendar rows, folder colors and breadcrumbs](docs/screenshot-1.jpg)
 
@@ -39,12 +45,13 @@ If your vault is flat and small, the default explorer is fine. If you keep a dee
 2. **Click a folder** — its contents appear in a new column to the right. Keep clicking to drill down; the breadcrumb bar above shows the full path and jumps back to any level.
 3. **Make it yours** — right-click a folder for colors, icons and *Pin to top*; click the star in the breadcrumb bar to add the current folder to Favorites; drag the right edge of a column to resize it.
 
-Worth knowing early: `Space` previews the selected file, right-clicking empty space creates a note or folder there, and **Settings → Column Explorer** has a *Special items* section that turns on the Recents, Bookmarks and Calendar rows.
+Worth knowing early: `Space` previews the selected file, right-clicking empty space creates a note or folder there, and **Settings → Column Explorer** has a *Special items* section that turns on the Recents, Bookmarks, Calendar and Disk usage rows.
 
 ## Highlights
 
 - **Miller columns** — Finder-style navigation, each folder opens a new column
 - **Recents, Bookmarks & Calendar** — virtual rows in the first column: recently opened files (up to 50), your core-plugin bookmarks, and a month calendar with per-day created-note badges — click a day to list the notes created then
+- **Disk usage** — a sunburst chart of the vault by size, word count or file count, with animated zoom into any folder
 - **Import from the OS** — drop files from Finder/Explorer into any column to copy them into the vault
 - **Folder colors, icons and pins** — eight theme-aware colors, any lucide icon, pin items to the top
 - **List or icon grid per folder** — the grid shows real image thumbnails
@@ -70,13 +77,14 @@ Worth knowing early: `Space` previews the selected file, right-clicking empty sp
 
 ### Special items
 
-The first column can host three virtual rows, each toggleable and positionable in settings.
+The first column can host four virtual rows, each toggleable and positionable in settings.
 
 ![Column Explorer — calendar column with per-day created-note counts](docs/screenshot-2.jpg)
 
 - **Recents** — the last files you opened, up to 50
 - **Bookmarks** — your core Bookmarks plugin items, with Favorites pinned above them
 - **Calendar** — a month grid with a badge per day showing how many notes were created then; click a day to list them
+- **Disk usage** — an interactive sunburst chart of the whole vault, in the spirit of classic disk-usage analyzers. Switch between **size** (bytes on disk), **words** and **files**; click a folder to fly inside it, `Esc` or the centre circle to go back out, and click a file to open it. Sectors too thin to see merge into one muted "small items" arc, hovering highlights a folder with all of its descendants, and the chart rescans itself when the vault changes. Excluded folders and the number of visible rings are configurable.
 
 ### Appearance
 
@@ -87,6 +95,9 @@ The first column can host three virtual rows, each toggleable and positionable i
 - **Folder colors & icons** — right-click a folder: eight theme-aware color presets and any lucide icon
 - **Pinned items** — right-click → *Pin to top*; drag one pin onto another to reorder
 - **File preview column** — image, audio, video and PDF previews, note content, size, dates
+- **Unread markers** — a small *New* badge on files you have never opened, and a dot on files
+  edited since you last opened them (by an agent, a bot, sync or an external editor). Opening a
+  file clears both; the whole thing can be switched off in settings
 - **Item counts** — each column header shows how many items it lists
 - **Resizable columns** — drag the right edge of any column
 - **Localized** — English, Chinese (Simplified), German, Japanese, Korean, Brazilian Portuguese, Spanish, French, Italian and Russian, following Obsidian's own language setting
@@ -99,7 +110,7 @@ The first column can host three virtual rows, each toggleable and positionable i
 - **Drag & drop** — move files/folders between columns, straight onto a folder row or onto a breadcrumb segment; drag a file into an editor to insert a link
 - **Full Obsidian context menu** — core & community plugin items (bookmarks, "Reveal in Finder", copy link, …) are injected via the `file-menu` event
 - **Copy links & paths** — vault path, absolute system path, wikilink, Markdown link or `obsidian://` URL, from the context menu
-- **Excluded files** — hide files and folders by comma-separated patterns. `*.tmp` matches by file name at any depth; `.trash` matches any path containing it; a trailing slash (`archive/`) is a path prefix **from the vault root**, so nested folders need their full path (`Notes/archive/`)
+- **Excluded files** — hide files and folders by comma-separated patterns. `*.tmp` matches by file name at any depth (`*` is any run of characters, `?` exactly one); `.trash` matches any path containing it; a trailing slash (`archive/`) is a path prefix **from the vault root**, so nested folders need their full path (`Notes/archive/`)
 - **Sort options** — global default plus per-folder overrides (right-click a column header): name, modified, created or size, both directions
 
 ![Column Explorer — special items settings](docs/screenshot-4.jpg)
@@ -140,7 +151,7 @@ Yes — **Settings → Column Explorer → Where to open** switches the open com
 Deliberately disabled: on touch screens a drag gesture competes with scrolling. Long-press an item to enter selection mode, then use the bottom bar to move files.
 
 **How do the exclude patterns work?**
-Comma-separated. `*.tmp` matches by file name at any depth, `.trash` matches any path containing that string, and a trailing slash (`archive/`) is a path prefix **from the vault root** — so a nested folder needs its full path, e.g. `Notes/archive/`.
+Comma-separated. `*.tmp` matches by file name at any depth — `*` stands for any run of characters and `?` for exactly one, so `draft-?.md` hides `draft-1.md` but not `draft-12.md`. `.trash` matches any path containing that string, and a trailing slash (`archive/`) is a path prefix **from the vault root** — so a nested folder needs its full path, e.g. `Notes/archive/`.
 
 **Does it work with Folder Notes / Iconize / other explorer plugins?**
 Column Explorer has its own folder-note and folder-icon support built in, so you don't need those for this view. Plugins that decorate the *core* file explorer won't affect this one — but any plugin that adds items to Obsidian's file context menu shows up here too, because the menu is built from the same `file-menu` event.

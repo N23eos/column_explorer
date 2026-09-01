@@ -1,6 +1,9 @@
-import { Plugin, WorkspaceLeaf, debounce } from "obsidian";
+import { Plugin, TFile, WorkspaceLeaf, debounce } from "obsidian";
 import { t } from "./i18n";
-import { DAY_PATH_PREFIX, normalizeMobileSettings, normalizeSettings, pushRecent, remapPathList } from "./pure";
+import {
+	DAY_PATH_PREFIX, normalizeMobileSettings, normalizeSettings, prunePathKeys,
+	pushRecent, remapPathKeys, remapPathList,
+} from "./pure";
 import { ColumnExplorerSettings, ColumnExplorerSettingTab, DEFAULT_SETTINGS, MAX_RECENT_FILES } from "./settings";
 import { ColumnExplorerView, VIEW_TYPE_COLUMNS } from "./view";
 
@@ -32,18 +35,37 @@ export default class ColumnExplorerPlugin extends Plugin {
 		this.registerEvent(this.app.workspace.on("file-open", (f) => {
 			if (!f) return;
 			this.settings.recentFiles = pushRecent(this.settings.recentFiles, f.path, MAX_RECENT_FILES);
+			this.markSeen(f.path, Date.now());
 			this.saveQueued();
+			// Открыли — маркер непрочитанного гаснет тут же
+			this.getView()?.updateUnreadMarker(f.path);
 			this.getView()?.refreshRecentsColumn(f.path);
 		}));
 		this.registerEvent(this.app.vault.on("rename", (f, oldPath) => {
 			this.settings.recentFiles = remapPathList(this.settings.recentFiles, oldPath, f.path);
 			this.settings.favorites = remapPathList(this.settings.favorites, oldPath, f.path);
+			this.settings.seenAt = remapPathKeys(this.settings.seenAt, oldPath, f.path);
 			this.saveQueued();
 		}));
 		this.registerEvent(this.app.vault.on("delete", (f) => {
 			const dropDeleted = (p: string) => p !== f.path && !p.startsWith(f.path + "/");
 			this.settings.recentFiles = this.settings.recentFiles.filter(dropDeleted);
 			this.settings.favorites = this.settings.favorites.filter(dropDeleted);
+			this.settings.seenAt = prunePathKeys(this.settings.seenAt, f.path);
+			this.saveQueued();
+		}));
+
+		// Правка файла, на который человек сейчас смотрит, — это его
+		// собственная правка: двигаем метку прочтения за mtime, иначе файл
+		// пометил бы себя «изменён кем-то другим». Правки в неактивных файлах
+		// (агент, бот, sync) метку не трогают — из них и растёт маркер
+		this.registerEvent(this.app.vault.on("modify", (f) => {
+			if (this.app.workspace.getActiveFile()?.path !== f.path) {
+				// Чужая правка: метка не двигается, но зажечь точку надо сразу
+				this.getView()?.updateUnreadMarker(f.path);
+				return;
+			}
+			this.markSeen(f.path, f instanceof TFile ? f.stat.mtime : Date.now());
 			this.saveQueued();
 		}));
 
@@ -140,20 +162,32 @@ export default class ColumnExplorerPlugin extends Plugin {
 				Object.entries(widths).filter(([k]) => !staleDayKeys.includes(k))
 			);
 		}
+		// Момент отсчёта «новизны» ставится один раз — на первом запуске с
+		// фичей. Без него после апдейта новыми были бы все файлы vault
+		if (this.settings.unreadBaseline === 0) {
+			this.settings.unreadBaseline = Date.now();
+		}
 		this.migratePinnedPaths();
 	}
 
 	/** v1.3.x stored pins as `true`; convert to numeric order once. */
 	private migratePinnedPaths() {
-		const raw = this.settings.pinnedPaths as Record<string, number | boolean>;
+		const raw: unknown = this.settings.pinnedPaths;
+		// data.json правится руками: строка или null вместо объекта уронили бы
+		// загрузку плагина целиком на первом же обращении к ключам
+		const entries = typeof raw === "object" && raw !== null && !Array.isArray(raw)
+			? Object.entries(raw as Record<string, unknown>)
+			: [];
+		const isOrder = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 		// Булевым — номера после максимального существующего: смешанные данные
 		// (откат версии и обратно) иначе давали бы двум пинам один порядок
-		const numeric = Object.values(raw).filter((v): v is number => typeof v === "number");
+		const numeric = entries.map(([, v]) => v).filter(isOrder);
 		let next = numeric.length > 0 ? Math.max(...numeric) + 1 : 0;
 		const migrated: Record<string, number> = {};
-		for (const path of Object.keys(raw)) {
-			const value = raw[path];
-			migrated[path] = typeof value === "number" ? value : next++;
+		for (const [path, value] of entries) {
+			if (isOrder(value)) migrated[path] = value;
+			// v1.3.x писал только `true`; всё прочее пином не считаем
+			else if (value === true) migrated[path] = next++;
 		}
 		this.settings.pinnedPaths = migrated;
 	}
@@ -165,6 +199,11 @@ export default class ColumnExplorerPlugin extends Plugin {
 	/** Запись настроек со склейкой — для событий, приходящих пачками. */
 	queueSaveSettings() {
 		this.saveQueued();
+	}
+
+	/** Отметить файл прочитанным на момент `at`. Настройки не мутируются. */
+	private markSeen(path: string, at: number) {
+		this.settings.seenAt = { ...this.settings.seenAt, [path]: at };
 	}
 
 	/** Лист вью, даже если она ещё отложена (Obsidian 1.7.2+). */

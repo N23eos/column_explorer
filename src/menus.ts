@@ -101,6 +101,7 @@ export function showFileMenu(view: ColumnExplorerView, e: MouseEvent, f: TAbstra
 				for (const p of paths) {
 					const file = app.vault.getAbstractFileByPath(p);
 					if (file instanceof TFile) await duplicateFile(app, file);
+					else if (file instanceof TFolder) await duplicateFolder(app, file);
 				}
 			}));
 		menu.addItem(i => i.setTitle(t("deleteN", { n: paths.length })).setIcon("trash")

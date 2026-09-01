@@ -39,7 +39,7 @@ beforeEach(() => {
 describe("recents column", () => {
 	test("lists the recent files that still exist", async () => {
 		const { view } = await mountView(["a.md", "b.md"], {
-			recentFiles: ["b.md", "ghost.md", "a.md"], showBookmarks: false, showCalendar: false,
+			recentFiles: ["b.md", "ghost.md", "a.md"], showBookmarks: false, showCalendar: false, showStorage: false,
 		});
 
 		view.selectSpecial(RECENTS_PATH);
@@ -196,7 +196,7 @@ describe("search filter", () => {
 		// "bz" совпадает лучше (буква в начале), но сортировка по имени
 		// ставит "a-----z" первым — порядок колонки важнее релевантности
 		const { view } = await mountView(["a-----z.md", "bz.md"], {
-			showRecents: false, showBookmarks: false, showCalendar: false,
+			showRecents: false, showBookmarks: false, showCalendar: false, showStorage: false,
 		});
 
 		typeSearch(view, "z");
@@ -246,6 +246,24 @@ describe("inline rename", () => {
 
 		expect(app.fileManager.renamed).toEqual([]);
 		expect(view.isRenaming("a.md")).toBe(false);
+	});
+
+	// Перерисовка (событие vault, смена настроек) сносит input без blur —
+	// зависший флаг глушил бы клавиатурную навигацию до конца сессии
+	test("a re-render cancels the rename instead of wedging the keyboard", async () => {
+		const { view, vault } = await mountView(["a.md", "b.md"], {
+			showRecents: false, showBookmarks: false, showCalendar: false, showStorage: false, showFavorites: false,
+		});
+		view.startRename(vault.getAbstractFileByPath("a.md") as TFile);
+
+		view.render();
+
+		expect(view.contentEl.querySelector(".column-explorer-rename-input")).toBeNull();
+		expect(view.isRenaming("a.md")).toBe(false);
+
+		const columns = view.contentEl.querySelector<HTMLElement>(".column-explorer-columns");
+		columns?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
+		expect(view.selection).toEqual(["a.md"]);
 	});
 
 	test("an unchanged name is not written back", async () => {

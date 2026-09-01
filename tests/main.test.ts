@@ -84,6 +84,24 @@ describe("loadSettings", () => {
 		expect(plugin.settings.pinnedPaths).toEqual({ "a.md": 5, "b.md": 2 });
 	});
 
+	test("values that are not an order and not `true` are not pins", async () => {
+		const data = {
+			pinnedPaths: { "a.md": true, "b.md": false, "c.md": "yes", "d.md": null, "e.md": NaN },
+		} as unknown as Partial<ColumnExplorerSettings>;
+
+		const { plugin } = await loadPlugin(data);
+
+		expect(plugin.settings.pinnedPaths).toEqual({ "a.md": 0 });
+	});
+
+	test("loading survives pinnedPaths that is not an object", async () => {
+		const data = { pinnedPaths: "everything" } as unknown as Partial<ColumnExplorerSettings>;
+
+		const { plugin } = await loadPlugin(data);
+
+		expect(plugin.settings.pinnedPaths).toEqual({});
+	});
+
 	test("drops stale per-day column width keys", async () => {
 		const data = { columnWidths: { "::day::2026-07-19": 300, "notes": 250 } } as Partial<ColumnExplorerSettings>;
 
@@ -178,6 +196,83 @@ describe("vault and workspace events", () => {
 
 		expect(plugin.settings.recentFiles).toEqual([]);
 		expect(plugin.settings.favorites).toEqual(["a.md"]);
+	});
+
+	test("opening a file records when the human last saw it", async () => {
+		const { plugin, app, vault } = await loadPlugin({});
+		const before = Date.now();
+
+		app.workspace.trigger("file-open", vault.getAbstractFileByPath("b.md") as TFile);
+
+		expect(plugin.settings.seenAt["b.md"]).toBeGreaterThanOrEqual(before);
+	});
+
+	test("renaming moves the seen mark to the new path", async () => {
+		const { plugin, app, vault } = await loadPlugin({ seenAt: { "a.md": 500 } });
+
+		const renamed = vault.rename("a.md", "renamed.md");
+		app.vault.trigger("rename", renamed, "a.md");
+
+		expect(plugin.settings.seenAt).toEqual({ "renamed.md": 500 });
+	});
+
+	test("deleting a folder drops seen marks of its children", async () => {
+		const { plugin, app, vault } = await loadPlugin(
+			{ seenAt: { "sub/x.md": 500, "a.md": 500 } },
+			["a.md", "sub/x.md"]
+		);
+
+		app.vault.trigger("delete", vault.getAbstractFileByPath("sub"));
+
+		expect(plugin.settings.seenAt).toEqual({ "a.md": 500 });
+	});
+
+	test("editing the file you are looking at keeps it marked as seen", async () => {
+		// Своя правка не должна ставить себе же метку «изменён кем-то другим»
+		const { plugin, app, vault } = await loadPlugin({ seenAt: { "a.md": 500 } });
+		const file = vault.getAbstractFileByPath("a.md") as TFile;
+		file.stat = { ...file.stat, mtime: 90_000 };
+		app.workspace.getActiveFile = () => file;
+
+		app.vault.trigger("modify", file);
+
+		expect(plugin.settings.seenAt["a.md"]).toBe(90_000);
+	});
+
+	test("a background edit leaves the seen mark alone", async () => {
+		// Правка агента/синка в неактивном файле — это и есть непрочитанное
+		const { plugin, app, vault } = await loadPlugin({ seenAt: { "a.md": 500 } });
+		const file = vault.getAbstractFileByPath("a.md") as TFile;
+		file.stat = { ...file.stat, mtime: 90_000 };
+
+		app.vault.trigger("modify", file);
+
+		expect(plugin.settings.seenAt["a.md"]).toBe(500);
+	});
+});
+
+describe("unread baseline", () => {
+	test("a fresh install stamps the baseline with the current time", async () => {
+		const before = Date.now();
+
+		const { plugin } = await loadPlugin(null);
+
+		expect(plugin.settings.unreadBaseline).toBeGreaterThanOrEqual(before);
+	});
+
+	test("an existing baseline is never moved", async () => {
+		const { plugin } = await loadPlugin({ unreadBaseline: 777 });
+
+		expect(plugin.settings.unreadBaseline).toBe(777);
+	});
+
+	test("an upgrade from a version without the feature stamps the baseline once", async () => {
+		// Иначе после апдейта «новым» стал бы весь существующий vault
+		const before = Date.now();
+
+		const { plugin } = await loadPlugin({ columnWidth: 300 });
+
+		expect(plugin.settings.unreadBaseline).toBeGreaterThanOrEqual(before);
 	});
 });
 

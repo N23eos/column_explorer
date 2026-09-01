@@ -181,6 +181,11 @@ export function setIcon(el: HTMLElement, icon: string): void {
 	el.dataset.icon = icon;
 }
 
+/** Настоящая реализация вешает всплывающую подсказку; тестам хватает атрибута. */
+export function setTooltip(el: HTMLElement, tooltip: string): void {
+	el.setAttribute("aria-label", tooltip);
+}
+
 export function normalizePath(path: string): string {
 	return path.replace(/\\/g, "/").replace(/\/+/g, "/").replace(/^\/|\/$/g, "");
 }
@@ -205,6 +210,7 @@ export class Component {
 	load(): void { /* no-op */ }
 	unload(): void { /* no-op */ }
 	addChild<T>(child: T): T { return child; }
+	removeChild<T extends { unload(): void }>(child: T): T { child.unload(); return child; }
 	registerDomEvent(el: HTMLElement, type: string, cb: EventListener): void {
 		el.addEventListener(type, cb);
 	}

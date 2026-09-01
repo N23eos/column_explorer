@@ -90,7 +90,9 @@ export function shellEscapePath(path: string): string {
 export function formatTemplate(template: string, vars: Record<string, string | number>): string {
 	let result = template;
 	for (const key of Object.keys(vars)) {
-		result = result.replace("{" + key + "}", String(vars[key]));
+		// Функция-замена, а не строка: иначе "$&" и "$'" в имени файла
+		// трактуются как спецпаттерны String.replace и портят подстановку
+		result = result.replace("{" + key + "}", () => String(vars[key]));
 	}
 	return result;
 }
@@ -102,8 +104,12 @@ export function parseExcludePatterns(raw: string): string[] {
 		.filter((p) => p.length > 0);
 }
 
+/** Glob to regexp: `*` — любой отрезок имени, `?` — ровно один символ. */
 function globToRegExp(glob: string): RegExp {
-	const escaped = glob.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^/]*");
+	const escaped = glob
+		.replace(/[.+^${}()|[\]\\]/g, "\\$&")
+		.replace(/\*/g, "[^/]*")
+		.replace(/\?/g, "[^/]");
 	return new RegExp("^" + escaped + "$");
 }
 
@@ -236,6 +242,7 @@ export function availablePath(folderPath: string, fileName: string, taken: Reado
  */
 export const RECENTS_PATH = "::recents::";
 export const BOOKMARKS_PATH = "::bookmarks::";
+export const STORAGE_PATH = "::storage::";
 export const CALENDAR_PATH = "::calendar::";
 /** Префикс сентинела дня календаря: "::day::2026-07-19". */
 export const DAY_PATH_PREFIX = "::day::";
@@ -424,7 +431,8 @@ export function parentSelection(selection: string[], isFolder: (path: string) =>
 /**
  * Pattern semantics:
  * - "folder/"  — the folder itself and everything inside it
- * - "*.tmp"    — glob matched against the file name (not the full path)
+ * - "*.tmp"    — glob matched against the file name (not the full path);
+ *                `*` is any run of characters, `?` is exactly one
  * - ".trash"   — plain substring matched against the full path
  */
 export function matchesExcludePatterns(path: string, patterns: string[]): boolean {
@@ -435,7 +443,7 @@ export function matchesExcludePatterns(path: string, patterns: string[]): boolea
 			const base = pattern.slice(0, -1);
 			return path === base || path.startsWith(base + "/");
 		}
-		if (pattern.includes("*")) {
+		if (pattern.includes("*") || pattern.includes("?")) {
 			return globToRegExp(pattern).test(name);
 		}
 		return path.includes(pattern);
@@ -458,6 +466,8 @@ export const MAX_COLUMN_WIDTH = 500;
 export const DEFAULT_COLUMN_WIDTH = 200;
 /** Корневая колонка по умолчанию шире остальных — там самые длинные ярлыки. */
 export const ROOT_COLUMN_EXTRA_WIDTH = 60;
+/** Колонке с диаграммой нужен квадрат под кольца, а не список строк. */
+export const DEFAULT_STORAGE_COLUMN_WIDTH = 420;
 
 export const MIN_RECENT_FILES = 5;
 export const MAX_RECENT_FILES = 50;
@@ -473,6 +483,17 @@ export const SORT_MODE_VALUES = [
 
 export const SPECIAL_POSITIONS = ["top", "bottom"] as const;
 
+/** Режимы отображения колонки: список или сетка миниатюр. */
+export const COLUMN_VIEW_MODES = ["list", "grid"] as const;
+
+/** Theme color keys — resolve to Obsidian's native `--color-*` CSS variables. */
+export const FOLDER_COLOR_KEYS = ["red", "orange", "yellow", "green", "cyan", "blue", "purple", "pink"] as const;
+
+/** Сколько уровней вложенности показывает диаграмма «Использование диска». */
+export const MIN_STORAGE_RINGS = 3;
+export const MAX_STORAGE_RINGS = 8;
+export const DEFAULT_STORAGE_RINGS = 5;
+
 /** Где команда/ribbon открывают вью: левая панель или вкладка в основной области. */
 export const OPEN_LOCATIONS = ["sidebar", "tab"] as const;
 
@@ -487,6 +508,35 @@ function oneOf<T extends string>(value: unknown, allowed: readonly T[], fallback
 		: fallback;
 }
 
+/**
+ * Запись «путь → значение из списка»: не-объект даёт {}, значения вне
+ * списка выбрасываются вместе со своими ключами.
+ */
+function cleanEnumRecord<T extends string>(value: unknown, allowed: readonly T[]): Record<string, T> {
+	if (typeof value !== "object" || value === null || Array.isArray(value)) return {};
+	const result: Record<string, T> = {};
+	for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+		if (typeof raw === "string" && (allowed as readonly string[]).includes(raw)) result[key] = raw as T;
+	}
+	return result;
+}
+
+/** Запись «путь → строка» (иконки папок): не-объект даёт {}, не-строки выбрасываются. */
+function cleanStringRecord(value: unknown): Record<string, string> {
+	if (typeof value !== "object" || value === null || Array.isArray(value)) return {};
+	const result: Record<string, string> = {};
+	for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+		if (typeof raw === "string") result[key] = raw;
+	}
+	return result;
+}
+
+/** Список путей: не-массив даёт [], не-строки выбрасываются. */
+function cleanPathList(value: unknown): string[] {
+	if (!Array.isArray(value)) return [];
+	return (value as unknown[]).filter((p): p is string => typeof p === "string");
+}
+
 /** Числовые значения записи путь → ширина, вышедшие за пределы, отбрасываются. */
 function cleanWidths(value: unknown): Record<string, number> {
 	if (typeof value !== "object" || value === null || Array.isArray(value)) return {};
@@ -494,6 +544,46 @@ function cleanWidths(value: unknown): Record<string, number> {
 	for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
 		if (typeof raw !== "number" || !Number.isFinite(raw)) continue;
 		if (raw < MIN_COLUMN_WIDTH || raw > MAX_COLUMN_WIDTH) continue;
+		result[key] = Math.round(raw);
+	}
+	return result;
+}
+
+/**
+ * Запас между открытием файла и его сохранением: правка самого пользователя
+ * долетает до диска на секунду-две позже, чем сработал `file-open`, и без
+ * допуска файл сразу же помечался бы «изменён кем-то другим».
+ */
+export const MTIME_TOLERANCE_MS = 2000;
+
+/** Маркер непрочитанного: новый файл, изменённый чужой правкой или ничего. */
+export type UnreadState = "new" | "modified" | null;
+
+/**
+ * Состояние файла для маркера непрочитанного.
+ *
+ * `seenAt` — когда человек последний раз открывал файл (undefined = никогда),
+ * `baseline` — момент включения фичи: файлы старше него «новыми» не считаются,
+ * иначе после установки плагина весь vault был бы помечен. `baseline === 0`
+ * означает «фича ещё не инициализирована» — маркер «new» не выдаём вовсе.
+ */
+export function unreadState(
+	stat: { ctime: number; mtime: number },
+	seenAt: number | undefined,
+	baseline: number,
+): UnreadState {
+	if (seenAt === undefined) {
+		return baseline > 0 && stat.ctime > baseline ? "new" : null;
+	}
+	return stat.mtime > seenAt + MTIME_TOLERANCE_MS ? "modified" : null;
+}
+
+/** Записи «путь → время открытия»: всё, что не конечное положительное число, выбрасывается. */
+export function cleanSeenAt(value: unknown): Record<string, number> {
+	if (typeof value !== "object" || value === null || Array.isArray(value)) return {};
+	const result: Record<string, number> = {};
+	for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+		if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) continue;
 		result[key] = Math.round(raw);
 	}
 	return result;
@@ -507,6 +597,15 @@ export interface NormalizedSettings {
 	sortMode: (typeof SORT_MODE_VALUES)[number];
 	specialItemsPosition: (typeof SPECIAL_POSITIONS)[number];
 	openLocation: (typeof OPEN_LOCATIONS)[number];
+	storageRingCount: number;
+	seenAt: Record<string, number>;
+	unreadBaseline: number;
+	folderColors: Record<string, (typeof FOLDER_COLOR_KEYS)[number]>;
+	columnViewModes: Record<string, (typeof COLUMN_VIEW_MODES)[number]>;
+	columnSortModes: Record<string, (typeof SORT_MODE_VALUES)[number]>;
+	folderIcons: Record<string, string>;
+	favorites: string[];
+	recentFiles: string[];
 }
 
 /**
@@ -527,5 +626,17 @@ export function normalizeSettings(raw: Record<string, unknown>): NormalizedSetti
 		sortMode: oneOf(raw.sortMode, SORT_MODE_VALUES, "name-asc"),
 		specialItemsPosition: oneOf(raw.specialItemsPosition, SPECIAL_POSITIONS, "top"),
 		openLocation: oneOf(raw.openLocation, OPEN_LOCATIONS, "sidebar"),
+		storageRingCount: clampInt(raw.storageRingCount, MIN_STORAGE_RINGS, MAX_STORAGE_RINGS, DEFAULT_STORAGE_RINGS),
+		seenAt: cleanSeenAt(raw.seenAt),
+		// 0 — «фича ещё не включалась»; момент включения проставит main.ts
+		unreadBaseline: clampInt(raw.unreadBaseline, 0, Number.MAX_SAFE_INTEGER, 0),
+		// Записи путь → значение и списки путей: без этого строка или null
+		// вместо объекта роняли бы загрузку плагина на первом же Object.keys
+		folderColors: cleanEnumRecord(raw.folderColors, FOLDER_COLOR_KEYS),
+		columnViewModes: cleanEnumRecord(raw.columnViewModes, COLUMN_VIEW_MODES),
+		columnSortModes: cleanEnumRecord(raw.columnSortModes, SORT_MODE_VALUES),
+		folderIcons: cleanStringRecord(raw.folderIcons),
+		favorites: cleanPathList(raw.favorites),
+		recentFiles: cleanPathList(raw.recentFiles),
 	};
 }

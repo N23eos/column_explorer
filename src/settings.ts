@@ -2,28 +2,27 @@ import { App, Notice, PluginSettingTab, Setting, SettingDefinitionItem, SliderCo
 import { t } from "./i18n";
 import {
 	DEFAULT_COLUMN_WIDTH, DEFAULT_MOBILE_ICON, DEFAULT_MOBILE_SCALE, DEFAULT_RECENT_FILES,
-	MAX_COLUMN_WIDTH, MAX_MOBILE_ICON, MAX_MOBILE_SCALE, MAX_RECENT_FILES,
-	MIN_COLUMN_WIDTH, MIN_MOBILE_ICON, MIN_MOBILE_SCALE, MIN_RECENT_FILES,
-	SORT_MODE_VALUES, normalizeMobileSettings,
+	DEFAULT_STORAGE_RINGS,
+	MAX_COLUMN_WIDTH, MAX_MOBILE_ICON, MAX_MOBILE_SCALE, MAX_RECENT_FILES, MAX_STORAGE_RINGS,
+	MIN_COLUMN_WIDTH, MIN_MOBILE_ICON, MIN_MOBILE_SCALE, MIN_RECENT_FILES, MIN_STORAGE_RINGS,
+	COLUMN_VIEW_MODES, FOLDER_COLOR_KEYS, SORT_MODE_VALUES, normalizeMobileSettings,
 } from "./pure";
 import type ColumnExplorerPlugin from "./main";
 
 // Границы и список режимов живут в pure.ts (их использует normalizeSettings);
 // здесь реэкспорт, чтобы остальные модули импортировали их как раньше
 export {
+	FOLDER_COLOR_KEYS,
 	MAX_COLUMN_WIDTH, MAX_RECENT_FILES, MIN_COLUMN_WIDTH, MIN_RECENT_FILES,
 	ROOT_COLUMN_EXTRA_WIDTH, SORT_MODE_VALUES,
 } from "./pure";
 
 export type SortMode = (typeof SORT_MODE_VALUES)[number];
-export type ColumnViewMode = "list" | "grid";
+export type ColumnViewMode = (typeof COLUMN_VIEW_MODES)[number];
+export type FolderColorKey = (typeof FOLDER_COLOR_KEYS)[number];
 
 /** Пауза перед сохранением текстового поля настроек — гасит запись на букву. */
 const TEXT_INPUT_SAVE_DELAY_MS = 500;
-
-/** Theme color keys — resolve to Obsidian's native `--color-*` CSS variables. */
-export const FOLDER_COLOR_KEYS = ["red", "orange", "yellow", "green", "cyan", "blue", "purple", "pink"] as const;
-export type FolderColorKey = (typeof FOLDER_COLOR_KEYS)[number];
 
 export interface ColumnExplorerSettings {
 	foldersFirst: boolean;
@@ -61,6 +60,12 @@ export interface ColumnExplorerSettings {
 	showBookmarks: boolean;
 	/** Show the virtual "Calendar" row. */
 	showCalendar: boolean;
+	/** Show the virtual "Disk usage" row with the sunburst chart. */
+	showStorage: boolean;
+	/** Comma-separated vault paths the disk-usage scan skips. */
+	storageExcluded: string;
+	/** How many rings (nesting levels) the disk-usage chart draws at once. */
+	storageRingCount: number;
 	/** Where the virtual rows sit in the root column. */
 	specialItemsPosition: "top" | "bottom";
 	/** Where the open command and ribbon icon put the view. */
@@ -73,6 +78,16 @@ export interface ColumnExplorerSettings {
 	mobileUiScale: number;
 	/** Icon size in px (22–36) for mobile toolbar, navigation and action bar. */
 	mobileIconSize: number;
+	/** Mark files the human has not opened yet, and ones edited since they did. */
+	showUnreadMarkers: boolean;
+	/** When the human last opened a file: path → timestamp (ms). */
+	seenAt: Record<string, number>;
+	/**
+	 * Момент включения фичи. Файлы старше него «новыми» не считаются — иначе
+	 * после установки плагина весь vault оказался бы помечен. 0 — ещё не
+	 * проставлен, метку ставит первый запуск (main.ts).
+	 */
+	unreadBaseline: number;
 }
 
 export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
@@ -99,12 +114,18 @@ export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
 	showRecents: true,
 	showBookmarks: true,
 	showCalendar: true,
+	showStorage: true,
+	storageExcluded: "",
+	storageRingCount: DEFAULT_STORAGE_RINGS,
 	specialItemsPosition: "top",
 	openLocation: "sidebar",
 	favorites: [],
 	showFavorites: true,
 	mobileUiScale: DEFAULT_MOBILE_SCALE,
 	mobileIconSize: DEFAULT_MOBILE_ICON,
+	showUnreadMarkers: true,
+	seenAt: {},
+	unreadBaseline: 0,
 };
 
 export class ColumnExplorerSettingTab extends PluginSettingTab {
@@ -129,6 +150,7 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 					{ name: t("setShowExt"), desc: t("setShowExtDesc"), control: { type: "toggle", key: "showExtensions" } },
 					{ name: t("setPreview"), desc: t("setPreviewDesc"), control: { type: "toggle", key: "showPreview" } },
 					{ name: t("setMdPreview"), desc: t("setMdPreviewDesc"), control: { type: "toggle", key: "showMarkdownPreview" } },
+					{ name: t("setShowUnread"), desc: t("setShowUnreadDesc"), control: { type: "toggle", key: "showUnreadMarkers" } },
 				],
 			},
 			{
@@ -180,6 +202,12 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 					{ name: t("setShowFavorites"), desc: t("setShowFavoritesDesc"), control: { type: "toggle", key: "showFavorites" } },
 					{ name: t("setShowBookmarks"), desc: t("setShowBookmarksDesc"), control: { type: "toggle", key: "showBookmarks" } },
 					{ name: t("setShowCalendar"), desc: t("setShowCalendarDesc"), control: { type: "toggle", key: "showCalendar" } },
+					{ name: t("setShowStorage"), desc: t("setShowStorageDesc"), control: { type: "toggle", key: "showStorage" } },
+					{ name: t("setStorageExclude"), desc: t("setStorageExcludeDesc"), control: { type: "text", key: "storageExcluded" } },
+					{
+						name: t("setStorageRings"), desc: t("setStorageRingsDesc"),
+						control: { type: "slider", key: "storageRingCount", min: MIN_STORAGE_RINGS, max: MAX_STORAGE_RINGS, step: 1 },
+					},
 				],
 			},
 			{
@@ -275,6 +303,9 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 		new Setting(containerEl).setName(t("setMdPreview")).setDesc(t("setMdPreviewDesc"))
 			.addToggle(tg => tg.setValue(s.showMarkdownPreview).onChange(async (v) => { s.showMarkdownPreview = v; await save(); }));
 
+		new Setting(containerEl).setName(t("setShowUnread")).setDesc(t("setShowUnreadDesc"))
+			.addToggle(tg => tg.setValue(s.showUnreadMarkers).onChange(async (v) => { s.showUnreadMarkers = v; await save(); }));
+
 		new Setting(containerEl).setName(t("headBehavior")).setHeading();
 
 		new Setting(containerEl).setName(t("setOpenLocation")).setDesc(t("setOpenLocationDesc"))
@@ -358,6 +389,18 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl).setName(t("setShowCalendar")).setDesc(t("setShowCalendarDesc"))
 			.addToggle(tg => tg.setValue(s.showCalendar).onChange(async (v) => { s.showCalendar = v; await save(); }));
+
+		new Setting(containerEl).setName(t("setShowStorage")).setDesc(t("setShowStorageDesc"))
+			.addToggle(tg => tg.setValue(s.showStorage).onChange(async (v) => { s.showStorage = v; await save(); }));
+
+		new Setting(containerEl).setName(t("setStorageExclude")).setDesc(t("setStorageExcludeDesc"))
+			.addText(txt => txt.setValue(s.storageExcluded)
+				.onChange((v) => { s.storageExcluded = v; saveTextInput(); }));
+
+		new Setting(containerEl).setName(t("setStorageRings")).setDesc(t("setStorageRingsDesc"))
+			.addSlider(sl => sl.setLimits(MIN_STORAGE_RINGS, MAX_STORAGE_RINGS, 1)
+				.setValue(s.storageRingCount)
+				.onChange(async (v) => { s.storageRingCount = v; await save(); }));
 
 		new Setting(containerEl).setName(t("headMobile")).setHeading();
 

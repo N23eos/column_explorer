@@ -19,6 +19,7 @@ export interface FakeApp {
 		getResourcePath(f: TAbstractFile): string;
 		getFiles(): TFile[];
 		getMarkdownFiles(): TFile[];
+		cachedRead(f: TFile): Promise<string>;
 		create(path: string, content: string): Promise<TFile>;
 		createFolder(path: string): Promise<void>;
 	};
@@ -65,6 +66,9 @@ export function makeApp(vault: FakeVault): FakeApp {
 			getFiles: () => [...vault.index.values()].filter((f): f is TFile => f instanceof TFile),
 			getMarkdownFiles: () =>
 				[...vault.index.values()].filter((f): f is TFile => f instanceof TFile && f.extension === "md"),
+			// Содержимое тестовым файлам не нужно: словосчёт диаграммы проверяется
+			// на чистых модулях, а вью интересует только структура дерева
+			cachedRead: () => Promise.resolve(""),
 			create: (path) => Promise.resolve(vault.getAbstractFileByPath(path) as TFile),
 			createFolder: () => Promise.resolve(),
 		},

@@ -71,7 +71,7 @@ export const en = {
 	headSpecial: "Special items",
 	setShowBookmarks: "Show bookmarks", setShowBookmarksDesc: "Show the bookmarks row (needs the core Bookmarks plugin).",
 	setShowCalendar: "Show calendar", setShowCalendarDesc: "Show the calendar row: notes by creation day.",
-	setSpecialPos: "Special items position", setSpecialPosDesc: "Where the recents, bookmarks and calendar rows sit in the first column.",
+	setSpecialPos: "Special items position", setSpecialPosDesc: "Where the special rows sit in the first column.",
 	posTop: "Top", posBottom: "Bottom",
 	today: "Today",
 	navBack: "Back", navForward: "Forward",
@@ -84,6 +84,18 @@ export const en = {
 	setMobileIcon: "Mobile button icon size",
 	setMobileIconDesc: "Changes toolbar, navigation and action-bar icons. File and folder icons are not affected.",
 	resetMobileSizes: "Reset mobile sizes", mobileSizesReset: "Mobile sizes reset",
+	diskUsage: "Disk usage",
+	duSize: "Size", duWords: "Words", duFiles: "Files",
+	duRescan: "Rescan", duZoomIn: "Zoom in", duReveal: "Reveal in columns",
+	duEmpty: "Vault is empty", duNoWords: "No words in vault",
+	duWordCount_one: "{n} word", duWordCount_few: "{n} words", duWordCount_many: "{n} words", duWordCount_other: "{n} words",
+	duFileCount_one: "{n} file", duFileCount_few: "{n} files", duFileCount_many: "{n} files", duFileCount_other: "{n} files",
+	duSmallItem_one: "{n} small item", duSmallItem_few: "{n} small items", duSmallItem_many: "{n} small items", duSmallItem_other: "{n} small items",
+	setShowStorage: "Show disk usage", setShowStorageDesc: "Show the disk usage row: a sunburst chart of folder sizes, word counts and file counts.",
+	setStorageExclude: "Disk usage: excluded folders", setStorageExcludeDesc: "Comma-separated vault paths skipped while scanning, e.g. “attachments, archive/old”.",
+	setStorageRings: "Disk usage: ring count", setStorageRingsDesc: "How many nesting levels the chart shows at once.",
+	setShowUnread: "Show unread markers", setShowUnreadDesc: "Badge files you have never opened, and dot files edited since you last opened them.",
+	unreadNew: "New", unreadModifiedTooltip: "Edited since you last opened it",
 };
 
 export type TranslationKey = keyof typeof en;
