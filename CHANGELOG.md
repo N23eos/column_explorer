@@ -5,7 +5,25 @@ All notable changes to Column Explorer are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.14.0] — 2026-09-01
+
+### Added
+- **Disk usage** — a fourth virtual row in the first column, opening an interactive
+  sunburst chart of the vault in the spirit of classic disk-usage analyzers. Three
+  metrics in one chart (size on disk, word count, file count), animated zoom into
+  folders with clickable breadcrumbs, `Esc` or the centre circle to zoom back out,
+  hover highlighting of a folder with all its descendants, and a muted "small items"
+  arc that absorbs sectors too thin to see. Right-clicking a sector offers zoom,
+  open in a new tab, reveal in the columns and copy path. The chart rescans itself
+  (debounced) when the vault changes, and word counts are cached by modification time,
+  so repeat scans are cheap. Word counting is CJK-aware and runs in the background —
+  sizes are on screen immediately. Three new settings in the *Special items* group:
+  show the row, excluded folders, and how many rings the chart draws at once.
+- **Unread markers** — a file the human has never opened gets a small "New" badge,
+  and a file edited by someone else (an agent, a bot, sync, an external editor)
+  since it was last opened gets a dot. Opening a file clears both. Only files are
+  marked; the baseline is set on first run so an existing vault is not lit up
+  wholesale.
 
 ### Fixed
 - Inline rename no longer wedges the keyboard: a re-render triggered while the
@@ -37,21 +55,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sees, so it stays bounded by vault size instead of growing across rescans.
 - Patched transitive dev dependencies flagged by `npm audit` (fast-uri, js-yaml,
   nanoid, postcss, brace-expansion). No runtime dependency changes.
-
-## [1.14.0] — 2026-08-23
-
-### Added
-- **Disk usage** — a fourth virtual row in the first column, opening an interactive
-  sunburst chart of the vault in the spirit of classic disk-usage analyzers. Three
-  metrics in one chart (size on disk, word count, file count), animated zoom into
-  folders with clickable breadcrumbs, `Esc` or the centre circle to zoom back out,
-  hover highlighting of a folder with all its descendants, and a muted "small items"
-  arc that absorbs sectors too thin to see. Right-clicking a sector offers zoom,
-  open in a new tab, reveal in the columns and copy path. The chart rescans itself
-  (debounced) when the vault changes, and word counts are cached by modification time,
-  so repeat scans are cheap. Word counting is CJK-aware and runs in the background —
-  sizes are on screen immediately. Three new settings in the *Special items* group:
-  show the row, excluded folders, and how many rings the chart draws at once.
 
 ## [1.13.0] — 2026-08-08
 

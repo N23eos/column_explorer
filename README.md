@@ -4,7 +4,13 @@
 [![Release](https://img.shields.io/github/v/release/n23eos/column_explorer?style=flat-square&color=7c3aed)](https://github.com/n23eos/column_explorer/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-blue?style=flat-square)](LICENSE)
 
-**Browse your vault in Finder-style Miller columns.** Click a folder and its contents open in a new column to the right — a full file manager with create, rename, move, drag & drop, multi-select, context menus and folder colors.
+**Column Explorer replaces Obsidian's file tree with Finder-style Miller columns.** Clicking a folder opens its contents in a new column to the right, so the path you came through stays on screen instead of scrolling away inside one narrow list. It works as a full file manager: create, rename, move, delete, drag and drop, multi-select, context menus, folder colors and icons, pinned and starred folders. The first column can also carry virtual rows for recent files, core-plugin bookmarks and a month calendar with per-day counts of notes created. A sunburst chart reports vault disk usage by size, word count or file count.
+
+<div align="center">
+
+[![Star on GitHub](https://img.shields.io/github/stars/n23eos/column_explorer?style=for-the-badge&logo=github&label=Star%20this%20repo&color=FFD700&labelColor=1a1a1a)](https://github.com/n23eos/column_explorer)
+
+</div>
 
 ![Column Explorer — Miller columns with Recents and Calendar rows, folder colors and breadcrumbs](docs/screenshot-1.jpg)
 
