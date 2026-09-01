@@ -5,6 +5,39 @@ All notable changes to Column Explorer are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+- Inline rename no longer wedges the keyboard: a re-render triggered while the
+  rename field was open (vault event, sync, settings change) removed the input
+  without a `blur`, leaving the view in renaming state and killing every
+  keyboard shortcut until restart.
+- "Duplicate N items" in the multi-selection context menu now duplicates folders
+  as well as files — previously folders were silently skipped while the counter
+  still included them.
+- Filenames containing `$&`, `` $` `` or `$'` are printed correctly in notices;
+  they used to be mangled by the message templating.
+- Exclude patterns: `?` now means exactly one character instead of leaking into
+  the regexp as a quantifier, and a pattern containing only `?` is treated as a
+  glob rather than a literal substring.
+- The disk-usage chart keeps rescanning after a failed scan. One failure used to
+  poison the scan queue for the rest of the session and freeze the chart on
+  stale data.
+- A hand-edited or rolled-back `data.json` can no longer stop the plugin from
+  loading: path records (folder colors, view modes, per-folder sort, folder
+  icons, pins) and path lists (favorites, recents) are validated on load, and
+  entries with unexpected values are dropped instead of throwing.
+- Only `true` and a numeric order count as a pin, so a `false` left in
+  `data.json` no longer turns an unpinned path into a pinned one.
+- A selection restored from `workspace.json` drops entries that are not strings
+  instead of throwing during render.
+
+### Changed
+- The word-count cache of the disk-usage chart forgets files the scan no longer
+  sees, so it stays bounded by vault size instead of growing across rescans.
+- Patched transitive dev dependencies flagged by `npm audit` (fast-uri, js-yaml,
+  nanoid, postcss, brace-expansion). No runtime dependency changes.
+
 ## [1.14.0] — 2026-08-23
 
 ### Added
