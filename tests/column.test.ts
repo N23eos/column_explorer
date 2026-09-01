@@ -1,7 +1,8 @@
 import { beforeEach, describe, expect, test } from "vitest";
-import { TFolder } from "obsidian";
-import { disconnectListObservers, renderColumn, renderColumnList } from "../src/column";
+import { TFile, TFolder } from "obsidian";
+import { disconnectListObservers, refreshUnreadMarker, renderColumn, renderColumnList } from "../src/column";
 import { CALENDAR_PATH, RECENTS_PATH } from "../src/pure";
+import { t } from "../src/i18n";
 import { makeVault } from "./setup/vault";
 import { makeView } from "./setup/view";
 import { observerRegistry, resetObservers, triggerIntersection } from "./setup/obsidian-dom";
@@ -196,4 +197,134 @@ describe("incremental rendering of big folders", () => {
 
 		expect(observerRegistry.every((r) => r.disconnected)).toBe(true);
 	});
+});
+
+/* --------------------- маркеры непрочитанного -------------------------- */
+
+describe("unread markers", () => {
+	/** Vault с одним файлом и заданными временами; baseline = 1000. */
+	function setup(times: { ctime: number; mtime: number }, settings: Record<string, unknown> = {}) {
+		const vault = makeVault(["notes/a.md"]);
+		const file = vault.getAbstractFileByPath("notes/a.md") as TFile;
+		file.stat = { ...file.stat, ...times };
+		const view = makeView(vault, { settings: { unreadBaseline: 1000, ...settings } });
+		const list = container();
+		renderColumnList(view, list, folderOf(vault, "notes"), 0);
+		return list.querySelector(".column-explorer-item") as HTMLElement;
+	}
+
+	test("файл, созданный после baseline и не открытый, получает бейдж New", () => {
+		const item = setup({ ctime: 5000, mtime: 5000 });
+
+		expect(item.hasClass("has-unread-new")).toBe(true);
+		expect(item.querySelector(".column-explorer-item-badge")?.textContent).toBe(t("unreadNew"));
+	});
+
+	test("файл старше baseline маркера не получает", () => {
+		const item = setup({ ctime: 500, mtime: 500 });
+
+		expect(item.querySelector(".column-explorer-item-badge")).toBeNull();
+		expect(item.querySelector(".column-explorer-item-dot")).toBeNull();
+	});
+
+	test("открытый и позже изменённый файл получает точку, а не бейдж", () => {
+		const item = setup({ ctime: 500, mtime: 90_000 }, { seenAt: { "notes/a.md": 2000 } });
+
+		expect(item.hasClass("has-unread-mod")).toBe(true);
+		expect(item.querySelector(".column-explorer-item-dot")).not.toBeNull();
+		expect(item.querySelector(".column-explorer-item-badge")).toBeNull();
+	});
+
+	test("прочитанный и с тех пор нетронутый файл чист", () => {
+		const item = setup({ ctime: 500, mtime: 1500 }, { seenAt: { "notes/a.md": 2000 } });
+
+		expect(item.querySelector(".column-explorer-item-dot")).toBeNull();
+		expect(item.hasClass("has-unread-mod")).toBe(false);
+	});
+
+	test("выключенная настройка убирает маркеры совсем", () => {
+		const item = setup({ ctime: 5000, mtime: 5000 }, { showUnreadMarkers: false });
+
+		expect(item.querySelector(".column-explorer-item-badge")).toBeNull();
+		expect(item.hasClass("has-unread-new")).toBe(false);
+	});
+
+	test("папки маркеров не получают", () => {
+		const vault = makeVault(["notes/sub/x.md"]);
+		const folder = vault.getAbstractFileByPath("notes/sub") as TFolder;
+		// Папка «создана» позже baseline — файл на её месте был бы New
+		(folder as unknown as { stat?: unknown }).stat = { ctime: 5000, mtime: 5000, size: 0 };
+		const list = container();
+
+		renderColumnList(makeView(vault, { settings: { unreadBaseline: 1000 } }), list, folderOf(vault, "notes"), 0);
+
+		expect(list.querySelector(".column-explorer-item-badge")).toBeNull();
+		expect(list.querySelector(".column-explorer-item-dot")).toBeNull();
+	});
+});
+
+describe("refreshUnreadMarker", () => {
+	test("фоновая правка зажигает точку без полного ре-рендера", () => {
+		// Arrange: файл прочитан и чист
+		const vault = makeVault(["notes/a.md"]);
+		const file = vault.getAbstractFileByPath("notes/a.md") as TFile;
+		file.stat = { ...file.stat, ctime: 500, mtime: 1500 };
+		const view = makeView(vault, { settings: { unreadBaseline: 1000, seenAt: { "notes/a.md": 2000 } } });
+		const list = container();
+		renderColumnList(view, list, folderOf(vault, "notes"), 0);
+		const item = list.querySelector(".column-explorer-item") as HTMLElement;
+		expect(item.querySelector(".column-explorer-item-dot")).toBeNull();
+
+		// Act: кто-то правит файл в фоне
+		file.stat = { ...file.stat, mtime: 90_000 };
+		refreshUnreadMarker(view, list, "notes/a.md");
+
+		// Assert: тот же элемент, но с точкой
+		expect(list.querySelector(".column-explorer-item")).toBe(item);
+		expect(item.querySelector(".column-explorer-item-dot")).not.toBeNull();
+	});
+
+	test("прочтение гасит маркер и не плодит дублей", () => {
+		const vault = makeVault(["notes/a.md"]);
+		const file = vault.getAbstractFileByPath("notes/a.md") as TFile;
+		file.stat = { ...file.stat, ctime: 5000, mtime: 5000 };
+		const view = makeView(vault, { settings: { unreadBaseline: 1000 } });
+		const list = container();
+		renderColumnList(view, list, folderOf(vault, "notes"), 0);
+		const item = list.querySelector(".column-explorer-item") as HTMLElement;
+		expect(item.querySelector(".column-explorer-item-badge")).not.toBeNull();
+
+		view.plugin.settings.seenAt = { "notes/a.md": 9000 };
+		refreshUnreadMarker(view, list, "notes/a.md");
+
+		expect(item.querySelectorAll(".column-explorer-item-badge")).toHaveLength(0);
+		expect(item.hasClass("has-unread-new")).toBe(false);
+	});
+
+	test("путь, которого нет в DOM, ничего не ломает", () => {
+		const vault = makeVault(["notes/a.md"]);
+		const list = container();
+		const view = makeView(vault);
+		renderColumnList(view, list, folderOf(vault, "notes"), 0);
+
+		expect(() => refreshUnreadMarker(view, list, "notes/gone.md")).not.toThrow();
+	});
+});
+
+test("маркер стоит слева от названия и после точечного обновления тоже", () => {
+	const vault = makeVault(["notes/a.md"]);
+	const file = vault.getAbstractFileByPath("notes/a.md") as TFile;
+	file.stat = { ...file.stat, ctime: 5000, mtime: 5000 };
+	const view = makeView(vault, { settings: { unreadBaseline: 1000 } });
+	const list = container();
+
+	renderColumnList(view, list, folderOf(vault, "notes"), 0);
+	const item = list.querySelector(".column-explorer-item") as HTMLElement;
+	const positionOf = (sel: string) =>
+		Array.from(item.children).findIndex((el) => el.matches(sel));
+	expect(positionOf(".column-explorer-item-badge")).toBeLessThan(positionOf(".column-explorer-item-title"));
+
+	refreshUnreadMarker(view, list, "notes/a.md");
+
+	expect(positionOf(".column-explorer-item-badge")).toBeLessThan(positionOf(".column-explorer-item-title"));
 });

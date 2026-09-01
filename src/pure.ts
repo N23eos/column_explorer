@@ -507,6 +507,46 @@ function cleanWidths(value: unknown): Record<string, number> {
 	return result;
 }
 
+/**
+ * Запас между открытием файла и его сохранением: правка самого пользователя
+ * долетает до диска на секунду-две позже, чем сработал `file-open`, и без
+ * допуска файл сразу же помечался бы «изменён кем-то другим».
+ */
+export const MTIME_TOLERANCE_MS = 2000;
+
+/** Маркер непрочитанного: новый файл, изменённый чужой правкой или ничего. */
+export type UnreadState = "new" | "modified" | null;
+
+/**
+ * Состояние файла для маркера непрочитанного.
+ *
+ * `seenAt` — когда человек последний раз открывал файл (undefined = никогда),
+ * `baseline` — момент включения фичи: файлы старше него «новыми» не считаются,
+ * иначе после установки плагина весь vault был бы помечен. `baseline === 0`
+ * означает «фича ещё не инициализирована» — маркер «new» не выдаём вовсе.
+ */
+export function unreadState(
+	stat: { ctime: number; mtime: number },
+	seenAt: number | undefined,
+	baseline: number,
+): UnreadState {
+	if (seenAt === undefined) {
+		return baseline > 0 && stat.ctime > baseline ? "new" : null;
+	}
+	return stat.mtime > seenAt + MTIME_TOLERANCE_MS ? "modified" : null;
+}
+
+/** Записи «путь → время открытия»: всё, что не конечное положительное число, выбрасывается. */
+export function cleanSeenAt(value: unknown): Record<string, number> {
+	if (typeof value !== "object" || value === null || Array.isArray(value)) return {};
+	const result: Record<string, number> = {};
+	for (const [key, raw] of Object.entries(value as Record<string, unknown>)) {
+		if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) continue;
+		result[key] = Math.round(raw);
+	}
+	return result;
+}
+
 export interface NormalizedSettings {
 	columnWidth: number;
 	columnWidths: Record<string, number>;
@@ -516,6 +556,8 @@ export interface NormalizedSettings {
 	specialItemsPosition: (typeof SPECIAL_POSITIONS)[number];
 	openLocation: (typeof OPEN_LOCATIONS)[number];
 	storageRingCount: number;
+	seenAt: Record<string, number>;
+	unreadBaseline: number;
 }
 
 /**
@@ -537,5 +579,8 @@ export function normalizeSettings(raw: Record<string, unknown>): NormalizedSetti
 		specialItemsPosition: oneOf(raw.specialItemsPosition, SPECIAL_POSITIONS, "top"),
 		openLocation: oneOf(raw.openLocation, OPEN_LOCATIONS, "sidebar"),
 		storageRingCount: clampInt(raw.storageRingCount, MIN_STORAGE_RINGS, MAX_STORAGE_RINGS, DEFAULT_STORAGE_RINGS),
+		seenAt: cleanSeenAt(raw.seenAt),
+		// 0 — «фича ещё не включалась»; момент включения проставит main.ts
+		unreadBaseline: clampInt(raw.unreadBaseline, 0, Number.MAX_SAFE_INTEGER, 0),
 	};
 }

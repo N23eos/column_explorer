@@ -1,6 +1,6 @@
 import { Platform, TAbstractFile, TFile, TFolder, getLanguage, setIcon } from "obsidian";
 import { t } from "./i18n";
-import { BOOKMARKS_PATH, CALENDAR_PATH, DAY_PATH_PREFIX, DEFAULT_STORAGE_COLUMN_WIDTH, RECENTS_PATH, STORAGE_PATH, dayKey, matchRanges, monthGrid } from "./pure";
+import { BOOKMARKS_PATH, CALENDAR_PATH, DAY_PATH_PREFIX, DEFAULT_STORAGE_COLUMN_WIDTH, RECENTS_PATH, STORAGE_PATH, dayKey, matchRanges, monthGrid, unreadState } from "./pure";
 import { displayName, folderNoteOf, iconFor, isImageFile } from "./utils";
 import { addUpButton, setupLongPress } from "./mobile";
 import { notifyDragManager, setupColumnDnd } from "./dnd";
@@ -229,6 +229,8 @@ function buildItem(view: ColumnExplorerView, f: TAbstractFile, depth: number, is
 		title.setText(name);
 	}
 
+	addUnreadMarker(view, item, f);
+
 	if (view.plugin.settings.pinnedPaths[f.path] !== undefined) {
 		const pin = item.createDiv({ cls: "column-explorer-item-pin" });
 		setIcon(pin, "pin");
@@ -241,6 +243,47 @@ function buildItem(view: ColumnExplorerView, f: TAbstractFile, depth: number, is
 		item.createDiv({ cls: "column-explorer-item-ext", text: f.extension });
 	}
 	return item;
+}
+
+/**
+ * Маркер непрочитанного: бейдж «New» у файла, которого человек ещё не
+ * открывал, или точка у файла, изменённого после прочтения (агентом, ботом,
+ * синхронизацией). Папок не касается — обход их содержимого при каждом
+ * рендере слишком дорог. В list-режиме элемент встаёт слева от названия,
+ * в grid — угловым оверлеем поверх иконки (позиционирует CSS).
+ */
+function addUnreadMarker(view: ColumnExplorerView, item: HTMLElement, f: TAbstractFile) {
+	const s = view.plugin.settings;
+	if (!s.showUnreadMarkers || !(f instanceof TFile)) return;
+	const state = unreadState(f.stat, s.seenAt[f.path], s.unreadBaseline);
+	if (!state) return;
+	const marker = state === "new"
+		? createDiv({ cls: "column-explorer-item-badge", text: t("unreadNew") })
+		: createDiv({ cls: "column-explorer-item-dot", attr: { "aria-label": t("unreadModifiedTooltip") } });
+	item.addClass(state === "new" ? "has-unread-new" : "has-unread-mod");
+	// Слева от названия: и при первом рендере, и при точечном обновлении
+	const title = item.querySelector(".column-explorer-item-title");
+	if (title) item.insertBefore(marker, title);
+	else item.appendChild(marker);
+}
+
+/**
+ * Перерисовать маркер одного файла на месте: фоновая правка не должна
+ * пересобирать колонку — это сбрасывает прокрутку и инкрементальный рендер.
+ * Путь, которого нет в DOM (файл не показан), молча игнорируется.
+ */
+export function refreshUnreadMarker(view: ColumnExplorerView, container: HTMLElement, path: string) {
+	const items = container.querySelectorAll<HTMLElement>(
+		`.column-explorer-item[data-path="${CSS.escape(path)}"]`
+	);
+	items.forEach((item) => {
+		item.removeClass("has-unread-new");
+		item.removeClass("has-unread-mod");
+		item.querySelector(".column-explorer-item-badge")?.remove();
+		item.querySelector(".column-explorer-item-dot")?.remove();
+		const f = view.app.vault.getAbstractFileByPath(path);
+		if (f) addUnreadMarker(view, item, f);
+	});
 }
 
 /** Виртуальные пункты корневой колонки — с учётом настроек и доступности. */

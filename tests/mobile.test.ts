@@ -258,6 +258,8 @@ describe("normalizeSettings", () => {
 			specialItemsPosition: "bottom",
 			openLocation: "tab",
 			storageRingCount: 7,
+			seenAt: { "Notes/a.md": 1700 },
+			unreadBaseline: 1600,
 		});
 
 		expect(result).toEqual({
@@ -269,6 +271,8 @@ describe("normalizeSettings", () => {
 			specialItemsPosition: "bottom",
 			openLocation: "tab",
 			storageRingCount: 7,
+			seenAt: { "Notes/a.md": 1700 },
+			unreadBaseline: 1600,
 		});
 	});
 

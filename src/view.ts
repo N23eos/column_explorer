@@ -30,7 +30,7 @@ import {
 } from "./mobile";
 import { displayName, folderNoteOf, visibleChildren } from "./utils";
 import { MIN_COLUMN_WIDTH } from "./settings";
-import { commitActiveResize, disconnectListObservers, renderCalendarColumn, renderColumn, renderColumnList, renderFileListColumn, renderStorageColumn } from "./column";
+import { commitActiveResize, disconnectListObservers, refreshUnreadMarker, renderCalendarColumn, renderColumn, renderColumnList, renderFileListColumn, renderStorageColumn } from "./column";
 import { renderPreviewColumn } from "./preview";
 import { SunburstController } from "./storage/sunburst";
 import { showSortMenu } from "./menus";
@@ -793,6 +793,12 @@ export class ColumnExplorerView extends ItemView {
 			`.column-explorer-item[data-path="${CSS.escape(active.path)}"]`
 		);
 		item?.addClass("is-active-file");
+	}
+
+	/** Точечно обновить маркер непрочитанного — без ре-рендера колонки. */
+	updateUnreadMarker(path: string) {
+		if (!this.columnsEl) return;
+		refreshUnreadMarker(this, this.columnsEl, path);
 	}
 
 	/* ----------------------------- actions --------------------------- */

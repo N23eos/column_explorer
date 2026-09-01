@@ -80,6 +80,16 @@ export interface ColumnExplorerSettings {
 	mobileUiScale: number;
 	/** Icon size in px (22–36) for mobile toolbar, navigation and action bar. */
 	mobileIconSize: number;
+	/** Mark files the human has not opened yet, and ones edited since they did. */
+	showUnreadMarkers: boolean;
+	/** When the human last opened a file: path → timestamp (ms). */
+	seenAt: Record<string, number>;
+	/**
+	 * Момент включения фичи. Файлы старше него «новыми» не считаются — иначе
+	 * после установки плагина весь vault оказался бы помечен. 0 — ещё не
+	 * проставлен, метку ставит первый запуск (main.ts).
+	 */
+	unreadBaseline: number;
 }
 
 export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
@@ -115,6 +125,9 @@ export const DEFAULT_SETTINGS: ColumnExplorerSettings = {
 	showFavorites: true,
 	mobileUiScale: DEFAULT_MOBILE_SCALE,
 	mobileIconSize: DEFAULT_MOBILE_ICON,
+	showUnreadMarkers: true,
+	seenAt: {},
+	unreadBaseline: 0,
 };
 
 export class ColumnExplorerSettingTab extends PluginSettingTab {

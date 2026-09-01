@@ -92,4 +92,5 @@ export const ru: Locale = {
 	setShowStorage: "Показывать использование диска", setShowStorageDesc: "Показывать строку «Использование диска»: круговая диаграмма размеров папок, числа слов и файлов.",
 	setStorageExclude: "Использование диска: исключённые папки", setStorageExcludeDesc: "Пути в хранилище через запятую, которые пропускаются при сканировании, например «attachments, archive/old».",
 	setStorageRings: "Использование диска: число колец", setStorageRingsDesc: "Сколько уровней вложенности показывает диаграмма.",
+	unreadNew: "Новый", unreadModifiedTooltip: "Изменён после того, как вы его открывали",
 };

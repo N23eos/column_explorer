@@ -92,4 +92,5 @@ export const ja: Locale = {
 	setShowStorage: "ディスク使用量を表示", setShowStorageDesc: "「ディスク使用量」の行を表示します。フォルダのサイズ、文字数、ファイル数をサンバーストチャートで示します。",
 	setStorageExclude: "ディスク使用量：除外フォルダ", setStorageExcludeDesc: "カンマ区切りの保管庫パス。スキャン時にスキップされます（例：attachments, archive/old）。",
 	setStorageRings: "ディスク使用量：リング数", setStorageRingsDesc: "チャートが同時に表示するネストの深さ。",
+	unreadNew: "新規", unreadModifiedTooltip: "前回開いてから変更されました",
 };

@@ -92,4 +92,5 @@ export const de: Locale = {
 	setShowStorage: "Speicherplatz anzeigen", setShowStorageDesc: "Zeigt die Zeile „Speicherplatz“: ein Ringdiagramm mit Ordnergrößen, Wörtern und Dateien.",
 	setStorageExclude: "Speicherplatz: ausgeschlossene Ordner", setStorageExcludeDesc: "Durch Kommas getrennte Vault-Pfade, die beim Scannen übersprungen werden, z. B. „attachments, archive/old“.",
 	setStorageRings: "Speicherplatz: Anzahl der Ringe", setStorageRingsDesc: "Wie viele Verschachtelungsebenen das Diagramm gleichzeitig zeigt.",
+	unreadNew: "Neu", unreadModifiedTooltip: "Seit dem letzten Öffnen geändert",
 };

@@ -94,6 +94,7 @@ export const en = {
 	setShowStorage: "Show disk usage", setShowStorageDesc: "Show the disk usage row: a sunburst chart of folder sizes, word counts and file counts.",
 	setStorageExclude: "Disk usage: excluded folders", setStorageExcludeDesc: "Comma-separated vault paths skipped while scanning, e.g. “attachments, archive/old”.",
 	setStorageRings: "Disk usage: ring count", setStorageRingsDesc: "How many nesting levels the chart shows at once.",
+	unreadNew: "New", unreadModifiedTooltip: "Edited since you last opened it",
 };
 
 export type TranslationKey = keyof typeof en;

@@ -92,4 +92,5 @@ export const es: Locale = {
 	setShowStorage: "Mostrar uso del disco", setShowStorageDesc: "Muestra la fila de uso del disco: un gráfico radial con el tamaño de las carpetas, las palabras y los archivos.",
 	setStorageExclude: "Uso del disco: carpetas excluidas", setStorageExcludeDesc: "Rutas de la bóveda separadas por comas que se omiten al escanear, p. ej. «attachments, archive/old».",
 	setStorageRings: "Uso del disco: número de anillos", setStorageRingsDesc: "Cuántos niveles de anidamiento muestra el gráfico a la vez.",
+	unreadNew: "Nuevo", unreadModifiedTooltip: "Editado desde la última vez que lo abriste",
 };
