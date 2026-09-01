@@ -91,6 +91,20 @@ describe("matchesExcludePatterns", () => {
 		expect(matchesExcludePatterns("temporary/note.md", patterns)).toBe(false);
 	});
 
+	test("? stands for exactly one character", () => {
+		const patterns = parseExcludePatterns("draft-?.md");
+		expect(matchesExcludePatterns("notes/draft-1.md", patterns)).toBe(true);
+		expect(matchesExcludePatterns("notes/draft-12.md", patterns)).toBe(false);
+		// Раньше "?" был квантификатором regexp и делал предыдущий символ опциональным
+		expect(matchesExcludePatterns("notes/draft-.md", patterns)).toBe(false);
+	});
+
+	test("? and * combine in one pattern", () => {
+		const patterns = parseExcludePatterns("?-*.tmp");
+		expect(matchesExcludePatterns("a-draft.tmp", patterns)).toBe(true);
+		expect(matchesExcludePatterns("ab-draft.tmp", patterns)).toBe(false);
+	});
+
 	test("returns false when pattern list is empty", () => {
 		expect(matchesExcludePatterns("anything.md", [])).toBe(false);
 	});

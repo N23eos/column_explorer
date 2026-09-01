@@ -104,8 +104,12 @@ export function parseExcludePatterns(raw: string): string[] {
 		.filter((p) => p.length > 0);
 }
 
+/** Glob to regexp: `*` — любой отрезок имени, `?` — ровно один символ. */
 function globToRegExp(glob: string): RegExp {
-	const escaped = glob.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^/]*");
+	const escaped = glob
+		.replace(/[.+^${}()|[\]\\]/g, "\\$&")
+		.replace(/\*/g, "[^/]*")
+		.replace(/\?/g, "[^/]");
 	return new RegExp("^" + escaped + "$");
 }
 
@@ -427,7 +431,8 @@ export function parentSelection(selection: string[], isFolder: (path: string) =>
 /**
  * Pattern semantics:
  * - "folder/"  — the folder itself and everything inside it
- * - "*.tmp"    — glob matched against the file name (not the full path)
+ * - "*.tmp"    — glob matched against the file name (not the full path);
+ *                `*` is any run of characters, `?` is exactly one
  * - ".trash"   — plain substring matched against the full path
  */
 export function matchesExcludePatterns(path: string, patterns: string[]): boolean {
@@ -438,7 +443,7 @@ export function matchesExcludePatterns(path: string, patterns: string[]): boolea
 			const base = pattern.slice(0, -1);
 			return path === base || path.startsWith(base + "/");
 		}
-		if (pattern.includes("*")) {
+		if (pattern.includes("*") || pattern.includes("?")) {
 			return globToRegExp(pattern).test(name);
 		}
 		return path.includes(pattern);

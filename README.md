@@ -98,7 +98,7 @@ The first column can host four virtual rows, each toggleable and positionable in
 - **Drag & drop** — move files/folders between columns, straight onto a folder row or onto a breadcrumb segment; drag a file into an editor to insert a link
 - **Full Obsidian context menu** — core & community plugin items (bookmarks, "Reveal in Finder", copy link, …) are injected via the `file-menu` event
 - **Copy links & paths** — vault path, absolute system path, wikilink, Markdown link or `obsidian://` URL, from the context menu
-- **Excluded files** — hide files and folders by comma-separated patterns. `*.tmp` matches by file name at any depth; `.trash` matches any path containing it; a trailing slash (`archive/`) is a path prefix **from the vault root**, so nested folders need their full path (`Notes/archive/`)
+- **Excluded files** — hide files and folders by comma-separated patterns. `*.tmp` matches by file name at any depth (`*` is any run of characters, `?` exactly one); `.trash` matches any path containing it; a trailing slash (`archive/`) is a path prefix **from the vault root**, so nested folders need their full path (`Notes/archive/`)
 - **Sort options** — global default plus per-folder overrides (right-click a column header): name, modified, created or size, both directions
 
 ![Column Explorer — special items settings](docs/screenshot-4.jpg)
@@ -139,7 +139,7 @@ Yes — **Settings → Column Explorer → Where to open** switches the open com
 Deliberately disabled: on touch screens a drag gesture competes with scrolling. Long-press an item to enter selection mode, then use the bottom bar to move files.
 
 **How do the exclude patterns work?**
-Comma-separated. `*.tmp` matches by file name at any depth, `.trash` matches any path containing that string, and a trailing slash (`archive/`) is a path prefix **from the vault root** — so a nested folder needs its full path, e.g. `Notes/archive/`.
+Comma-separated. `*.tmp` matches by file name at any depth — `*` stands for any run of characters and `?` for exactly one, so `draft-?.md` hides `draft-1.md` but not `draft-12.md`. `.trash` matches any path containing that string, and a trailing slash (`archive/`) is a path prefix **from the vault root** — so a nested folder needs its full path, e.g. `Notes/archive/`.
 
 **Does it work with Folder Notes / Iconize / other explorer plugins?**
 Column Explorer has its own folder-note and folder-icon support built in, so you don't need those for this view. Plugins that decorate the *core* file explorer won't affect this one — but any plugin that adds items to Obsidian's file context menu shows up here too, because the menu is built from the same `file-menu` event.
