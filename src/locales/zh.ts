@@ -92,5 +92,6 @@ export const zh: Locale = {
 	setShowStorage: "显示磁盘占用", setShowStorageDesc: "显示「磁盘占用」行：以旭日图展示文件夹大小、字数和文件数。",
 	setStorageExclude: "磁盘占用：排除的文件夹", setStorageExcludeDesc: "以逗号分隔的仓库路径，扫描时跳过，例如「attachments, archive/old」。",
 	setStorageRings: "磁盘占用：环数", setStorageRingsDesc: "图表同时显示的嵌套层级数。",
+	setShowUnread: "显示未读标记", setShowUnreadDesc: "为从未打开过的文件加标记，为上次打开后被修改的文件加圆点。",
 	unreadNew: "新", unreadModifiedTooltip: "自上次打开后已修改",
 };

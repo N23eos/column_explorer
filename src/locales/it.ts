@@ -92,5 +92,6 @@ export const it: Locale = {
 	setShowStorage: "Mostra spazio su disco", setShowStorageDesc: "Mostra la riga «Spazio su disco»: un grafico radiale con dimensioni delle cartelle, parole e file.",
 	setStorageExclude: "Spazio su disco: cartelle escluse", setStorageExcludeDesc: "Percorsi del vault separati da virgole, saltati durante la scansione, ad es. «attachments, archive/old».",
 	setStorageRings: "Spazio su disco: numero di anelli", setStorageRingsDesc: "Quanti livelli di annidamento mostra il grafico contemporaneamente.",
+	setShowUnread: "Mostra gli indicatori di non letto", setShowUnreadDesc: "Badge sui file mai aperti e punto su quelli modificati dall’ultima volta che li hai aperti.",
 	unreadNew: "Nuovo", unreadModifiedTooltip: "Modificato dall’ultima volta che l’hai aperto",
 };

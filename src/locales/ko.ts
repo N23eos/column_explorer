@@ -92,5 +92,6 @@ export const ko: Locale = {
 	setShowStorage: "디스크 사용량 표시", setShowStorageDesc: "«디스크 사용량» 행을 표시합니다. 폴더 크기, 단어 수, 파일 수를 선버스트 차트로 보여줍니다.",
 	setStorageExclude: "디스크 사용량: 제외된 폴더", setStorageExcludeDesc: "쉼표로 구분된 보관함 경로. 검사 시 건너뜁니다. 예: «attachments, archive/old».",
 	setStorageRings: "디스크 사용량: 링 개수", setStorageRingsDesc: "차트가 한 번에 표시하는 중첩 수준의 수.",
+	setShowUnread: "읽지 않음 표시 보기", setShowUnreadDesc: "한 번도 열지 않은 파일에 배지를, 마지막으로 연 이후 변경된 파일에 점을 표시합니다.",
 	unreadNew: "신규", unreadModifiedTooltip: "마지막으로 연 이후 변경됨",
 };

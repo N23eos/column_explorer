@@ -150,6 +150,7 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 					{ name: t("setShowExt"), desc: t("setShowExtDesc"), control: { type: "toggle", key: "showExtensions" } },
 					{ name: t("setPreview"), desc: t("setPreviewDesc"), control: { type: "toggle", key: "showPreview" } },
 					{ name: t("setMdPreview"), desc: t("setMdPreviewDesc"), control: { type: "toggle", key: "showMarkdownPreview" } },
+					{ name: t("setShowUnread"), desc: t("setShowUnreadDesc"), control: { type: "toggle", key: "showUnreadMarkers" } },
 				],
 			},
 			{
@@ -301,6 +302,9 @@ export class ColumnExplorerSettingTab extends PluginSettingTab {
 
 		new Setting(containerEl).setName(t("setMdPreview")).setDesc(t("setMdPreviewDesc"))
 			.addToggle(tg => tg.setValue(s.showMarkdownPreview).onChange(async (v) => { s.showMarkdownPreview = v; await save(); }));
+
+		new Setting(containerEl).setName(t("setShowUnread")).setDesc(t("setShowUnreadDesc"))
+			.addToggle(tg => tg.setValue(s.showUnreadMarkers).onChange(async (v) => { s.showUnreadMarkers = v; await save(); }));
 
 		new Setting(containerEl).setName(t("headBehavior")).setHeading();
 

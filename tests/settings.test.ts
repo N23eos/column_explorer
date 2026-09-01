@@ -64,6 +64,20 @@ describe("getSettingDefinitions", () => {
 
 		for (const item of flatItems(tab)) expect(item.name).toBeTruthy();
 	});
+
+	// Тумблер, забытый в настройках, выключается только правкой data.json:
+	// так уехали маркеры непрочитанного в 1.14.0
+	test("every boolean setting has a control", () => {
+		const { tab } = makeTab();
+		const offered = new Set(flatItems(tab).map((i) => i.control?.key));
+
+		const booleans = Object.keys(DEFAULT_SETTINGS).filter(
+			(k) => typeof DEFAULT_SETTINGS[k as keyof typeof DEFAULT_SETTINGS] === "boolean"
+		);
+
+		expect(booleans.length).toBeGreaterThan(0);
+		for (const key of booleans) expect(offered).toContain(key);
+	});
 });
 
 describe("setControlValue", () => {

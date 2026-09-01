@@ -92,5 +92,6 @@ export const fr: Locale = {
 	setShowStorage: "Afficher l'espace disque", setShowStorageDesc: "Affiche la ligne « Espace disque » : un graphique radial de la taille des dossiers, des mots et des fichiers.",
 	setStorageExclude: "Espace disque : dossiers exclus", setStorageExcludeDesc: "Chemins du coffre séparés par des virgules, ignorés lors de l'analyse, par ex. « attachments, archive/old ».",
 	setStorageRings: "Espace disque : nombre d'anneaux", setStorageRingsDesc: "Combien de niveaux d'imbrication le graphique affiche à la fois.",
+	setShowUnread: "Afficher les marqueurs de non-lu", setShowUnreadDesc: "Badge sur les fichiers jamais ouverts et point sur ceux modifiés depuis votre dernière ouverture.",
 	unreadNew: "Nouveau", unreadModifiedTooltip: "Modifié depuis votre dernière ouverture",
 };

@@ -23,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and a file edited by someone else (an agent, a bot, sync, an external editor)
   since it was last opened gets a dot. Opening a file clears both. Only files are
   marked; the baseline is set on first run so an existing vault is not lit up
-  wholesale.
+  wholesale, and the whole thing can be switched off in *Appearance*.
 
 ### Fixed
 - Inline rename no longer wedges the keyboard: a re-render triggered while the

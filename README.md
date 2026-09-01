@@ -92,6 +92,9 @@ The first column can host four virtual rows, each toggleable and positionable in
 - **Folder colors & icons** — right-click a folder: eight theme-aware color presets and any lucide icon
 - **Pinned items** — right-click → *Pin to top*; drag one pin onto another to reorder
 - **File preview column** — image, audio, video and PDF previews, note content, size, dates
+- **Unread markers** — a small *New* badge on files you have never opened, and a dot on files
+  edited since you last opened them (by an agent, a bot, sync or an external editor). Opening a
+  file clears both; the whole thing can be switched off in settings
 - **Item counts** — each column header shows how many items it lists
 - **Resizable columns** — drag the right edge of any column
 - **Localized** — English, Chinese (Simplified), German, Japanese, Korean, Brazilian Portuguese, Spanish, French, Italian and Russian, following Obsidian's own language setting

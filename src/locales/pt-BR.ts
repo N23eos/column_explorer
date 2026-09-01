@@ -92,5 +92,6 @@ export const ptBR: Locale = {
 	setShowStorage: "Mostrar uso do disco", setShowStorageDesc: "Mostra a linha «Uso do disco»: um gráfico radial com tamanhos de pastas, palavras e arquivos.",
 	setStorageExclude: "Uso do disco: pastas excluídas", setStorageExcludeDesc: "Caminhos do cofre separados por vírgulas, ignorados na varredura, por ex. «attachments, archive/old».",
 	setStorageRings: "Uso do disco: número de anéis", setStorageRingsDesc: "Quantos níveis de aninhamento o gráfico mostra de uma vez.",
+	setShowUnread: "Mostrar marcadores de não lido", setShowUnreadDesc: "Selo nos arquivos que você nunca abriu e ponto nos editados desde a última vez que os abriu.",
 	unreadNew: "Novo", unreadModifiedTooltip: "Editado desde a última vez que você abriu",
 };
