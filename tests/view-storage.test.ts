@@ -139,6 +139,26 @@ describe("disk usage column", () => {
 		expect(itemPaths(view)).not.toContain(STORAGE_PATH);
 	});
 
+	// Отказ скана оставлял rejected-промис в хвосте очереди, и все следующие
+	// сканы молча пропускались — диаграмма застывала на старых данных
+	test("a failed scan does not kill later rescans", async () => {
+		const { view, app, vault } = await mountView(["notes/a.md", "c.md"]);
+		giveFilesSize(vault);
+		const workingList = app.vault.getMarkdownFiles;
+		app.vault.getMarkdownFiles = () => { throw new Error("scan boom"); };
+
+		view.selectSpecial(STORAGE_PATH);
+		await flushWords();
+
+		// Считаем обращения к vault: рескан «прошёл», если файлы снова спросили
+		let listed = 0;
+		app.vault.getMarkdownFiles = () => { listed++; return workingList(); };
+		view.contentEl.querySelector<HTMLButtonElement>(".column-explorer-du-icon-btn")?.click();
+		await flushWords();
+
+		expect(listed).toBe(1);
+	});
+
 	test("keyboard cannot walk inside the chart column", async () => {
 		const { view } = await mountView(["a.md"]);
 

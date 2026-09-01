@@ -183,9 +183,16 @@ export class SunburstController extends Component {
 		return this.owner.plugin.settings.storageRingCount;
 	}
 
-	/** Сканы выстраиваются в очередь: событие vault, настройки и кнопка не пересекаются. */
+	/**
+	 * Сканы выстраиваются в очередь: событие vault, настройки и кнопка не
+	 * пересекаются. Отказ гасится здесь же: rejected-промис в хвосте цепочки
+	 * молча проглотил бы ВСЕ последующие сканы, и диаграмма навсегда застыла
+	 * бы на старых данных. Скан — best effort, как и словосчёт внутри него.
+	 */
 	private rescan(intro: boolean): Promise<void> {
-		this.rescanChain = this.rescanChain.then(() => this.doRescan(intro));
+		this.rescanChain = this.rescanChain
+			.then(() => this.doRescan(intro))
+			.catch(() => { /* следующий скан начнёт с чистой цепочки */ });
 		return this.rescanChain;
 	}
 
