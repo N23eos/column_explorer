@@ -77,6 +77,11 @@ export async function countVaultWords(
 			onProgress(done, files.length);
 		}
 	}
+	// Кэш переживает пересканы: без чистки записи удалённых, переименованных
+	// и исключённых файлов копились бы до самого закрытия вью
+	for (const path of cache.keys()) {
+		if (!result.has(path)) cache.delete(path);
+	}
 	return result;
 }
 

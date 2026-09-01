@@ -303,6 +303,17 @@ describe("countVaultWords", () => {
 		expect(words.get("a.md")).toBe(0);
 	});
 
+	test("forgets cached files that the scan no longer sees", async () => {
+		const { vault } = scanVault(["a.md", "b.md"], { "a.md": "one", "b.md": "two" });
+		const cache = new Map<string, WordCacheEntry>();
+		await countVaultWords(vault, cache);
+		expect(cache.size).toBe(2);
+
+		await countVaultWords(vault, cache, undefined, makeExclusionFilter(["b.md"]));
+
+		expect([...cache.keys()]).toEqual(["a.md"]);
+	});
+
 	test("reports progress on the last file", async () => {
 		const { vault } = scanVault(["a.md"], { "a.md": "word" });
 		const progress: [number, number][] = [];
