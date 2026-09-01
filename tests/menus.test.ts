@@ -155,6 +155,27 @@ describe("showFileMenu with a multi-selection", () => {
 		expect(titles).toContain(t("deleteN", { n: 2 }));
 		expect(titles).not.toContain(t("rename"));
 	});
+
+	// «Дублировать N» не должно молча пропускать папки: одиночное меню и
+	// мобильная панель действий их дублируют
+	test("bulk duplicate covers folders as well as files", async () => {
+		const { view, vault } = setup(["docs/note.md", "a.md"]);
+		const copied: string[] = [];
+		const createdFolders: string[] = [];
+		Object.assign(view.app.vault as unknown as Record<string, unknown>, {
+			copy: (f: TAbstractFile, path: string) => { copied.push(path); return Promise.resolve(); },
+			createFolder: (path: string) => { createdFolders.push(path); return Promise.resolve(); },
+		});
+		view.multiSelDepth = 0;
+		view.multiSel.add("docs");
+		view.multiSel.add("a.md");
+
+		showFileMenu(view, mouse(), vault.getAbstractFileByPath("a.md") as TAbstractFile, 0);
+		clickItem(t("duplicateN", { n: 2 }));
+		await vi.waitFor(() => expect(copied).toContain("a copy.md"));
+
+		expect(createdFolders).toEqual(["docs copy"]);
+	});
 });
 
 describe("column header menu", () => {
