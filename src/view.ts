@@ -558,6 +558,10 @@ export class ColumnExplorerView extends ItemView {
 		// Обсерверы догрузки живут на списках — снимаем их до удаления колонок
 		disconnectListObservers(this.columnsEl);
 		this.columnsEl.empty();
+		// Поле инлайн-переименования умирает вместе с колонкой и blur уже не
+		// пришлёт: без сброса флаг завис бы навсегда, а с ним и вся
+		// клавиатурная навигация (onKeyDown выходит на первой строке)
+		this.renamingPath = null;
 		this.applyColumnWidth();
 
 		const validSel: string[] = [];

@@ -248,6 +248,24 @@ describe("inline rename", () => {
 		expect(view.isRenaming("a.md")).toBe(false);
 	});
 
+	// Перерисовка (событие vault, смена настроек) сносит input без blur —
+	// зависший флаг глушил бы клавиатурную навигацию до конца сессии
+	test("a re-render cancels the rename instead of wedging the keyboard", async () => {
+		const { view, vault } = await mountView(["a.md", "b.md"], {
+			showRecents: false, showBookmarks: false, showCalendar: false, showStorage: false, showFavorites: false,
+		});
+		view.startRename(vault.getAbstractFileByPath("a.md") as TFile);
+
+		view.render();
+
+		expect(view.contentEl.querySelector(".column-explorer-rename-input")).toBeNull();
+		expect(view.isRenaming("a.md")).toBe(false);
+
+		const columns = view.contentEl.querySelector<HTMLElement>(".column-explorer-columns");
+		columns?.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true, cancelable: true }));
+		expect(view.selection).toEqual(["a.md"]);
+	});
+
 	test("an unchanged name is not written back", async () => {
 		const { view, app, vault } = await mountView(["a.md"]);
 		view.startRename(vault.getAbstractFileByPath("a.md") as TFile);
