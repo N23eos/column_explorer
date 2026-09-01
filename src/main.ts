@@ -172,15 +172,22 @@ export default class ColumnExplorerPlugin extends Plugin {
 
 	/** v1.3.x stored pins as `true`; convert to numeric order once. */
 	private migratePinnedPaths() {
-		const raw = this.settings.pinnedPaths as Record<string, number | boolean>;
+		const raw: unknown = this.settings.pinnedPaths;
+		// data.json правится руками: строка или null вместо объекта уронили бы
+		// загрузку плагина целиком на первом же обращении к ключам
+		const entries = typeof raw === "object" && raw !== null && !Array.isArray(raw)
+			? Object.entries(raw as Record<string, unknown>)
+			: [];
+		const isOrder = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 		// Булевым — номера после максимального существующего: смешанные данные
 		// (откат версии и обратно) иначе давали бы двум пинам один порядок
-		const numeric = Object.values(raw).filter((v): v is number => typeof v === "number");
+		const numeric = entries.map(([, v]) => v).filter(isOrder);
 		let next = numeric.length > 0 ? Math.max(...numeric) + 1 : 0;
 		const migrated: Record<string, number> = {};
-		for (const path of Object.keys(raw)) {
-			const value = raw[path];
-			migrated[path] = typeof value === "number" ? value : next++;
+		for (const [path, value] of entries) {
+			if (isOrder(value)) migrated[path] = value;
+			// v1.3.x писал только `true`; всё прочее пином не считаем
+			else if (value === true) migrated[path] = next++;
 		}
 		this.settings.pinnedPaths = migrated;
 	}

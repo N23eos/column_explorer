@@ -84,6 +84,24 @@ describe("loadSettings", () => {
 		expect(plugin.settings.pinnedPaths).toEqual({ "a.md": 5, "b.md": 2 });
 	});
 
+	test("values that are not an order and not `true` are not pins", async () => {
+		const data = {
+			pinnedPaths: { "a.md": true, "b.md": false, "c.md": "yes", "d.md": null, "e.md": NaN },
+		} as unknown as Partial<ColumnExplorerSettings>;
+
+		const { plugin } = await loadPlugin(data);
+
+		expect(plugin.settings.pinnedPaths).toEqual({ "a.md": 0 });
+	});
+
+	test("loading survives pinnedPaths that is not an object", async () => {
+		const data = { pinnedPaths: "everything" } as unknown as Partial<ColumnExplorerSettings>;
+
+		const { plugin } = await loadPlugin(data);
+
+		expect(plugin.settings.pinnedPaths).toEqual({});
+	});
+
 	test("drops stale per-day column width keys", async () => {
 		const data = { columnWidths: { "::day::2026-07-19": 300, "notes": 250 } } as Partial<ColumnExplorerSettings>;
 
