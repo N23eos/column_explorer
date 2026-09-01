@@ -70,7 +70,7 @@ function shellEscapePath(path) {
 function formatTemplate(template, vars) {
   let result = template;
   for (const key of Object.keys(vars)) {
-    result = result.replace("{" + key + "}", String(vars[key]));
+    result = result.replace("{" + key + "}", () => String(vars[key]));
   }
   return result;
 }
@@ -78,7 +78,7 @@ function parseExcludePatterns(raw) {
   return raw.split(",").map((p) => p.trim()).filter((p) => p.length > 0);
 }
 function globToRegExp(glob) {
-  const escaped = glob.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^/]*");
+  const escaped = glob.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, "[^/]*").replace(/\?/g, "[^/]");
   return new RegExp("^" + escaped + "$");
 }
 function remapPathKeys(record, oldPath, newPath) {
@@ -276,7 +276,7 @@ function matchesExcludePatterns(path, patterns) {
       const base = pattern.slice(0, -1);
       return path === base || path.startsWith(base + "/");
     }
-    if (pattern.includes("*")) {
+    if (pattern.includes("*") || pattern.includes("?")) {
       return globToRegExp(pattern).test(name);
     }
     return path.includes(pattern);
@@ -306,6 +306,8 @@ var SORT_MODE_VALUES = [
   "size-asc"
 ];
 var SPECIAL_POSITIONS = ["top", "bottom"];
+var COLUMN_VIEW_MODES = ["list", "grid"];
+var FOLDER_COLOR_KEYS = ["red", "orange", "yellow", "green", "cyan", "blue", "purple", "pink"];
 var MIN_STORAGE_RINGS = 3;
 var MAX_STORAGE_RINGS = 8;
 var DEFAULT_STORAGE_RINGS = 5;
@@ -317,12 +319,48 @@ function clampInt(value, min, max, fallback) {
 function oneOf(value, allowed, fallback) {
   return typeof value === "string" && allowed.includes(value) ? value : fallback;
 }
+function cleanEnumRecord(value, allowed) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return {};
+  const result = {};
+  for (const [key, raw] of Object.entries(value)) {
+    if (typeof raw === "string" && allowed.includes(raw)) result[key] = raw;
+  }
+  return result;
+}
+function cleanStringRecord(value) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return {};
+  const result = {};
+  for (const [key, raw] of Object.entries(value)) {
+    if (typeof raw === "string") result[key] = raw;
+  }
+  return result;
+}
+function cleanPathList(value) {
+  if (!Array.isArray(value)) return [];
+  return value.filter((p) => typeof p === "string");
+}
 function cleanWidths(value) {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return {};
   const result = {};
   for (const [key, raw] of Object.entries(value)) {
     if (typeof raw !== "number" || !Number.isFinite(raw)) continue;
     if (raw < MIN_COLUMN_WIDTH || raw > MAX_COLUMN_WIDTH) continue;
+    result[key] = Math.round(raw);
+  }
+  return result;
+}
+var MTIME_TOLERANCE_MS = 2e3;
+function unreadState(stat, seenAt, baseline) {
+  if (seenAt === void 0) {
+    return baseline > 0 && stat.ctime > baseline ? "new" : null;
+  }
+  return stat.mtime > seenAt + MTIME_TOLERANCE_MS ? "modified" : null;
+}
+function cleanSeenAt(value) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return {};
+  const result = {};
+  for (const [key, raw] of Object.entries(value)) {
+    if (typeof raw !== "number" || !Number.isFinite(raw) || raw <= 0) continue;
     result[key] = Math.round(raw);
   }
   return result;
@@ -338,7 +376,18 @@ function normalizeSettings(raw) {
     sortMode: oneOf(raw.sortMode, SORT_MODE_VALUES, "name-asc"),
     specialItemsPosition: oneOf(raw.specialItemsPosition, SPECIAL_POSITIONS, "top"),
     openLocation: oneOf(raw.openLocation, OPEN_LOCATIONS, "sidebar"),
-    storageRingCount: clampInt(raw.storageRingCount, MIN_STORAGE_RINGS, MAX_STORAGE_RINGS, DEFAULT_STORAGE_RINGS)
+    storageRingCount: clampInt(raw.storageRingCount, MIN_STORAGE_RINGS, MAX_STORAGE_RINGS, DEFAULT_STORAGE_RINGS),
+    seenAt: cleanSeenAt(raw.seenAt),
+    // 0 — «фича ещё не включалась»; момент включения проставит main.ts
+    unreadBaseline: clampInt(raw.unreadBaseline, 0, Number.MAX_SAFE_INTEGER, 0),
+    // Записи путь → значение и списки путей: без этого строка или null
+    // вместо объекта роняли бы загрузку плагина на первом же Object.keys
+    folderColors: cleanEnumRecord(raw.folderColors, FOLDER_COLOR_KEYS),
+    columnViewModes: cleanEnumRecord(raw.columnViewModes, COLUMN_VIEW_MODES),
+    columnSortModes: cleanEnumRecord(raw.columnSortModes, SORT_MODE_VALUES),
+    folderIcons: cleanStringRecord(raw.folderIcons),
+    favorites: cleanPathList(raw.favorites),
+    recentFiles: cleanPathList(raw.recentFiles)
   };
 }
 
@@ -530,7 +579,11 @@ var en = {
   setStorageExclude: "Disk usage: excluded folders",
   setStorageExcludeDesc: "Comma-separated vault paths skipped while scanning, e.g. \u201Cattachments, archive/old\u201D.",
   setStorageRings: "Disk usage: ring count",
-  setStorageRingsDesc: "How many nesting levels the chart shows at once."
+  setStorageRingsDesc: "How many nesting levels the chart shows at once.",
+  setShowUnread: "Show unread markers",
+  setShowUnreadDesc: "Badge files you have never opened, and dot files edited since you last opened them.",
+  unreadNew: "New",
+  unreadModifiedTooltip: "Edited since you last opened it"
 };
 
 // src/locales/ru.ts
@@ -721,7 +774,11 @@ var ru = {
   setStorageExclude: "\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u0435 \u0434\u0438\u0441\u043A\u0430: \u0438\u0441\u043A\u043B\u044E\u0447\u0451\u043D\u043D\u044B\u0435 \u043F\u0430\u043F\u043A\u0438",
   setStorageExcludeDesc: "\u041F\u0443\u0442\u0438 \u0432 \u0445\u0440\u0430\u043D\u0438\u043B\u0438\u0449\u0435 \u0447\u0435\u0440\u0435\u0437 \u0437\u0430\u043F\u044F\u0442\u0443\u044E, \u043A\u043E\u0442\u043E\u0440\u044B\u0435 \u043F\u0440\u043E\u043F\u0443\u0441\u043A\u0430\u044E\u0442\u0441\u044F \u043F\u0440\u0438 \u0441\u043A\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0438, \u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440 \xABattachments, archive/old\xBB.",
   setStorageRings: "\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u0435 \u0434\u0438\u0441\u043A\u0430: \u0447\u0438\u0441\u043B\u043E \u043A\u043E\u043B\u0435\u0446",
-  setStorageRingsDesc: "\u0421\u043A\u043E\u043B\u044C\u043A\u043E \u0443\u0440\u043E\u0432\u043D\u0435\u0439 \u0432\u043B\u043E\u0436\u0435\u043D\u043D\u043E\u0441\u0442\u0438 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0435\u0442 \u0434\u0438\u0430\u0433\u0440\u0430\u043C\u043C\u0430."
+  setStorageRingsDesc: "\u0421\u043A\u043E\u043B\u044C\u043A\u043E \u0443\u0440\u043E\u0432\u043D\u0435\u0439 \u0432\u043B\u043E\u0436\u0435\u043D\u043D\u043E\u0441\u0442\u0438 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0435\u0442 \u0434\u0438\u0430\u0433\u0440\u0430\u043C\u043C\u0430.",
+  setShowUnread: "\u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0442\u044C \u043C\u0430\u0440\u043A\u0435\u0440\u044B \u043D\u0435\u043F\u0440\u043E\u0447\u0438\u0442\u0430\u043D\u043D\u043E\u0433\u043E",
+  setShowUnreadDesc: "\u0411\u0435\u0439\u0434\u0436 \u0443 \u0444\u0430\u0439\u043B\u043E\u0432, \u043A\u043E\u0442\u043E\u0440\u044B\u0435 \u0432\u044B \u043D\u0438 \u0440\u0430\u0437\u0443 \u043D\u0435 \u043E\u0442\u043A\u0440\u044B\u0432\u0430\u043B\u0438, \u0438 \u0442\u043E\u0447\u043A\u0430 \u0443 \u0438\u0437\u043C\u0435\u043D\u0451\u043D\u043D\u044B\u0445 \u043F\u043E\u0441\u043B\u0435 \u0432\u0430\u0448\u0435\u0433\u043E \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0435\u0433\u043E \u043E\u0442\u043A\u0440\u044B\u0442\u0438\u044F.",
+  unreadNew: "\u041D\u043E\u0432\u044B\u0439",
+  unreadModifiedTooltip: "\u0418\u0437\u043C\u0435\u043D\u0451\u043D \u043F\u043E\u0441\u043B\u0435 \u0442\u043E\u0433\u043E, \u043A\u0430\u043A \u0432\u044B \u0435\u0433\u043E \u043E\u0442\u043A\u0440\u044B\u0432\u0430\u043B\u0438"
 };
 
 // src/locales/es.ts
@@ -912,7 +969,11 @@ var es = {
   setStorageExclude: "Uso del disco: carpetas excluidas",
   setStorageExcludeDesc: "Rutas de la b\xF3veda separadas por comas que se omiten al escanear, p. ej. \xABattachments, archive/old\xBB.",
   setStorageRings: "Uso del disco: n\xFAmero de anillos",
-  setStorageRingsDesc: "Cu\xE1ntos niveles de anidamiento muestra el gr\xE1fico a la vez."
+  setStorageRingsDesc: "Cu\xE1ntos niveles de anidamiento muestra el gr\xE1fico a la vez.",
+  setShowUnread: "Mostrar marcadores de no le\xEDdo",
+  setShowUnreadDesc: "Insignia en los archivos que nunca has abierto y punto en los editados desde la \xFAltima vez que los abriste.",
+  unreadNew: "Nuevo",
+  unreadModifiedTooltip: "Editado desde la \xFAltima vez que lo abriste"
 };
 
 // src/locales/fr.ts
@@ -1103,7 +1164,11 @@ var fr = {
   setStorageExclude: "Espace disque : dossiers exclus",
   setStorageExcludeDesc: "Chemins du coffre s\xE9par\xE9s par des virgules, ignor\xE9s lors de l'analyse, par ex. \xAB attachments, archive/old \xBB.",
   setStorageRings: "Espace disque : nombre d'anneaux",
-  setStorageRingsDesc: "Combien de niveaux d'imbrication le graphique affiche \xE0 la fois."
+  setStorageRingsDesc: "Combien de niveaux d'imbrication le graphique affiche \xE0 la fois.",
+  setShowUnread: "Afficher les marqueurs de non-lu",
+  setShowUnreadDesc: "Badge sur les fichiers jamais ouverts et point sur ceux modifi\xE9s depuis votre derni\xE8re ouverture.",
+  unreadNew: "Nouveau",
+  unreadModifiedTooltip: "Modifi\xE9 depuis votre derni\xE8re ouverture"
 };
 
 // src/locales/it.ts
@@ -1294,7 +1359,11 @@ var it = {
   setStorageExclude: "Spazio su disco: cartelle escluse",
   setStorageExcludeDesc: "Percorsi del vault separati da virgole, saltati durante la scansione, ad es. \xABattachments, archive/old\xBB.",
   setStorageRings: "Spazio su disco: numero di anelli",
-  setStorageRingsDesc: "Quanti livelli di annidamento mostra il grafico contemporaneamente."
+  setStorageRingsDesc: "Quanti livelli di annidamento mostra il grafico contemporaneamente.",
+  setShowUnread: "Mostra gli indicatori di non letto",
+  setShowUnreadDesc: "Badge sui file mai aperti e punto su quelli modificati dall\u2019ultima volta che li hai aperti.",
+  unreadNew: "Nuovo",
+  unreadModifiedTooltip: "Modificato dall\u2019ultima volta che l\u2019hai aperto"
 };
 
 // src/locales/de.ts
@@ -1485,7 +1554,11 @@ var de = {
   setStorageExclude: "Speicherplatz: ausgeschlossene Ordner",
   setStorageExcludeDesc: "Durch Kommas getrennte Vault-Pfade, die beim Scannen \xFCbersprungen werden, z. B. \u201Eattachments, archive/old\u201C.",
   setStorageRings: "Speicherplatz: Anzahl der Ringe",
-  setStorageRingsDesc: "Wie viele Verschachtelungsebenen das Diagramm gleichzeitig zeigt."
+  setStorageRingsDesc: "Wie viele Verschachtelungsebenen das Diagramm gleichzeitig zeigt.",
+  setShowUnread: "Ungelesen-Markierungen anzeigen",
+  setShowUnreadDesc: "Abzeichen an nie ge\xF6ffneten Dateien und ein Punkt an seit dem letzten \xD6ffnen ge\xE4nderten.",
+  unreadNew: "Neu",
+  unreadModifiedTooltip: "Seit dem letzten \xD6ffnen ge\xE4ndert"
 };
 
 // src/locales/pt-BR.ts
@@ -1676,7 +1749,11 @@ var ptBR = {
   setStorageExclude: "Uso do disco: pastas exclu\xEDdas",
   setStorageExcludeDesc: "Caminhos do cofre separados por v\xEDrgulas, ignorados na varredura, por ex. \xABattachments, archive/old\xBB.",
   setStorageRings: "Uso do disco: n\xFAmero de an\xE9is",
-  setStorageRingsDesc: "Quantos n\xEDveis de aninhamento o gr\xE1fico mostra de uma vez."
+  setStorageRingsDesc: "Quantos n\xEDveis de aninhamento o gr\xE1fico mostra de uma vez.",
+  setShowUnread: "Mostrar marcadores de n\xE3o lido",
+  setShowUnreadDesc: "Selo nos arquivos que voc\xEA nunca abriu e ponto nos editados desde a \xFAltima vez que os abriu.",
+  unreadNew: "Novo",
+  unreadModifiedTooltip: "Editado desde a \xFAltima vez que voc\xEA abriu"
 };
 
 // src/locales/zh.ts
@@ -1867,7 +1944,11 @@ var zh = {
   setStorageExclude: "\u78C1\u76D8\u5360\u7528\uFF1A\u6392\u9664\u7684\u6587\u4EF6\u5939",
   setStorageExcludeDesc: "\u4EE5\u9017\u53F7\u5206\u9694\u7684\u4ED3\u5E93\u8DEF\u5F84\uFF0C\u626B\u63CF\u65F6\u8DF3\u8FC7\uFF0C\u4F8B\u5982\u300Cattachments, archive/old\u300D\u3002",
   setStorageRings: "\u78C1\u76D8\u5360\u7528\uFF1A\u73AF\u6570",
-  setStorageRingsDesc: "\u56FE\u8868\u540C\u65F6\u663E\u793A\u7684\u5D4C\u5957\u5C42\u7EA7\u6570\u3002"
+  setStorageRingsDesc: "\u56FE\u8868\u540C\u65F6\u663E\u793A\u7684\u5D4C\u5957\u5C42\u7EA7\u6570\u3002",
+  setShowUnread: "\u663E\u793A\u672A\u8BFB\u6807\u8BB0",
+  setShowUnreadDesc: "\u4E3A\u4ECE\u672A\u6253\u5F00\u8FC7\u7684\u6587\u4EF6\u52A0\u6807\u8BB0\uFF0C\u4E3A\u4E0A\u6B21\u6253\u5F00\u540E\u88AB\u4FEE\u6539\u7684\u6587\u4EF6\u52A0\u5706\u70B9\u3002",
+  unreadNew: "\u65B0",
+  unreadModifiedTooltip: "\u81EA\u4E0A\u6B21\u6253\u5F00\u540E\u5DF2\u4FEE\u6539"
 };
 
 // src/locales/ja.ts
@@ -2058,7 +2139,11 @@ var ja = {
   setStorageExclude: "\u30C7\u30A3\u30B9\u30AF\u4F7F\u7528\u91CF\uFF1A\u9664\u5916\u30D5\u30A9\u30EB\u30C0",
   setStorageExcludeDesc: "\u30AB\u30F3\u30DE\u533A\u5207\u308A\u306E\u4FDD\u7BA1\u5EAB\u30D1\u30B9\u3002\u30B9\u30AD\u30E3\u30F3\u6642\u306B\u30B9\u30AD\u30C3\u30D7\u3055\u308C\u307E\u3059\uFF08\u4F8B\uFF1Aattachments, archive/old\uFF09\u3002",
   setStorageRings: "\u30C7\u30A3\u30B9\u30AF\u4F7F\u7528\u91CF\uFF1A\u30EA\u30F3\u30B0\u6570",
-  setStorageRingsDesc: "\u30C1\u30E3\u30FC\u30C8\u304C\u540C\u6642\u306B\u8868\u793A\u3059\u308B\u30CD\u30B9\u30C8\u306E\u6DF1\u3055\u3002"
+  setStorageRingsDesc: "\u30C1\u30E3\u30FC\u30C8\u304C\u540C\u6642\u306B\u8868\u793A\u3059\u308B\u30CD\u30B9\u30C8\u306E\u6DF1\u3055\u3002",
+  setShowUnread: "\u672A\u8AAD\u30DE\u30FC\u30AB\u30FC\u3092\u8868\u793A",
+  setShowUnreadDesc: "\u4E00\u5EA6\u3082\u958B\u3044\u3066\u3044\u306A\u3044\u30D5\u30A1\u30A4\u30EB\u306B\u30D0\u30C3\u30B8\u3092\u3001\u524D\u56DE\u958B\u3044\u3066\u304B\u3089\u5909\u66F4\u3055\u308C\u305F\u30D5\u30A1\u30A4\u30EB\u306B\u30C9\u30C3\u30C8\u3092\u4ED8\u3051\u307E\u3059\u3002",
+  unreadNew: "\u65B0\u898F",
+  unreadModifiedTooltip: "\u524D\u56DE\u958B\u3044\u3066\u304B\u3089\u5909\u66F4\u3055\u308C\u307E\u3057\u305F"
 };
 
 // src/locales/ko.ts
@@ -2249,7 +2334,11 @@ var ko = {
   setStorageExclude: "\uB514\uC2A4\uD06C \uC0AC\uC6A9\uB7C9: \uC81C\uC678\uB41C \uD3F4\uB354",
   setStorageExcludeDesc: "\uC27C\uD45C\uB85C \uAD6C\uBD84\uB41C \uBCF4\uAD00\uD568 \uACBD\uB85C. \uAC80\uC0AC \uC2DC \uAC74\uB108\uB701\uB2C8\uB2E4. \uC608: \xABattachments, archive/old\xBB.",
   setStorageRings: "\uB514\uC2A4\uD06C \uC0AC\uC6A9\uB7C9: \uB9C1 \uAC1C\uC218",
-  setStorageRingsDesc: "\uCC28\uD2B8\uAC00 \uD55C \uBC88\uC5D0 \uD45C\uC2DC\uD558\uB294 \uC911\uCCA9 \uC218\uC900\uC758 \uC218."
+  setStorageRingsDesc: "\uCC28\uD2B8\uAC00 \uD55C \uBC88\uC5D0 \uD45C\uC2DC\uD558\uB294 \uC911\uCCA9 \uC218\uC900\uC758 \uC218.",
+  setShowUnread: "\uC77D\uC9C0 \uC54A\uC74C \uD45C\uC2DC \uBCF4\uAE30",
+  setShowUnreadDesc: "\uD55C \uBC88\uB3C4 \uC5F4\uC9C0 \uC54A\uC740 \uD30C\uC77C\uC5D0 \uBC30\uC9C0\uB97C, \uB9C8\uC9C0\uB9C9\uC73C\uB85C \uC5F0 \uC774\uD6C4 \uBCC0\uACBD\uB41C \uD30C\uC77C\uC5D0 \uC810\uC744 \uD45C\uC2DC\uD569\uB2C8\uB2E4.",
+  unreadNew: "\uC2E0\uADDC",
+  unreadModifiedTooltip: "\uB9C8\uC9C0\uB9C9\uC73C\uB85C \uC5F0 \uC774\uD6C4 \uBCC0\uACBD\uB428"
 };
 
 // src/i18n.ts
@@ -2290,7 +2379,6 @@ function localeCode() {
 // src/settings.ts
 var import_obsidian2 = require("obsidian");
 var TEXT_INPUT_SAVE_DELAY_MS = 500;
-var FOLDER_COLOR_KEYS = ["red", "orange", "yellow", "green", "cyan", "blue", "purple", "pink"];
 var DEFAULT_SETTINGS = {
   foldersFirst: true,
   showExtensions: true,
@@ -2323,7 +2411,10 @@ var DEFAULT_SETTINGS = {
   favorites: [],
   showFavorites: true,
   mobileUiScale: DEFAULT_MOBILE_SCALE,
-  mobileIconSize: DEFAULT_MOBILE_ICON
+  mobileIconSize: DEFAULT_MOBILE_ICON,
+  showUnreadMarkers: true,
+  seenAt: {},
+  unreadBaseline: 0
 };
 var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
   constructor(app, plugin) {
@@ -2343,7 +2434,8 @@ var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
           { name: t("setFoldersFirst"), desc: t("setFoldersFirstDesc"), control: { type: "toggle", key: "foldersFirst" } },
           { name: t("setShowExt"), desc: t("setShowExtDesc"), control: { type: "toggle", key: "showExtensions" } },
           { name: t("setPreview"), desc: t("setPreviewDesc"), control: { type: "toggle", key: "showPreview" } },
-          { name: t("setMdPreview"), desc: t("setMdPreviewDesc"), control: { type: "toggle", key: "showMarkdownPreview" } }
+          { name: t("setMdPreview"), desc: t("setMdPreviewDesc"), control: { type: "toggle", key: "showMarkdownPreview" } },
+          { name: t("setShowUnread"), desc: t("setShowUnreadDesc"), control: { type: "toggle", key: "showUnreadMarkers" } }
         ]
       },
       {
@@ -2513,6 +2605,10 @@ var ColumnExplorerSettingTab = class extends import_obsidian2.PluginSettingTab {
     }));
     new import_obsidian2.Setting(containerEl).setName(t("setMdPreview")).setDesc(t("setMdPreviewDesc")).addToggle((tg) => tg.setValue(s.showMarkdownPreview).onChange(async (v) => {
       s.showMarkdownPreview = v;
+      await save();
+    }));
+    new import_obsidian2.Setting(containerEl).setName(t("setShowUnread")).setDesc(t("setShowUnreadDesc")).addToggle((tg) => tg.setValue(s.showUnreadMarkers).onChange(async (v) => {
+      s.showUnreadMarkers = v;
       await save();
     }));
     new import_obsidian2.Setting(containerEl).setName(t("headBehavior")).setHeading();
@@ -3097,6 +3193,7 @@ function showFileMenu(view, e, f, depth) {
       for (const p of paths) {
         const file = app.vault.getAbstractFileByPath(p);
         if (file instanceof import_obsidian7.TFile) await duplicateFile(app, file);
+        else if (file instanceof import_obsidian7.TFolder) await duplicateFolder(app, file);
       }
     }));
     menu.addItem((i) => i.setTitle(t("deleteN", { n: paths.length })).setIcon("trash").onClick(() => view.deleteMany(paths)));
@@ -3477,7 +3574,7 @@ function notifyDragManager(app, e, f) {
   } catch (e2) {
   }
 }
-function itemUnderEvent(listEl, e) {
+function itemUnderEvent(e) {
   var _a;
   const target = e.target;
   return (_a = target == null ? void 0 : target.closest(".column-explorer-item")) != null ? _a : null;
@@ -3499,7 +3596,7 @@ function setupColumnDnd(view, listEl, columnFolder, depth) {
   };
   listEl.addEventListener("dragstart", (e) => {
     var _a;
-    const item = itemUnderEvent(listEl, e);
+    const item = itemUnderEvent(e);
     if (!(item == null ? void 0 : item.dataset.path)) return;
     const f = app.vault.getAbstractFileByPath(item.dataset.path);
     if (!f) return;
@@ -3517,8 +3614,8 @@ function setupColumnDnd(view, listEl, columnFolder, depth) {
     e.preventDefault();
     e.stopPropagation();
     if (e.dataTransfer) e.dataTransfer.dropEffect = e.dataTransfer.types.includes("Files") ? "copy" : "move";
-    const targetFolder = folderForItem(app, itemUnderEvent(listEl, e));
-    setHighlight(targetFolder ? itemUnderEvent(listEl, e) : listEl);
+    const targetFolder = folderForItem(app, itemUnderEvent(e));
+    setHighlight(targetFolder ? itemUnderEvent(e) : listEl);
   });
   listEl.addEventListener("dragleave", (e) => {
     if (!listEl.contains(e.relatedTarget)) setHighlight(null);
@@ -3527,7 +3624,7 @@ function setupColumnDnd(view, listEl, columnFolder, depth) {
     var _a, _b, _c, _d;
     e.preventDefault();
     e.stopPropagation();
-    const dropFolder = (_a = folderForItem(app, itemUnderEvent(listEl, e))) != null ? _a : columnFolder;
+    const dropFolder = (_a = folderForItem(app, itemUnderEvent(e))) != null ? _a : columnFolder;
     setHighlight(null);
     const osFiles = (_b = e.dataTransfer) == null ? void 0 : _b.files;
     if (!activeDragPaths && osFiles && osFiles.length > 0) {
@@ -3537,7 +3634,7 @@ function setupColumnDnd(view, listEl, columnFolder, depth) {
     const paths = activeDragPaths != null ? activeDragPaths : parseDragPaths((_d = (_c = e.dataTransfer) == null ? void 0 : _c.getData("text/plain")) != null ? _d : "");
     activeDragPaths = null;
     if (paths.length === 0) return;
-    if (paths.length === 1 && reorderPinned(view, paths[0], itemUnderEvent(listEl, e))) return;
+    if (paths.length === 1 && reorderPinned(view, paths[0], itemUnderEvent(e))) return;
     void moveFiles(app, paths, dropFolder).then(() => view.clearMulti());
   });
 }
@@ -3772,6 +3869,7 @@ function buildItem(view, f, depth, isGrid = false) {
   } else {
     title.setText(name);
   }
+  addUnreadMarker(view, item, f);
   if (view.plugin.settings.pinnedPaths[f.path] !== void 0) {
     const pin = item.createDiv({ cls: "column-explorer-item-pin" });
     (0, import_obsidian10.setIcon)(pin, "pin");
@@ -3783,6 +3881,31 @@ function buildItem(view, f, depth, isGrid = false) {
     item.createDiv({ cls: "column-explorer-item-ext", text: f.extension });
   }
   return item;
+}
+function addUnreadMarker(view, item, f) {
+  const s = view.plugin.settings;
+  if (!s.showUnreadMarkers || !(f instanceof import_obsidian10.TFile)) return;
+  const state = unreadState(f.stat, s.seenAt[f.path], s.unreadBaseline);
+  if (!state) return;
+  const marker = state === "new" ? createDiv({ cls: "column-explorer-item-badge", text: t("unreadNew") }) : createDiv({ cls: "column-explorer-item-dot", attr: { "aria-label": t("unreadModifiedTooltip") } });
+  item.addClass(state === "new" ? "has-unread-new" : "has-unread-mod");
+  const title = item.querySelector(".column-explorer-item-title");
+  if (title) item.insertBefore(marker, title);
+  else item.appendChild(marker);
+}
+function refreshUnreadMarker(view, container, path) {
+  const items = container.querySelectorAll(
+    `.column-explorer-item[data-path="${CSS.escape(path)}"]`
+  );
+  items.forEach((item) => {
+    var _a, _b;
+    item.removeClass("has-unread-new");
+    item.removeClass("has-unread-mod");
+    (_a = item.querySelector(".column-explorer-item-badge")) == null ? void 0 : _a.remove();
+    (_b = item.querySelector(".column-explorer-item-dot")) == null ? void 0 : _b.remove();
+    const f = view.app.vault.getAbstractFileByPath(path);
+    if (f) addUnreadMarker(view, item, f);
+  });
 }
 function buildSpecialItems(view) {
   const items = [];
@@ -4236,6 +4359,9 @@ async function countVaultWords(vault, cache, onProgress, isExcluded = () => fals
       onProgress(done, files.length);
     }
   }
+  for (const path of cache.keys()) {
+    if (!result.has(path)) cache.delete(path);
+  }
   return result;
 }
 function indexTree(root) {
@@ -4376,9 +4502,15 @@ var SunburstController = class extends import_obsidian12.Component {
   rings() {
     return this.owner.plugin.settings.storageRingCount;
   }
-  /** Сканы выстраиваются в очередь: событие vault, настройки и кнопка не пересекаются. */
+  /**
+   * Сканы выстраиваются в очередь: событие vault, настройки и кнопка не
+   * пересекаются. Отказ гасится здесь же: rejected-промис в хвосте цепочки
+   * молча проглотил бы ВСЕ последующие сканы, и диаграмма навсегда застыла
+   * бы на старых данных. Скан — best effort, как и словосчёт внутри него.
+   */
   rescan(intro) {
-    this.rescanChain = this.rescanChain.then(() => this.doRescan(intro));
+    this.rescanChain = this.rescanChain.then(() => this.doRescan(intro)).catch(() => {
+    });
     return this.rescanChain;
   }
   async doRescan(intro) {
@@ -4870,8 +5002,8 @@ var ColumnExplorerView = class extends import_obsidian13.ItemView {
     return { selection: this.selection };
   }
   async setState(state, result) {
-    if ((state == null ? void 0 : state.selection) && Array.isArray(state.selection)) {
-      this.selection = state.selection;
+    if (Array.isArray(state == null ? void 0 : state.selection)) {
+      this.selection = state.selection.filter((p) => typeof p === "string");
       if (this.columnsEl) this.render();
     }
     return super.setState(state, result);
@@ -5256,6 +5388,7 @@ var ColumnExplorerView = class extends import_obsidian13.ItemView {
     const prevScrollLeft = this.columnsEl.scrollLeft;
     disconnectListObservers(this.columnsEl);
     this.columnsEl.empty();
+    this.renamingPath = null;
     this.applyColumnWidth();
     const validSel = [];
     const special = this.specialKind(this.selection[0]);
@@ -5449,6 +5582,11 @@ var ColumnExplorerView = class extends import_obsidian13.ItemView {
       `.column-explorer-item[data-path="${CSS.escape(active.path)}"]`
     );
     item == null ? void 0 : item.addClass("is-active-file");
+  }
+  /** Точечно обновить маркер непрочитанного — без ре-рендера колонки. */
+  updateUnreadMarker(path) {
+    if (!this.columnsEl) return;
+    refreshUnreadMarker(this, this.columnsEl, path);
   }
   /* ----------------------------- actions --------------------------- */
   /** Паттерны исключений — виртуальные колонки фильтруются как обычные. */
@@ -6033,21 +6171,34 @@ var ColumnExplorerPlugin = class extends import_obsidian14.Plugin {
     }
     this.register(() => this.saveQueued.run());
     this.registerEvent(this.app.workspace.on("file-open", (f) => {
-      var _a;
+      var _a, _b;
       if (!f) return;
       this.settings.recentFiles = pushRecent(this.settings.recentFiles, f.path, MAX_RECENT_FILES);
+      this.markSeen(f.path, Date.now());
       this.saveQueued();
-      (_a = this.getView()) == null ? void 0 : _a.refreshRecentsColumn(f.path);
+      (_a = this.getView()) == null ? void 0 : _a.updateUnreadMarker(f.path);
+      (_b = this.getView()) == null ? void 0 : _b.refreshRecentsColumn(f.path);
     }));
     this.registerEvent(this.app.vault.on("rename", (f, oldPath) => {
       this.settings.recentFiles = remapPathList(this.settings.recentFiles, oldPath, f.path);
       this.settings.favorites = remapPathList(this.settings.favorites, oldPath, f.path);
+      this.settings.seenAt = remapPathKeys(this.settings.seenAt, oldPath, f.path);
       this.saveQueued();
     }));
     this.registerEvent(this.app.vault.on("delete", (f) => {
       const dropDeleted = (p) => p !== f.path && !p.startsWith(f.path + "/");
       this.settings.recentFiles = this.settings.recentFiles.filter(dropDeleted);
       this.settings.favorites = this.settings.favorites.filter(dropDeleted);
+      this.settings.seenAt = prunePathKeys(this.settings.seenAt, f.path);
+      this.saveQueued();
+    }));
+    this.registerEvent(this.app.vault.on("modify", (f) => {
+      var _a, _b;
+      if (((_a = this.app.workspace.getActiveFile()) == null ? void 0 : _a.path) !== f.path) {
+        (_b = this.getView()) == null ? void 0 : _b.updateUnreadMarker(f.path);
+        return;
+      }
+      this.markSeen(f.path, f instanceof import_obsidian14.TFile ? f.stat.mtime : Date.now());
       this.saveQueued();
     }));
     this.registerView(VIEW_TYPE_COLUMNS, (leaf) => new ColumnExplorerView(leaf, this));
@@ -6122,17 +6273,22 @@ var ColumnExplorerPlugin = class extends import_obsidian14.Plugin {
         Object.entries(widths).filter(([k]) => !staleDayKeys.includes(k))
       );
     }
+    if (this.settings.unreadBaseline === 0) {
+      this.settings.unreadBaseline = Date.now();
+    }
     this.migratePinnedPaths();
   }
   /** v1.3.x stored pins as `true`; convert to numeric order once. */
   migratePinnedPaths() {
     const raw = this.settings.pinnedPaths;
-    const numeric = Object.values(raw).filter((v) => typeof v === "number");
+    const entries = typeof raw === "object" && raw !== null && !Array.isArray(raw) ? Object.entries(raw) : [];
+    const isOrder = (v) => typeof v === "number" && Number.isFinite(v);
+    const numeric = entries.map(([, v]) => v).filter(isOrder);
     let next = numeric.length > 0 ? Math.max(...numeric) + 1 : 0;
     const migrated = {};
-    for (const path of Object.keys(raw)) {
-      const value = raw[path];
-      migrated[path] = typeof value === "number" ? value : next++;
+    for (const [path, value] of entries) {
+      if (isOrder(value)) migrated[path] = value;
+      else if (value === true) migrated[path] = next++;
     }
     this.settings.pinnedPaths = migrated;
   }
@@ -6142,6 +6298,10 @@ var ColumnExplorerPlugin = class extends import_obsidian14.Plugin {
   /** Запись настроек со склейкой — для событий, приходящих пачками. */
   queueSaveSettings() {
     this.saveQueued();
+  }
+  /** Отметить файл прочитанным на момент `at`. Настройки не мутируются. */
+  markSeen(path, at) {
+    this.settings.seenAt = { ...this.settings.seenAt, [path]: at };
   }
   /** Лист вью, даже если она ещё отложена (Obsidian 1.7.2+). */
   getViewLeaf() {
